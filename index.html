@@ -602,27 +602,53 @@ async function carregarNuvem() {
   if (savedMins > 0 && !_autoInterval) {
     _autoInterval = setInterval(() => carregarNuvem(), savedMins * 60000);
   }
+  // Carrega backup local primeiro (evita tela vazia enquanto busca nuvem)
+  try {
+    const local = localStorage.getItem('auditorias_local');
+    if (local) auditorias = JSON.parse(local);
+  } catch(e) {}
+  renderTabela(); // renderiza com dados locais imediatamente
+
   try {
     const r = await fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_ID + '/latest', {
       headers: { 'X-Master-Key': JSONBIN_KEY }
     });
     if (r.ok) {
       const d = await r.json();
-      auditorias = d.record.auditorias || {};
+      const nuvem = d.record.auditorias || {};
+      // Mescla: mantém registros mais recentes entre local e nuvem
+      Object.keys(nuvem).forEach(lj => {
+        if (!auditorias[lj] || nuvem[lj].length >= auditorias[lj].length) {
+          auditorias[lj] = nuvem[lj];
+        }
+      });
+      localStorage.setItem('auditorias_local', JSON.stringify(auditorias));
+      renderTabela();
+    } else {
+      console.warn('JSONbin retornou', r.status, '— usando dados locais.');
     }
-  } catch(e) { console.warn('Nuvem offline:', e); }
+  } catch(e) { console.warn('Nuvem offline, usando dados locais:', e); }
   carregarVencidosNuvem();
-  renderTabela();
 }
 
 async function salvarNuvem() {
+  // Sempre salva localmente primeiro (garante persistência mesmo sem internet)
+  try { localStorage.setItem('auditorias_local', JSON.stringify(auditorias)); } catch(e) {}
   try {
-    await fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_ID, {
+    const r = await fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_ID, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
       body: JSON.stringify({ auditorias })
     });
-  } catch(e) { console.warn('Erro ao salvar:', e); }
+    if (!r.ok) {
+      const txt = await r.text().catch(() => r.status);
+      console.warn('JSONbin erro ao salvar:', txt);
+      toast('⚠️ Salvo localmente. Nuvem retornou erro ' + r.status + '.');
+    }
+  } catch(e) {
+    console.warn('Erro ao salvar na nuvem:', e);
+    toast('⚠️ Sem conexão — auditoria salva localmente.');
+  }
 }
 
 async function salvarVencidosNuvem() {
