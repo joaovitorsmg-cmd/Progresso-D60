@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Auditoria D60 — Agroquima</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root {
     --azul:     #1E3A8A;
@@ -545,6 +546,14 @@ function sair() {
 // JSONBIN
 // ════════════════════════════════════════════════════════════════════
 async function carregarNuvem() {
+  const savedVenId  = localStorage.getItem('ven_id');
+  const savedVenKey = localStorage.getItem('ven_key');
+  const savedMins   = parseInt(localStorage.getItem('auto_min') || '0');
+  if (savedVenId)  JSONBIN_VEN_ID  = savedVenId;
+  if (savedVenKey) JSONBIN_VEN_KEY = savedVenKey;
+  if (savedMins > 0 && !_autoInterval) {
+    _autoInterval = setInterval(() => carregarNuvem(), savedMins * 60000);
+  }
   try {
     const r = await fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_ID + '/latest', {
       headers: { 'X-Master-Key': JSONBIN_KEY }
@@ -825,6 +834,11 @@ function renderDetalhe(lj) {
 
   let html = '';
 
+  html += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">';
+  html += '<button onclick="exportarXLSX(' + lj + ')" title="Exportar XLSX" style="background:#1E3A8A;color:#93C5FD;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px">📊 XLSX</button>';
+  html += '<button onclick="exportarPNG(' + lj + ')" title="Exportar PNG" style="background:#1E3A8A;color:#93C5FD;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px">🖼 PNG</button>';
+  html += '</div>';
+
   // Header
   html += '<div class="right-header">';
   html += '<div class="right-loja">LJ ' + lj.toString().padStart(2,'0') + ' · ' + base.loja + '</div>';
@@ -848,15 +862,30 @@ function renderDetalhe(lj) {
   if (MODO === 'auditoria') {
     html += '<div class="audit-panel">';
     html += '<div class="audit-panel-title">✏️ Registrar Auditoria</div>';
-    html += '<div style="font-size:12px;color:#856404;margin-bottom:8px">';
-    html += 'Auditor: <b>' + AUDITOR_ATUAL + '</b><br>';
-    html += 'Semana de referência: <b>' + formatarData(semRef) + '</b>';
-    if (d60a !== null) html += '<br>D60 desta semana: <b>' + formatMoeda(d60a) + '</b>';
+    html += '<div style="font-size:12px;color:var(--amar);margin-bottom:12px">Auditor: <b>' + AUDITOR_ATUAL + '</b></div>';
+
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">';
+
+    // Date of previous audit
+    html += '<div>';
+    html += '<label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;display:block;margin-bottom:4px">Semana de referência anterior</label>';
+    html += '<input type="date" id="audit-data-ant" onchange="calcularPreviewAuditoria(' + lj + ')" style="width:100%;padding:8px 10px;border:1.5px solid #1E3A5F;border-radius:6px;font-size:13px;background:#0A1628;color:var(--texto);outline:none">';
+    html += '<div id="audit-d60-ant-preview" style="font-size:11px;color:#64748B;margin-top:4px">Selecione a data anterior</div>';
     html += '</div>';
-    html += '<input type="date" id="audit-data" value="' + hoje() + '">';
-    html += '<button class="btn-registrar" onclick="registrarAuditoria(' + lj + ')">';
-    html += 'Confirmar — Auditei esta filial';
-    html += '</button>';
+
+    // Date of this audit
+    html += '<div>';
+    html += '<label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;display:block;margin-bottom:4px">Data desta auditoria</label>';
+    html += '<input type="date" id="audit-data" value="' + hoje() + '" onchange="calcularPreviewAuditoria(' + lj + ')" style="width:100%;padding:8px 10px;border:1.5px solid #1E3A5F;border-radius:6px;font-size:13px;background:#0A1628;color:var(--texto);outline:none">';
+    html += '<div id="audit-d60-at-preview" style="font-size:11px;color:#64748B;margin-top:4px">Semana atual: <b>' + formatarData(semanaAtual) + '</b></div>';
+    html += '</div>';
+
+    html += '</div>'; // end grid
+
+    // Preview result
+    html += '<div id="audit-preview-result" style="background:#0A1628;border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;color:#94A3B8;min-height:40px">Selecione as datas para calcular a variação.</div>';
+
+    html += '<button class="btn-registrar" onclick="registrarAuditoria(' + lj + ')">Confirmar — Auditei esta filial</button>';
     html += '</div>';
   }
 
@@ -926,7 +955,120 @@ function renderDetalhe(lj) {
   }
   html += '</div>';
 
+  // Hidden export div
+  html += '<div id="export-area" style="display:none;background:#fff;color:#111;padding:24px;font-family:Arial,sans-serif;width:700px">';
+  const base2 = BASE_REGIONAIS.find(b => b.lj === lj);
+  html += '<div style="border-bottom:3px solid #1E3A8A;padding-bottom:12px;margin-bottom:16px">';
+  html += '<div style="font-size:11px;letter-spacing:2px;color:#1E3A8A;font-weight:700">AGROQUIMA · AUDITORIA D60</div>';
+  html += '<div style="font-size:20px;font-weight:900;color:#0A1628;margin:4px 0">LJ ' + lj.toString().padStart(2,'0') + ' · ' + (base2 ? base2.loja : '') + '</div>';
+  html += '<div style="font-size:12px;color:#444">Regional: ' + (base2 ? base2.regional : '') + ' · Gerente: ' + (base2 ? base2.gerente : '') + ' · Auditor: ' + (base2 ? base2.auditor : '') + ' · ' + (base2 ? base2.estado : '') + '</div>';
+  html += '</div>';
+  // KPIs
+  const d60aEx  = getD60Atual(lj);
+  const d60antEx= getD60RefAuditoria(lj);
+  const varValEx= (d60aEx !== null && d60antEx !== null) ? d60aEx - d60antEx : null;
+  const varPctEx= (varValEx !== null && d60antEx) ? varValEx / d60antEx * 100 : null;
+  const pontEx  = getPontuou(lj);
+  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">';
+  html += kpiBoxExp('D60 Atual',    d60aEx   !== null ? formatMoeda(d60aEx)   : '—', '#1E3A8A');
+  html += kpiBoxExp('D60 Anterior', d60antEx !== null ? formatMoeda(d60antEx) : '—', '#374151');
+  html += kpiBoxExp('Variação',     varValEx !== null ? (varValEx>0?'+':'')+formatMoeda(varValEx)+' ('+varPctEx.toFixed(1)+'%)' : '—', varValEx===null?'#374151':(varValEx<0?'#065F46':'#991B1B'));
+  html += kpiBoxExp('Pontuou',      pontEx===true?'✓ SIM':(pontEx===false?'✗ NÃO':'—'), pontEx===true?'#065F46':(pontEx===false?'#991B1B':'#374151'));
+  html += '</div>';
+  // Histórico D60
+  const histEx = D60_HIST[lj] || {};
+  const semsEx = Object.keys(histEx).sort().slice(-8).reverse();
+  if (semsEx.length) {
+    html += '<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;color:#1E3A8A;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Histórico D60 (últimas 8 semanas)</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html += '<tr style="background:#E8EFF8"><th style="text-align:left;padding:5px 8px;font-size:11px">Semana</th><th style="text-align:right;padding:5px 8px;font-size:11px">D60</th></tr>';
+    semsEx.forEach(s => {
+      const isCurr = s === semanaAtual;
+      html += '<tr style="border-bottom:1px solid #E5E7EB' + (isCurr ? ';background:#DBEAFE;font-weight:700' : '') + '">';
+      html += '<td style="padding:5px 8px">' + formatarData(s) + (isCurr ? ' ◀' : '') + '</td>';
+      html += '<td style="padding:5px 8px;text-align:right">' + formatMoeda(histEx[s]) + '</td></tr>';
+    });
+    html += '</table></div>';
+  }
+  // Títulos vencidos ordenados do maior para menor
+  const titulosEx = (vencidosData[lj] || []).slice().sort((a,b) => b.valor - a.valor);
+  if (titulosEx.length) {
+    html += '<div><div style="font-size:11px;font-weight:700;color:#1E3A8A;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Títulos Vencidos (' + titulosEx.length + ') — maiores primeiro</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
+    html += '<tr style="background:#E8EFF8"><th style="text-align:left;padding:4px 6px">Cliente</th><th style="text-align:left;padding:4px 6px">Representante</th><th style="text-align:center;padding:4px 6px">Vencimento</th><th style="text-align:center;padding:4px 6px">Atraso</th><th style="text-align:right;padding:4px 6px">Valor</th></tr>';
+    titulosEx.forEach((t,i) => {
+      html += '<tr style="border-bottom:1px solid #E5E7EB;background:' + (i%2===0?'#fff':'#F9FAFB') + '">';
+      html += '<td style="padding:4px 6px">' + (t.cliente||'—') + '</td>';
+      html += '<td style="padding:4px 6px;font-size:10px;color:#555">' + (t.representante||'—') + '</td>';
+      html += '<td style="padding:4px 6px;text-align:center">' + formatarData(t.vencto) + '</td>';
+      html += '<td style="padding:4px 6px;text-align:center">' + t.atraso + 'd</td>';
+      html += '<td style="padding:4px 6px;text-align:right;font-weight:700">' + formatMoeda(t.valor) + '</td></tr>';
+    });
+    html += '</table></div>';
+  }
+  html += '</div>'; // end export-area
+
   document.getElementById('panel-right').innerHTML = html;
+}
+
+function kpiBoxExp(label, val, color) {
+  return '<div style="background:#F1F5F9;border-radius:8px;padding:10px 12px;border-left:4px solid ' + color + '">' +
+    '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6B7280;margin-bottom:3px">' + label + '</div>' +
+    '<div style="font-size:13px;font-weight:700;color:' + color + '">' + val + '</div></div>';
+}
+
+function exportarXLSX(lj) {
+  const base = BASE_REGIONAIS.find(b => b.lj === lj);
+  if (!base) return;
+  const d60a   = getD60Atual(lj);
+  const d60ant = getD60RefAuditoria(lj);
+  const varVal = (d60a !== null && d60ant !== null) ? d60a - d60ant : null;
+  const pont   = getPontuou(lj);
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Resumo
+  const resumo = [
+    ['AGROQUIMA — AUDITORIA D60'],
+    ['LJ', lj, 'Filial', base.loja],
+    ['Regional', base.regional, 'Gerente', base.gerente],
+    ['Auditor', base.auditor, 'Estado', base.estado],
+    [],
+    ['D60 Atual', d60a, 'D60 Anterior', d60ant],
+    ['Variação (R$)', varVal, 'Variação (%)', (varVal !== null && d60ant) ? (varVal/d60ant*100).toFixed(2)+'%' : '—'],
+    ['Pontuou', pont === true ? 'SIM' : (pont === false ? 'NÃO' : '—')],
+    [],
+    ['HISTÓRICO D60'],
+    ['Semana', 'Valor'],
+  ];
+  const histEx = D60_HIST[lj] || {};
+  Object.keys(histEx).sort().slice(-8).reverse().forEach(s => resumo.push([s, histEx[s]]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumo), 'Resumo');
+
+  // Sheet 2: Títulos
+  const titulosEx = (vencidosData[lj] || []).slice().sort((a,b) => b.valor - a.valor);
+  const titSheet = [['Cliente','Representante','Vencimento','Atraso (dias)','Emissão','NF','Lote','Valor','Situação']];
+  titulosEx.forEach(t => titSheet.push([t.cliente, t.representante, t.vencto, t.atraso, t.emissao, t.nf, t.lote, t.valor, t.sit]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(titSheet), 'Títulos');
+
+  XLSX.writeFile(wb, 'D60_LJ' + lj + '_' + base.loja.replace(/\s/g,'_') + '.xlsx');
+}
+
+async function exportarPNG(lj) {
+  const el = document.getElementById('export-area');
+  if (!el) { toast('Nenhuma filial selecionada.'); return; }
+  el.style.display = 'block';
+  try {
+    const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2 });
+    el.style.display = 'none';
+    const link = document.createElement('a');
+    const base = BASE_REGIONAIS.find(b => b.lj === lj);
+    link.download = 'D60_LJ' + lj + '_' + (base ? base.loja.replace(/\s/g,'_') : '') + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) {
+    el.style.display = 'none';
+    toast('Erro ao gerar imagem: ' + e.message);
+  }
 }
 
 function infoBox(label, val, cls) {
@@ -938,13 +1080,23 @@ function infoBox(label, val, cls) {
 // REGISTRAR AUDITORIA
 // ════════════════════════════════════════════════════════════════════
 function registrarAuditoria(lj) {
-  const dataAudit = document.getElementById('audit-data').value;
+  const dataAudit = document.getElementById('audit-data') ? document.getElementById('audit-data').value : '';
   if (!dataAudit) { toast('Informe a data da auditoria.'); return; }
 
-  const d60_ref   = getD60Atual(lj);
-  const d60_ant   = getD60RefAuditoria(lj);
-  const pontuou   = d60_ref !== null && d60_ant !== null ? d60_ref < d60_ant : null;
-  const semana_ref= semanaAtual;
+  const prevEl = document.getElementById('audit-preview-result');
+  let d60_ref  = getD60Atual(lj);
+  let d60_ant  = null;
+  let pontuou  = null;
+  let semana_ref = semanaAtual;
+
+  if (prevEl && prevEl.dataset.d60Ant !== undefined && prevEl.dataset.d60Ant !== '') {
+    d60_ant  = parseFloat(prevEl.dataset.d60Ant);
+    pontuou  = prevEl.dataset.pontuou === 'true' ? true : (prevEl.dataset.pontuou === 'false' ? false : null);
+  } else {
+    // fallback: use last audit
+    d60_ant = getD60RefAuditoria(lj);
+    pontuou = d60_ref !== null && d60_ant !== null ? d60_ref < d60_ant : null;
+  }
 
   if (!auditorias[lj]) auditorias[lj] = [];
   auditorias[lj].push({
@@ -963,6 +1115,71 @@ function registrarAuditoria(lj) {
   const base = BASE_REGIONAIS.find(b => b.lj === lj);
   toast('✅ Auditoria registrada — ' + (base ? base.loja : 'LJ ' + lj) +
     (pontuou === true ? ' · PONTUOU ✓' : pontuou === false ? ' · NÃO PONTUOU ✗' : ''));
+}
+
+function calcularPreviewAuditoria(lj) {
+  const dataAnt = document.getElementById('audit-data-ant') ? document.getElementById('audit-data-ant').value : '';
+  const dataAt  = document.getElementById('audit-data') ? document.getElementById('audit-data').value : '';
+  const hist = D60_HIST[lj] || {};
+  const semanas = Object.keys(hist).sort();
+
+  function semMaisProxima(data) {
+    if (!data || !semanas.length) return null;
+    // Find the closest week <= data
+    let best = null;
+    for (const s of semanas) {
+      if (s <= data) best = s;
+    }
+    if (!best) best = semanas[0];
+    return best;
+  }
+
+  const semAnt = semMaisProxima(dataAnt);
+  const d60Ant = semAnt ? hist[semAnt] : null;
+  const semAt  = semanaAtual; // always use the current week
+  const d60At  = getD60Atual(lj);
+
+  const prevEl = document.getElementById('audit-preview-result');
+  const antPrev = document.getElementById('audit-d60-ant-preview');
+
+  if (antPrev) {
+    antPrev.textContent = semAnt ? 'Semana: ' + formatarData(semAnt) + ' → ' + formatMoeda(d60Ant) : 'Selecione a data anterior';
+  }
+
+  if (!prevEl) return;
+
+  if (!dataAnt) {
+    prevEl.innerHTML = '<span style="color:#64748B">Selecione a data da auditoria anterior para calcular.</span>';
+    return;
+  }
+  if (d60At === null) {
+    prevEl.innerHTML = '<span style="color:#64748B">D60 atual não disponível.</span>';
+    return;
+  }
+
+  const varVal = d60Ant !== null ? d60At - d60Ant : null;
+  const varPct = (varVal !== null && d60Ant) ? varVal / d60Ant * 100 : null;
+  const pontuou = varVal !== null ? varVal < 0 : null;
+
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+  html += '<div><div style="font-size:9px;color:#64748B;text-transform:uppercase">D60 Anterior</div><div style="font-weight:700;color:var(--texto)">' + (d60Ant !== null ? formatMoeda(d60Ant) : '—') + '</div><div style="font-size:9px;color:#475569">' + (semAnt ? formatarData(semAnt) : '') + '</div></div>';
+  html += '<div><div style="font-size:9px;color:#64748B;text-transform:uppercase">D60 Atual</div><div style="font-weight:700;color:var(--texto)">' + formatMoeda(d60At) + '</div><div style="font-size:9px;color:#475569">' + formatarData(semAt) + '</div></div>';
+  html += '<div><div style="font-size:9px;color:#64748B;text-transform:uppercase">Variação</div>';
+  if (varVal !== null) {
+    const cor = varVal < 0 ? 'var(--verde)' : (varVal > 0 ? 'var(--verm)' : 'var(--texto)');
+    html += '<div style="font-weight:700;color:' + cor + '">' + (varVal > 0 ? '+' : '') + formatMoeda(varVal) + '</div>';
+    html += '<div style="font-size:9px;color:' + cor + '">' + (varPct > 0 ? '+' : '') + varPct.toFixed(1) + '% · ' + (pontuou ? '✓ PONTUOU' : '✗ NÃO PONTUOU') + '</div>';
+  } else {
+    html += '<div style="color:#64748B">—</div>';
+  }
+  html += '</div>';
+  html += '</div>';
+  prevEl.innerHTML = html;
+
+  // Store calculated values for use in registrarAuditoria
+  prevEl.dataset.d60Ant = d60Ant !== null ? d60Ant : '';
+  prevEl.dataset.semAnt = semAnt || '';
+  prevEl.dataset.pontuou = pontuou === null ? '' : String(pontuou);
 }
 
 function excluirAuditoria(lj, idx) {
@@ -1041,6 +1258,7 @@ function configClick() {
   _configTimer = setTimeout(() => _configClicks = 0, 2000);
   if (_configClicks >= 5) {
     _configClicks = 0;
+    document.getElementById('cfg-intervalo').value = localStorage.getItem('auto_min') || '0';
     document.getElementById('cfg-ven-id').value = JSONBIN_VEN_ID;
     document.getElementById('cfg-ven-key').value = JSONBIN_VEN_KEY;
     document.getElementById('config-modal').style.display = 'flex';
@@ -1055,6 +1273,9 @@ function salvarConfig() {
   const venKey = document.getElementById('cfg-ven-key').value.trim();
   if (venId)  JSONBIN_VEN_ID  = venId;
   if (venKey) JSONBIN_VEN_KEY = venKey;
+  localStorage.setItem('ven_id',  JSONBIN_VEN_ID);
+  localStorage.setItem('ven_key', JSONBIN_VEN_KEY);
+  localStorage.setItem('auto_min', mins);
   clearInterval(_autoInterval);
   if (mins > 0) {
     _autoInterval = setInterval(() => carregarNuvem(), mins * 60000);
