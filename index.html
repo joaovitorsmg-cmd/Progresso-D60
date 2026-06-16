@@ -428,14 +428,18 @@
 
 <div id="toast"></div>
 
-<div id="config-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:10px;padding:24px;min-width:300px;max-width:400px">
-    <div style="font-weight:700;font-size:15px;margin-bottom:16px;color:#1a2940">⚙️ Configurações</div>
-    <label style="font-size:13px;color:#444;display:block;margin-bottom:6px">Auto-atualização da nuvem (minutos, 0 = desativado):</label>
-    <input id="cfg-intervalo" type="number" min="0" max="60" value="0" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:14px;margin-bottom:16px">
+<div id="config-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#112240;border:1px solid #1E3A5F;border-radius:10px;padding:24px;min-width:340px;max-width:440px;color:#CBD5E1">
+    <div style="font-weight:700;font-size:15px;margin-bottom:16px;color:#93C5FD">⚙️ Configurações</div>
+    <label style="font-size:12px;color:#94A3B8;display:block;margin-bottom:4px">Auto-atualização da nuvem (min, 0 = off):</label>
+    <input id="cfg-intervalo" type="number" min="0" max="60" value="0" style="width:100%;padding:8px;border:1px solid #1E3A5F;border-radius:6px;font-size:13px;margin-bottom:14px;background:#0A1628;color:#CBD5E1">
+    <label style="font-size:12px;color:#94A3B8;display:block;margin-bottom:4px">JSONbin ID (Vencidos compartilhado):</label>
+    <input id="cfg-ven-id" type="text" placeholder="ID do bin de vencidos" style="width:100%;padding:8px;border:1px solid #1E3A5F;border-radius:6px;font-size:13px;margin-bottom:14px;background:#0A1628;color:#CBD5E1">
+    <label style="font-size:12px;color:#94A3B8;display:block;margin-bottom:4px">JSONbin Master Key (Vencidos):</label>
+    <input id="cfg-ven-key" type="password" placeholder="Master key" style="width:100%;padding:8px;border:1px solid #1E3A5F;border-radius:6px;font-size:13px;margin-bottom:16px;background:#0A1628;color:#CBD5E1">
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button onclick="fecharConfig()" style="padding:8px 16px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer">Cancelar</button>
-      <button onclick="salvarConfig()" style="padding:8px 16px;background:#1a2940;color:#fff;border:none;border-radius:6px;cursor:pointer">Salvar</button>
+      <button onclick="fecharConfig()" style="padding:8px 16px;border:1px solid #1E3A5F;background:#0A1628;color:#CBD5E1;border-radius:6px;cursor:pointer">Cancelar</button>
+      <button onclick="salvarConfig()" style="padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700">Salvar</button>
     </div>
   </div>
 </div>
@@ -1037,6 +1041,8 @@ function configClick() {
   _configTimer = setTimeout(() => _configClicks = 0, 2000);
   if (_configClicks >= 5) {
     _configClicks = 0;
+    document.getElementById('cfg-ven-id').value = JSONBIN_VEN_ID;
+    document.getElementById('cfg-ven-key').value = JSONBIN_VEN_KEY;
     document.getElementById('config-modal').style.display = 'flex';
   }
 }
@@ -1045,14 +1051,19 @@ function fecharConfig() {
 }
 function salvarConfig() {
   const mins = parseInt(document.getElementById('cfg-intervalo').value) || 0;
+  const venId  = document.getElementById('cfg-ven-id').value.trim();
+  const venKey = document.getElementById('cfg-ven-key').value.trim();
+  if (venId)  JSONBIN_VEN_ID  = venId;
+  if (venKey) JSONBIN_VEN_KEY = venKey;
   clearInterval(_autoInterval);
   if (mins > 0) {
     _autoInterval = setInterval(() => carregarNuvem(), mins * 60000);
     toast('Auto-atualização a cada ' + mins + ' min ativada.');
   } else {
-    toast('Auto-atualização desativada.');
+    toast('Configurações salvas.');
   }
   fecharConfig();
+  if (venId && venKey) carregarVencidosNuvem();
 }
 </script>
 </body>
