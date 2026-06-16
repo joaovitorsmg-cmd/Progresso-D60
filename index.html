@@ -102,13 +102,13 @@
 
   /* ── FILTROS ─────────────────────────────────────────────────────── */
   .filtros-bar {
-    background: var(--cinza-cl); border-bottom: 1px solid var(--cinza-bd);
+    background: #0A1628; border-bottom: 1px solid var(--cinza-bd);
     padding: 10px 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   }
   .filtro-label { font-size: 12px; font-weight: 700; color: var(--azul); text-transform: uppercase; letter-spacing: .5px; }
   .filtros-bar select {
     padding: 7px 12px; border: 1.5px solid var(--cinza-bd); border-radius: 6px;
-    font-size: 13px; color: var(--texto); background: var(--branco); outline: none;
+    font-size: 13px; color: var(--texto); background: #112240; outline: none;
     cursor: pointer; min-width: 160px;
   }
   .filtros-bar select:focus { border-color: var(--azul-cl); }
@@ -122,11 +122,11 @@
   /* ── KPI STRIP ──────────────────────────────────────────────────── */
   .kpi-strip {
     display: grid; grid-template-columns: repeat(5, 1fr);
-    gap: 12px; padding: 16px 28px; background: var(--branco);
+    gap: 12px; padding: 16px 28px; background: #0D1F35;
     border-bottom: 1px solid var(--cinza-bd);
   }
   .kpi-card {
-    background: var(--cinza-cl); border-radius: 10px; padding: 14px 16px;
+    background: #112240; border-radius: 10px; padding: 14px 16px;
     border-left: 4px solid var(--azul-med);
   }
   .kpi-card.verde  { border-left-color: var(--verde); background: var(--verde-bg); }
@@ -143,7 +143,7 @@
   .main { display: grid; grid-template-columns: 1fr 380px; gap: 0; min-height: calc(100vh - 220px); }
   .panel-left { padding: 20px 28px; overflow-y: auto; }
   .panel-right {
-    background: var(--branco); border-left: 1.5px solid var(--cinza-bd);
+    background: #0D1F35; border-left: 1.5px solid var(--cinza-bd);
     padding: 20px; overflow-y: auto;
   }
 
@@ -163,9 +163,9 @@
   thead th:first-child { border-radius: 6px 0 0 0; }
   thead th:last-child  { border-radius: 0 6px 0 0; }
   tbody tr { cursor: pointer; transition: background .15s; border-bottom: 1px solid var(--cinza-bd); }
-  tbody tr:nth-child(even) { background: var(--azul-xc); }
+  tbody tr:nth-child(even) { background: #0D1F35; }
   tbody tr:hover { background: var(--azul-bg) !important; }
-  tbody tr.selected { background: #BFDBFE !important; }
+  tbody tr.selected { background: #1E3A8A !important; }
   tbody td { padding: 9px 12px; }
   .td-loja { font-weight: 700; color: var(--azul); }
   .td-reg  { font-size: 11px; color: #6B7FA3; }
@@ -189,7 +189,7 @@
   .right-meta { font-size: 12px; color: #6B7FA3; margin-top: 2px; }
 
   .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
-  .info-box { background: var(--cinza-cl); border-radius: 8px; padding: 10px 12px; }
+  .info-box { background: #112240; border-radius: 8px; padding: 10px 12px; }
   .info-box-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #8B9CBB; margin-bottom: 3px; }
   .info-box-val { font-size: 14px; font-weight: 700; color: var(--azul); }
   .info-box-val.verde { color: var(--verde); }
@@ -202,14 +202,14 @@
   .hist-row:last-child { border-bottom: none; }
   .hist-row-date { color: #6B7FA3; }
   .hist-row-val  { font-weight: 600; color: var(--texto); }
-  .hist-row.current { background: var(--azul-bg); margin: 0 -4px; padding: 5px 4px; border-radius: 4px; }
+  .hist-row.current { background: #1E3A5F; margin: 0 -4px; padding: 5px 4px; border-radius: 4px; }
   .hist-row.current .hist-row-date { color: var(--azul); font-weight: 700; }
 
   /* Títulos drill-down */
   .titulos-section { margin-top: 16px; }
   .titulos-title { font-size: 11px; font-weight: 700; color: var(--azul); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
   .titulo-item {
-    background: var(--cinza-cl); border-radius: 6px; padding: 8px 10px;
+    background: #112240; border-radius: 6px; padding: 8px 10px;
     margin-bottom: 6px; border-left: 3px solid var(--azul-med);
   }
   .titulo-cliente { font-size: 12px; font-weight: 700; color: var(--texto); }
@@ -218,13 +218,14 @@
 
   /* ── AUDITORIA PANEL ────────────────────────────────────────────── */
   .audit-panel {
-    background: #FFF9E6; border: 1.5px solid var(--amar);
+    background: #1A1200; border: 1.5px solid var(--amar);
     border-radius: 10px; padding: 14px; margin-bottom: 16px;
   }
-  .audit-panel-title { font-size: 12px; font-weight: 700; color: #856404; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .5px; }
+  .audit-panel-title { font-size: 12px; font-weight: 700; color: #F59E0B; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .5px; }
   .audit-panel input[type="date"] {
     width: 100%; padding: 8px 10px; border: 1.5px solid #E0C060;
     border-radius: 6px; font-size: 13px; margin-bottom: 8px; outline: none;
+    background: #0A1628; color: var(--texto);
   }
   .btn-registrar {
     width: 100%; padding: 10px; background: var(--azul); color: var(--branco);
@@ -268,7 +269,24 @@
 <!-- ════════ LOGIN ════════ -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo">AGROQUIMA</div>
+    <div style="margin-bottom:20px">
+      <svg width="90" height="72" viewBox="0 0 90 72" xmlns="http://www.w3.org/2000/svg">
+        <!-- Left circle -->
+        <defs>
+          <radialGradient id="lg1" cx="40%" cy="35%"><stop offset="0%" stop-color="#7EC8F7"/><stop offset="60%" stop-color="#2563EB"/><stop offset="100%" stop-color="#1E3A8A"/></radialGradient>
+          <radialGradient id="lg2" cx="60%" cy="35%"><stop offset="0%" stop-color="#7EC8F7"/><stop offset="60%" stop-color="#2563EB"/><stop offset="100%" stop-color="#1E3A8A"/></radialGradient>
+        </defs>
+        <ellipse cx="29" cy="30" rx="24" ry="24" fill="url(#lg1)" stroke="#1E3A8A" stroke-width="1.5"/>
+        <ellipse cx="61" cy="30" rx="24" ry="24" fill="url(#lg2)" stroke="#1E3A8A" stroke-width="1.5"/>
+        <!-- Letter A left -->
+        <text x="18" y="38" font-family="Arial Black,sans-serif" font-size="22" font-weight="900" fill="white" opacity="0.9">a</text>
+        <!-- Letter S right -->
+        <text x="49" y="38" font-family="Arial Black,sans-serif" font-size="22" font-weight="900" fill="white" opacity="0.9">s</text>
+        <!-- AGROQUIMA text -->
+        <text x="45" y="64" font-family="Arial Black,sans-serif" font-size="9.5" font-weight="900" fill="#1E3A8A" text-anchor="middle" letter-spacing="1">AGROQUIMA</text>
+      </svg>
+    </div>
+    <div class="login-logo" style="display:none">AGROQUIMA</div>
     <div class="login-title">Auditoria D60</div>
     <div class="login-sub">Endividamento Vencido ≥ 60 dias</div>
     <div class="login-err" id="login-err">Senha incorreta.</div>
@@ -299,7 +317,19 @@
   <div class="header">
     <div class="header-left">
       <div>
-        <div class="header-brand" onclick="configClick()" style="cursor:default">AGROQUIMA</div>
+        <div onclick="configClick()" style="cursor:default;display:flex;align-items:center;gap:8px">
+          <svg width="36" height="29" viewBox="0 0 90 72" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="hg1" cx="40%" cy="35%"><stop offset="0%" stop-color="#93C5FD"/><stop offset="60%" stop-color="#3B82F6"/><stop offset="100%" stop-color="#1E3A8A"/></radialGradient>
+              <radialGradient id="hg2" cx="60%" cy="35%"><stop offset="0%" stop-color="#93C5FD"/><stop offset="60%" stop-color="#3B82F6"/><stop offset="100%" stop-color="#1E3A8A"/></radialGradient>
+            </defs>
+            <ellipse cx="29" cy="30" rx="24" ry="24" fill="url(#hg1)"/>
+            <ellipse cx="61" cy="30" rx="24" ry="24" fill="url(#hg2)"/>
+            <text x="18" y="38" font-family="Arial Black,sans-serif" font-size="22" font-weight="900" fill="white" opacity="0.9">a</text>
+            <text x="49" y="38" font-family="Arial Black,sans-serif" font-size="22" font-weight="900" fill="white" opacity="0.9">s</text>
+          </svg>
+          <span class="header-brand">AGROQUIMA</span>
+        </div>
         <div class="header-title">Auditoria D60 — Endividamento Vencido</div>
       </div>
       <div id="modo-badge-header"></div>
@@ -417,6 +447,8 @@
 const JSONBIN_ID  = '685ffb318960c979a597e28e';
 const JSONBIN_KEY = '$2a$10$p0NHMnO8WJZO3XoqFVoxgOx03o7c2m6u/a8OLVJB3gKXHqPCr8YSy';
 const SENHA       = 'AGRO-AUD-2951';
+let JSONBIN_VEN_ID  = '';  // populated via config
+let JSONBIN_VEN_KEY = '';  // populated via config
 
 const BASE_REGIONAIS = [
   {lj:1,  sigla:'MTZ', loja:'MATRIZ',           estado:'GO', gerente:'REVALINO NETO',      supervisor:'ERON LUIZ',          regional:'SERGIO ADRIANO',   auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
@@ -518,6 +550,7 @@ async function carregarNuvem() {
       auditorias = d.record.auditorias || {};
     }
   } catch(e) { console.warn('Nuvem offline:', e); }
+  carregarVencidosNuvem();
   renderTabela();
 }
 
@@ -529,6 +562,38 @@ async function salvarNuvem() {
       body: JSON.stringify({ auditorias })
     });
   } catch(e) { console.warn('Erro ao salvar:', e); }
+}
+
+async function salvarVencidosNuvem() {
+  if (!JSONBIN_VEN_ID || !JSONBIN_VEN_KEY) return;
+  try {
+    await fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_VEN_ID, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_VEN_KEY },
+      body: JSON.stringify({ vencidosData, semanaAtual, ts: new Date().toISOString() })
+    });
+  } catch(e) { console.warn('Erro ao salvar vencidos na nuvem:', e); }
+}
+
+async function carregarVencidosNuvem() {
+  if (!JSONBIN_VEN_ID || !JSONBIN_VEN_KEY) return;
+  try {
+    const r = await fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_VEN_ID + '/latest', {
+      headers: { 'X-Master-Key': JSONBIN_VEN_KEY }
+    });
+    if (r.ok) {
+      const d = await r.json();
+      if (d.record && d.record.vencidosData) {
+        vencidosData = d.record.vencidosData;
+        semanaAtual  = d.record.semanaAtual || semanaAtual;
+        const ts = d.record.ts ? new Date(d.record.ts).toLocaleDateString('pt-BR') : '—';
+        document.getElementById('import-status').innerHTML = '<span class="import-status">☁️ Vencidos da nuvem (' + ts + ')</span>';
+        document.getElementById('import-date-info').textContent = 'Semana de referência: ' + formatarData(semanaAtual);
+        renderTabela();
+        toast('Vencidos carregados da nuvem!');
+      }
+    }
+  } catch(e) { console.warn('Erro ao carregar vencidos da nuvem:', e); }
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -554,7 +619,7 @@ function importarVencidos(input) {
       // agrupar títulos por LJ
       vencidosData = {};
       rows.forEach(r => {
-        const lj = parseInt(r['LJ'] || r['lj'] || 0);
+        const lj = parseInt(r['LOJA'] || r['LJ'] || r['lj'] || 0);
         if (!lj) return;
         if (!vencidosData[lj]) vencidosData[lj] = [];
         let vencto = r['VENCTO'] || r['Vencto'] || '';
@@ -567,8 +632,18 @@ function importarVencidos(input) {
         vencidosData[lj].push({
           representante: (r['REPRESENTANTE: '] || r['REPRESENTANTE'] || '').trim(),
           cliente:       (r['CLIENTE'] || '').trim(),
+          codCliente:    r['CÓDIGO_CLIENT'] || r['CODIGO_CLIENT'] || '',
           praca:         (r['PRAÇA PAGTO'] || r['PRACA PAGTO'] || '').trim(),
+          lote:          r['LOTE'] || r['LOT'] || '',
+          titulo:        r['TÍTULO'] || r['TITULO'] || '',
+          nf:            r['N.F.'] || r['NF'] || '',
           vencto,
+          emissao:       (() => {
+            let em = r['EMISSÃO'] || r['EMISSAO'] || r['EMISSAO '] || '';
+            if (em instanceof Date) return em.toISOString().slice(0,10);
+            if (typeof em === 'number') { const d = new Date((em-25569)*86400000); return d.toISOString().slice(0,10); }
+            return em;
+          })(),
           atraso:        parseInt(r['ATRASO'] || 0),
           valor:         parseFloat(r['VALOR'] || 0),
           sit:           (r['SIT.'] || r['SIT'] || '').trim(),
@@ -581,6 +656,7 @@ function importarVencidos(input) {
         'Semana de referência: ' + formatarData(semanaAtual);
       toast('Vencidos importados com sucesso!');
       renderTabela();
+      salvarVencidosNuvem();
     } catch(err) {
       toast('⚠️ Erro ao ler o arquivo: ' + err.message);
       console.error(err);
@@ -829,9 +905,15 @@ function renderDetalhe(lj) {
   } else {
     titulos.slice(0, 20).forEach(t => {
       html += '<div class="titulo-item">';
-      html += '<div class="titulo-cliente">' + (t.cliente || t.representante || '—') + '</div>';
-      html += '<div class="titulo-meta">Venc: ' + formatarData(t.vencto) + ' · ' + t.atraso + ' dias · ' + t.sit + '</div>';
+      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
+      html += '<div style="flex:1">';
+      html += '<div class="titulo-cliente">' + (t.cliente || '—') + '</div>';
+      if (t.representante) html += '<div class="titulo-meta" style="color:#64748B;font-size:10px">Rep: ' + t.representante + '</div>';
+      html += '<div class="titulo-meta">Venc: ' + formatarData(t.vencto) + (t.emissao ? ' · Emis: ' + formatarData(t.emissao) : '') + ' · ' + t.atraso + ' dias · ' + t.sit + '</div>';
+      if (t.nf) html += '<div class="titulo-meta">NF: ' + t.nf + (t.lote ? ' · Lote: ' + t.lote : '') + '</div>';
+      html += '</div>';
       html += '<div class="titulo-valor">' + formatMoeda(t.valor) + '</div>';
+      html += '</div>';
       html += '</div>';
     });
     if (titulos.length > 20) {
