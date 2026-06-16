@@ -142,10 +142,10 @@
 
   /* ── MAIN GRID ──────────────────────────────────────────────────── */
   .main { display: grid; grid-template-columns: 1fr 380px; gap: 0; min-height: calc(100vh - 220px); }
-  .panel-left { padding: 20px 28px; overflow-y: auto; }
+  .panel-left { padding: 20px 28px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .panel-right {
     background: #0D1F35; border-left: 1.5px solid var(--cinza-bd);
-    padding: 20px; overflow-y: auto;
+    padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
 
   /* ── TABELA ─────────────────────────────────────────────────────── */
@@ -260,8 +260,31 @@
 
   @media (max-width: 900px) {
     .main { grid-template-columns: 1fr; }
-    .panel-right { border-left: none; border-top: 1.5px solid var(--cinza-bd); }
+    .panel-right { border-left: none; border-top: 1.5px solid var(--cinza-bd); max-height: none; }
     .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    .header { padding: 0 14px; height: auto; min-height: 52px; flex-wrap: wrap; gap: 6px; padding-top: 8px; padding-bottom: 8px; }
+    .header-title { font-size: 13px; }
+    .import-bar { padding: 10px 14px; }
+    .filtros-bar { padding: 8px 14px; gap: 8px; }
+    .filtros-bar select { min-width: 120px; font-size: 12px; }
+    .panel-left { padding: 12px 14px; }
+    .panel-right { padding: 14px; }
+    table { font-size: 12px; }
+    thead th { padding: 8px 6px; font-size: 10px; }
+    tbody td { padding: 7px 6px; }
+    .kpi-strip { padding: 12px 14px; gap: 8px; }
+    .kpi-val { font-size: 16px; }
+    .info-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 600px) {
+    .kpi-strip { grid-template-columns: 1fr 1fr; }
+    .filtros-bar { flex-direction: column; align-items: stretch; }
+    .filtros-bar select { min-width: 100%; }
+    .btn-limpar { width: 100%; }
+    .header-left { flex-wrap: wrap; gap: 6px; }
+    .main { grid-template-columns: 1fr; }
+    table { display: block; overflow-x: auto; white-space: nowrap; }
+    .info-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -350,6 +373,7 @@
     <input type="file" id="file-input" accept=".xls,.xlsx" onchange="importarVencidos(this)">
     <div id="import-status"></div>
     <div id="import-date-info" class="import-date-info"></div>
+    <button id="btn-reverter" onclick="reverterVencidos()" style="display:none;background:transparent;border:1.5px solid #991B1B;color:#EF4444;padding:7px 14px;border-radius:6px;font-size:12px;cursor:pointer">↩ Reverter upload</button>
   </div>
 
   <!-- FILTROS -->
@@ -436,6 +460,7 @@
     <input id="cfg-intervalo" type="number" min="0" max="60" value="0" style="width:100%;padding:8px;border:1px solid #1E3A5F;border-radius:6px;font-size:13px;margin-bottom:14px;background:#0A1628;color:#CBD5E1">
     <label style="font-size:12px;color:#94A3B8;display:block;margin-bottom:4px">JSONbin ID (Vencidos compartilhado):</label>
     <input id="cfg-ven-id" type="text" placeholder="ID do bin de vencidos" style="width:100%;padding:8px;border:1px solid #1E3A5F;border-radius:6px;font-size:13px;margin-bottom:14px;background:#0A1628;color:#CBD5E1">
+    <button onclick="criarBinVencidos()" style="width:100%;padding:7px;background:#1E3A5F;color:#93C5FD;border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:14px">⚡ Criar bin automaticamente (usa a Master Key abaixo)</button>
     <label style="font-size:12px;color:#94A3B8;display:block;margin-bottom:4px">JSONbin Master Key (Vencidos):</label>
     <input id="cfg-ven-key" type="password" placeholder="Master key" style="width:100%;padding:8px;border:1px solid #1E3A5F;border-radius:6px;font-size:13px;margin-bottom:16px;background:#0A1628;color:#CBD5E1">
     <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -629,6 +654,11 @@ function importarVencidos(input) {
       )].sort();
       semanaAtual = allWeeks[allWeeks.length - 1];
 
+      // Backup previous vencidos for revert
+      if (Object.keys(vencidosData).length > 0) {
+        try { localStorage.setItem('ven_backup', JSON.stringify({ vencidosData, semanaAtual, ts: new Date().toISOString() })); } catch(e) {}
+      }
+
       // agrupar títulos por LJ
       vencidosData = {};
       rows.forEach(r => {
@@ -668,6 +698,8 @@ function importarVencidos(input) {
       document.getElementById('import-date-info').textContent =
         'Semana de referência: ' + formatarData(semanaAtual);
       toast('Vencidos importados com sucesso!');
+      const btnRev = document.getElementById('btn-reverter');
+      if (btnRev) btnRev.style.display = localStorage.getItem('ven_backup') ? 'inline-block' : 'none';
       renderTabela();
       salvarVencidosNuvem();
     } catch(err) {
@@ -707,7 +739,7 @@ function getPontuou(lj) {
   const atual = getD60Atual(lj);
   const ant   = getD60RefAuditoria(lj);
   if (atual === null || ant === null) return null;
-  return atual < ant;
+  return atual <= ant;
 }
 
 function getSemanaAnterior(semana) {
@@ -752,7 +784,7 @@ function renderTabela() {
     if (auditadaEsta)   nAudit++;
     else                nSemAudit++;
 
-    const varVal = (d60a !== null && d60ant !== null) ? d60a - d60ant : null;
+    const varVal = (d60a !== null && d60ant !== null) ? d60ant - d60a : null;
     const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
 
     let pontBadge = '<span class="badge badge-gray">—</span>';
@@ -765,7 +797,7 @@ function renderTabela() {
 
     let varStr = '—';
     if (varVal !== null) {
-      const cor = varVal < 0 ? 'color:var(--verde)' : (varVal > 0 ? 'color:var(--verm)' : '');
+      const cor = varVal > 0 ? 'color:var(--verde)' : (varVal < 0 ? 'color:var(--verm)' : '');
       varStr = '<span style="' + cor + '">' +
         (varVal > 0 ? '+' : '') + formatMoeda(varVal) +
         '<br><small>' + (varPct > 0 ? '+' : '') + varPct.toFixed(1) + '%</small></span>';
@@ -846,14 +878,14 @@ function renderDetalhe(lj) {
   html += '</div>';
 
   // Info grid
-  const varVal = (d60a !== null && d60ant !== null) ? d60a - d60ant : null;
+  const varVal = (d60a !== null && d60ant !== null) ? d60ant - d60a : null;
   const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
   html += '<div class="info-grid">';
   html += infoBox('D60 Ref. Atual', d60a !== null ? formatMoeda(d60a) : '—', '');
   html += infoBox('D60 Ref. Anterior', d60ant !== null ? formatMoeda(d60ant) : 'Sem auditoria', '');
   html += infoBox('Variação',
     varVal !== null ? (varVal > 0 ? '+' : '') + formatMoeda(varVal) + ' (' + varPct.toFixed(1) + '%)' : '—',
-    varVal === null ? '' : (varVal < 0 ? 'verde' : (varVal > 0 ? 'verm' : '')));
+    varVal === null ? '' : (varVal > 0 ? 'verde' : (varVal < 0 ? 'verm' : '')));
   html += infoBox('Pontuou', pont === true ? '✓ SIM' : (pont === false ? '✗ NÃO' : '—'),
     pont === true ? 'verde' : (pont === false ? 'verm' : ''));
   html += '</div>';
@@ -868,14 +900,14 @@ function renderDetalhe(lj) {
 
     // Date of previous audit
     html += '<div>';
-    html += '<label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;display:block;margin-bottom:4px">Semana de referência anterior</label>';
+    html += '<label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;display:block;margin-bottom:4px">Ref. anterior</label>';
     html += '<input type="date" id="audit-data-ant" onchange="calcularPreviewAuditoria(' + lj + ')" style="width:100%;padding:8px 10px;border:1.5px solid #1E3A5F;border-radius:6px;font-size:13px;background:#0A1628;color:var(--texto);outline:none">';
     html += '<div id="audit-d60-ant-preview" style="font-size:11px;color:#64748B;margin-top:4px">Selecione a data anterior</div>';
     html += '</div>';
 
     // Date of this audit
     html += '<div>';
-    html += '<label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;display:block;margin-bottom:4px">Data desta auditoria</label>';
+    html += '<label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;display:block;margin-bottom:4px">Data auditoria</label>';
     html += '<input type="date" id="audit-data" value="' + hoje() + '" onchange="calcularPreviewAuditoria(' + lj + ')" style="width:100%;padding:8px 10px;border:1.5px solid #1E3A5F;border-radius:6px;font-size:13px;background:#0A1628;color:var(--texto);outline:none">';
     html += '<div id="audit-d60-at-preview" style="font-size:11px;color:#64748B;margin-top:4px">Semana atual: <b>' + formatarData(semanaAtual) + '</b></div>';
     html += '</div>';
@@ -966,13 +998,13 @@ function renderDetalhe(lj) {
   // KPIs
   const d60aEx  = getD60Atual(lj);
   const d60antEx= getD60RefAuditoria(lj);
-  const varValEx= (d60aEx !== null && d60antEx !== null) ? d60aEx - d60antEx : null;
+  const varValEx= (d60aEx !== null && d60antEx !== null) ? d60antEx - d60aEx : null;
   const varPctEx= (varValEx !== null && d60antEx) ? varValEx / d60antEx * 100 : null;
   const pontEx  = getPontuou(lj);
   html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">';
   html += kpiBoxExp('D60 Atual',    d60aEx   !== null ? formatMoeda(d60aEx)   : '—', '#1E3A8A');
   html += kpiBoxExp('D60 Anterior', d60antEx !== null ? formatMoeda(d60antEx) : '—', '#374151');
-  html += kpiBoxExp('Variação',     varValEx !== null ? (varValEx>0?'+':'')+formatMoeda(varValEx)+' ('+varPctEx.toFixed(1)+'%)' : '—', varValEx===null?'#374151':(varValEx<0?'#065F46':'#991B1B'));
+  html += kpiBoxExp('Variação',     varValEx !== null ? (varValEx>0?'+':'')+formatMoeda(varValEx)+' ('+varPctEx.toFixed(1)+'%)' : '—', varValEx===null?'#374151':(varValEx>0?'#065F46':'#991B1B'));
   html += kpiBoxExp('Pontuou',      pontEx===true?'✓ SIM':(pontEx===false?'✗ NÃO':'—'), pontEx===true?'#065F46':(pontEx===false?'#991B1B':'#374151'));
   html += '</div>';
   // Histórico D60
@@ -1022,7 +1054,7 @@ function exportarXLSX(lj) {
   if (!base) return;
   const d60a   = getD60Atual(lj);
   const d60ant = getD60RefAuditoria(lj);
-  const varVal = (d60a !== null && d60ant !== null) ? d60a - d60ant : null;
+  const varVal = (d60a !== null && d60ant !== null) ? d60ant - d60a : null;
   const pont   = getPontuou(lj);
   const wb = XLSX.utils.book_new();
 
@@ -1095,7 +1127,7 @@ function registrarAuditoria(lj) {
   } else {
     // fallback: use last audit
     d60_ant = getD60RefAuditoria(lj);
-    pontuou = d60_ref !== null && d60_ant !== null ? d60_ref < d60_ant : null;
+    pontuou = d60_ref !== null && d60_ant !== null ? d60_ref <= d60_ant : null;
   }
 
   if (!auditorias[lj]) auditorias[lj] = [];
@@ -1143,7 +1175,7 @@ function calcularPreviewAuditoria(lj) {
   const antPrev = document.getElementById('audit-d60-ant-preview');
 
   if (antPrev) {
-    antPrev.textContent = semAnt ? 'Semana: ' + formatarData(semAnt) + ' → ' + formatMoeda(d60Ant) : 'Selecione a data anterior';
+    antPrev.textContent = semAnt ? 'Semana: ' + formatarData(semAnt) + ' → ' + formatMoeda(d60Ant) : 'Busca automática no histórico';
   }
 
   if (!prevEl) return;
@@ -1157,16 +1189,16 @@ function calcularPreviewAuditoria(lj) {
     return;
   }
 
-  const varVal = d60Ant !== null ? d60At - d60Ant : null;
+  const varVal = d60Ant !== null ? d60Ant - d60At : null;
   const varPct = (varVal !== null && d60Ant) ? varVal / d60Ant * 100 : null;
-  const pontuou = varVal !== null ? varVal < 0 : null;
+  const pontuou = varVal !== null ? varVal >= 0 : null;
 
   let html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
   html += '<div><div style="font-size:9px;color:#64748B;text-transform:uppercase">D60 Anterior</div><div style="font-weight:700;color:var(--texto)">' + (d60Ant !== null ? formatMoeda(d60Ant) : '—') + '</div><div style="font-size:9px;color:#475569">' + (semAnt ? formatarData(semAnt) : '') + '</div></div>';
   html += '<div><div style="font-size:9px;color:#64748B;text-transform:uppercase">D60 Atual</div><div style="font-weight:700;color:var(--texto)">' + formatMoeda(d60At) + '</div><div style="font-size:9px;color:#475569">' + formatarData(semAt) + '</div></div>';
   html += '<div><div style="font-size:9px;color:#64748B;text-transform:uppercase">Variação</div>';
   if (varVal !== null) {
-    const cor = varVal < 0 ? 'var(--verde)' : (varVal > 0 ? 'var(--verm)' : 'var(--texto)');
+    const cor = varVal > 0 ? 'var(--verde)' : (varVal < 0 ? 'var(--verm)' : 'var(--texto)');
     html += '<div style="font-weight:700;color:' + cor + '">' + (varVal > 0 ? '+' : '') + formatMoeda(varVal) + '</div>';
     html += '<div style="font-size:9px;color:' + cor + '">' + (varPct > 0 ? '+' : '') + varPct.toFixed(1) + '% · ' + (pontuou ? '✓ PONTUOU' : '✗ NÃO PONTUOU') + '</div>';
   } else {
@@ -1220,6 +1252,23 @@ function popularFiltroRegional() {
   });
 }
 
+function reverterVencidos() {
+  const bk = localStorage.getItem('ven_backup');
+  if (!bk) { toast('Nenhum backup encontrado.'); return; }
+  if (!confirm('Reverter para os vencidos anteriores?')) return;
+  const obj = JSON.parse(bk);
+  vencidosData = obj.vencidosData || {};
+  semanaAtual  = obj.semanaAtual  || semanaAtual;
+  const ts = obj.ts ? new Date(obj.ts).toLocaleDateString('pt-BR') : '—';
+  document.getElementById('import-status').innerHTML = '<span class="import-status">↩ Vencidos revertidos (' + ts + ')</span>';
+  document.getElementById('import-date-info').textContent = 'Semana de referência: ' + formatarData(semanaAtual);
+  document.getElementById('btn-reverter').style.display = 'none';
+  localStorage.removeItem('ven_backup');
+  renderTabela();
+  if (filialSel) renderDetalhe(filialSel);
+  toast('Vencidos revertidos com sucesso.');
+}
+
 function aplicarFiltros() { filialSel = null; renderTabela(); }
 function limparFiltros() {
   ['f-regional','f-filial','f-auditor'].forEach(id => document.getElementById(id).value = '');
@@ -1267,6 +1316,32 @@ function configClick() {
 function fecharConfig() {
   document.getElementById('config-modal').style.display = 'none';
 }
+async function criarBinVencidos() {
+  const key = document.getElementById('cfg-ven-key').value.trim();
+  if (!key) { toast('Informe a Master Key primeiro.'); return; }
+  toast('Criando bin...');
+  try {
+    const r = await fetch('https://api.jsonbin.io/v3/b', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': key,
+        'X-Bin-Name': 'Agroquima-Vencidos',
+        'X-Bin-Private': 'false'
+      },
+      body: JSON.stringify({ vencidosData: {}, semanaAtual: null, ts: new Date().toISOString() })
+    });
+    if (!r.ok) { toast('Erro ao criar bin: ' + r.status); return; }
+    const d = await r.json();
+    const newId = d.metadata && d.metadata.id ? d.metadata.id : (d.record && d.record.id ? d.record.id : '');
+    if (!newId) { toast('Bin criado mas ID não encontrado. Verifique o JSONbin.'); return; }
+    document.getElementById('cfg-ven-id').value = newId;
+    toast('✅ Bin criado! ID: ' + newId + ' — Clique Salvar.');
+  } catch(e) {
+    toast('Erro de rede: ' + e.message);
+  }
+}
+
 function salvarConfig() {
   const mins = parseInt(document.getElementById('cfg-intervalo').value) || 0;
   const venId  = document.getElementById('cfg-ven-id').value.trim();
