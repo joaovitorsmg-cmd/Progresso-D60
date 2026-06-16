@@ -330,14 +330,6 @@
     <select id="f-filial" onchange="aplicarFiltros()">
       <option value="">Todas as Filiais</option>
     </select>
-    <select id="f-auditor" onchange="aplicarFiltros()">
-      <option value="">Todos os Auditores</option>
-      <option>João Vitor Mendes</option>
-      <option>Carlos Poggian</option>
-      <option>Guilherme Lacerda</option>
-      <option>Fábio Ribeiro</option>
-      <option>Patrick Lima</option>
-    </select>
     <button class="btn-limpar" onclick="limparFiltros()">✕ Limpar</button>
   </div>
 
@@ -632,12 +624,9 @@ function getSemanaAnterior(semana) {
 function renderTabela() {
   const fReg    = document.getElementById('f-regional').value;
   const fFilial = document.getElementById('f-filial').value;
-  const fAud    = document.getElementById('f-auditor').value;
-
   dadosTabela = BASE_REGIONAIS.filter(b => {
     if (fReg    && b.regional !== fReg)  return false;
     if (fFilial && String(b.lj) !== fFilial) return false;
-    if (fAud    && !matchAuditor(b, fAud)) return false;
     return true;
   });
 
@@ -893,7 +882,7 @@ function popularFiltroRegional() {
 
 function aplicarFiltros() { filialSel = null; renderTabela(); }
 function limparFiltros() {
-  ['f-regional','f-filial','f-auditor'].forEach(id => document.getElementById(id).value = '');
+  ['f-regional','f-filial'].forEach(id => document.getElementById(id).value = '');
   filialSel = null; renderTabela();
 }
 
