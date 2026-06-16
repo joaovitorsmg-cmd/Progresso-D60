@@ -7,42 +7,42 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
-    --azul:     #0D2B6E;
-    --azul-med: #1A4DA0;
-    --azul-cl:  #2E6BC4;
-    --azul-bg:  #D6E4F7;
-    --azul-xc:  #EBF3FE;
-    --branco:   #FFFFFF;
-    --cinza-cl: #F4F7FC;
-    --cinza-bd: #C5D5EA;
-    --texto:    #1C2E4A;
-    --verde:    #1E7E34;
-    --verde-bg: #D4EDDA;
-    --verm:     #C0392B;
-    --verm-bg:  #FDDEDE;
-    --amar:     #F9A825;
-    --amar-bg:  #FFF9E6;
-    --sombra:   0 2px 12px rgba(13,43,110,.13);
+    --azul:     #1E3A8A;
+    --azul-med: #2563EB;
+    --azul-cl:  #3B82F6;
+    --azul-bg:  #1E3A5F;
+    --azul-xc:  #172B4D;
+    --branco:   #E2E8F0;
+    --cinza-cl: #112240;
+    --cinza-bd: #1E3A5F;
+    --texto:    #CBD5E1;
+    --verde:    #22C55E;
+    --verde-bg: #052E16;
+    --verm:     #EF4444;
+    --verm-bg:  #450A0A;
+    --amar:     #F59E0B;
+    --amar-bg:  #451A03;
+    --sombra:   0 2px 12px rgba(0,0,0,.4);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Calibri', 'Segoe UI', sans-serif; background: #EEF3FB; color: var(--texto); min-height: 100vh; }
+  body { font-family: 'Calibri', 'Segoe UI', sans-serif; background: #0A1628; color: var(--texto); min-height: 100vh; }
 
   /* ── LOGIN ─────────────────────────────────────────────────────── */
   #login-screen {
     display: flex; align-items: center; justify-content: center;
-    min-height: 100vh; background: linear-gradient(135deg, #0D2B6E 0%, #1A4DA0 60%, #2E6BC4 100%);
+    min-height: 100vh; background: linear-gradient(135deg, #060E1F 0%, #0A1628 50%, #0D2040 100%);
   }
   .login-card {
-    background: var(--branco); border-radius: 16px; padding: 48px 40px;
+    background: #112240; border-radius: 16px; padding: 48px 40px;
     box-shadow: 0 20px 60px rgba(0,0,0,.25); width: 380px; text-align: center;
   }
   .login-logo { font-size: 13px; letter-spacing: 3px; color: var(--azul-cl); font-weight: 700; margin-bottom: 6px; }
-  .login-title { font-size: 22px; font-weight: 700; color: var(--azul); margin-bottom: 4px; }
-  .login-sub { font-size: 13px; color: #6B7FA3; margin-bottom: 32px; }
+  .login-title { font-size: 22px; font-weight: 700; color: #93C5FD; margin-bottom: 4px; }
+  .login-sub { font-size: 13px; color: #64748B; margin-bottom: 32px; }
   .login-card input, .login-card select {
     width: 100%; padding: 12px 16px; border: 1.5px solid var(--cinza-bd);
     border-radius: 8px; font-size: 14px; color: var(--texto); margin-bottom: 14px;
-    outline: none; transition: border .2s;
+    outline: none; transition: border .2s; background: #0A1628;
   }
   .login-card input:focus, .login-card select:focus { border-color: var(--azul-cl); }
   .login-err { color: var(--verm); font-size: 13px; margin-bottom: 10px; display: none; }
@@ -85,7 +85,7 @@
 
   /* ── IMPORT BAR ─────────────────────────────────────────────────── */
   .import-bar {
-    background: var(--branco); border-bottom: 1.5px solid var(--cinza-bd);
+    background: #0D1F35; border-bottom: 1.5px solid var(--cinza-bd);
     padding: 12px 28px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   }
   .import-label { font-size: 13px; color: #5A6E8A; font-weight: 600; }
