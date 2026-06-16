@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoria D60 — Agroquima</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --azul:     #0D2B6E;
+    --azul-med: #1A4DA0;
+    --azul-cl:  #2E6BC4;
+    --azul-bg:  #D6E4F7;
+    --azul-xc:  #EBF3FE;
+    --branco:   #FFFFFF;
+    --cinza-cl: #F4F7FC;
+    --cinza-bd: #C5D5EA;
+    --texto:    #1C2E4A;
+    --verde:    #1E7E34;
+    --verde-bg: #D4EDDA;
+    --verm:     #C0392B;
+    --verm-bg:  #FDDEDE;
+    --amar:     #F9A825;
+    --amar-bg:  #FFF9E6;
+    --sombra:   0 2px 12px rgba(13,43,110,.13);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Calibri', 'Segoe UI', sans-serif; background: #EEF3FB; color: var(--texto); min-height: 100vh; }
+
+  /* ── LOGIN ─────────────────────────────────────────────────────── */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: linear-gradient(135deg, #0D2B6E 0%, #1A4DA0 60%, #2E6BC4 100%);
+  }
+  .login-card {
+    background: var(--branco); border-radius: 16px; padding: 48px 40px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25); width: 380px; text-align: center;
+  }
+  .login-logo { font-size: 13px; letter-spacing: 3px; color: var(--azul-cl); font-weight: 700; margin-bottom: 6px; }
+  .login-title { font-size: 22px; font-weight: 700; color: var(--azul); margin-bottom: 4px; }
+  .login-sub { font-size: 13px; color: #6B7FA3; margin-bottom: 32px; }
+  .login-card input, .login-card select {
+    width: 100%; padding: 12px 16px; border: 1.5px solid var(--cinza-bd);
+    border-radius: 8px; font-size: 14px; color: var(--texto); margin-bottom: 14px;
+    outline: none; transition: border .2s;
+  }
+  .login-card input:focus, .login-card select:focus { border-color: var(--azul-cl); }
+  .login-err { color: var(--verm); font-size: 13px; margin-bottom: 10px; display: none; }
+  .btn-login {
+    width: 100%; padding: 13px; background: var(--azul); color: var(--branco);
+    border: none; border-radius: 8px; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: background .2s; margin-bottom: 10px;
+  }
+  .btn-login:hover { background: var(--azul-med); }
+  .modo-hint { font-size: 12px; color: #8B9CBB; margin-top: 8px; }
+
+  /* ── MODO BADGE ─────────────────────────────────────────────────── */
+  .modo-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  }
+  .modo-consulta  { background: var(--azul-bg); color: var(--azul); }
+  .modo-auditoria { background: #FFF3CD; color: #856404; }
+
+  /* ── APP ────────────────────────────────────────────────────────── */
+  #app { display: none; }
+
+  /* ── HEADER ─────────────────────────────────────────────────────── */
+  .header {
+    background: var(--azul); color: var(--branco);
+    padding: 0 28px; display: flex; align-items: center;
+    justify-content: space-between; height: 58px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header-brand { font-size: 11px; letter-spacing: 2.5px; font-weight: 700; opacity: .7; }
+  .header-title { font-size: 16px; font-weight: 700; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .btn-sair {
+    background: rgba(255,255,255,.12); color: var(--branco); border: none;
+    padding: 7px 16px; border-radius: 6px; font-size: 13px; cursor: pointer;
+    transition: background .2s;
+  }
+  .btn-sair:hover { background: rgba(255,255,255,.22); }
+
+  /* ── IMPORT BAR ─────────────────────────────────────────────────── */
+  .import-bar {
+    background: var(--branco); border-bottom: 1.5px solid var(--cinza-bd);
+    padding: 12px 28px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .import-label { font-size: 13px; color: #5A6E8A; font-weight: 600; }
+  .btn-import {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--azul-med); color: var(--branco);
+    border: none; padding: 9px 18px; border-radius: 7px; font-size: 13px;
+    font-weight: 600; cursor: pointer; transition: background .2s;
+  }
+  .btn-import:hover { background: var(--azul); }
+  #file-input { display: none; }
+  .import-status { font-size: 13px; color: var(--verde); font-weight: 600; }
+  .import-date-info { font-size: 12px; color: #6B7FA3; }
+
+  /* ── FILTROS ─────────────────────────────────────────────────────── */
+  .filtros-bar {
+    background: var(--cinza-cl); border-bottom: 1px solid var(--cinza-bd);
+    padding: 10px 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .filtro-label { font-size: 12px; font-weight: 700; color: var(--azul); text-transform: uppercase; letter-spacing: .5px; }
+  .filtros-bar select {
+    padding: 7px 12px; border: 1.5px solid var(--cinza-bd); border-radius: 6px;
+    font-size: 13px; color: var(--texto); background: var(--branco); outline: none;
+    cursor: pointer; min-width: 160px;
+  }
+  .filtros-bar select:focus { border-color: var(--azul-cl); }
+  .btn-limpar {
+    background: transparent; border: 1.5px solid var(--cinza-bd); color: #6B7FA3;
+    padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-limpar:hover { border-color: var(--azul-cl); color: var(--azul); }
+
+  /* ── KPI STRIP ──────────────────────────────────────────────────── */
+  .kpi-strip {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 12px; padding: 16px 28px; background: var(--branco);
+    border-bottom: 1px solid var(--cinza-bd);
+  }
+  .kpi-card {
+    background: var(--cinza-cl); border-radius: 10px; padding: 14px 16px;
+    border-left: 4px solid var(--azul-med);
+  }
+  .kpi-card.verde  { border-left-color: var(--verde); background: var(--verde-bg); }
+  .kpi-card.verm   { border-left-color: var(--verm); background: var(--verm-bg); }
+  .kpi-card.amar   { border-left-color: var(--amar); background: var(--amar-bg); }
+  .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #6B7FA3; margin-bottom: 4px; }
+  .kpi-val   { font-size: 20px; font-weight: 700; color: var(--azul); }
+  .kpi-val.verde { color: var(--verde); }
+  .kpi-val.verm  { color: var(--verm); }
+  .kpi-val.amar  { color: var(--amar); }
+  .kpi-sub   { font-size: 11px; color: #8B9CBB; margin-top: 2px; }
+
+  /* ── MAIN GRID ──────────────────────────────────────────────────── */
+  .main { display: grid; grid-template-columns: 1fr 380px; gap: 0; min-height: calc(100vh - 220px); }
+  .panel-left { padding: 20px 28px; overflow-y: auto; }
+  .panel-right {
+    background: var(--branco); border-left: 1.5px solid var(--cinza-bd);
+    padding: 20px; overflow-y: auto;
+  }
+
+  /* ── TABELA ─────────────────────────────────────────────────────── */
+  .section-title {
+    font-size: 13px; font-weight: 700; color: var(--azul); text-transform: uppercase;
+    letter-spacing: .8px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-title span { background: var(--azul); color: var(--branco); padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--azul); color: var(--branco); padding: 10px 12px;
+    text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; position: sticky; top: 0; z-index: 1;
+  }
+  thead th:first-child { border-radius: 6px 0 0 0; }
+  thead th:last-child  { border-radius: 0 6px 0 0; }
+  tbody tr { cursor: pointer; transition: background .15s; border-bottom: 1px solid var(--cinza-bd); }
+  tbody tr:nth-child(even) { background: var(--azul-xc); }
+  tbody tr:hover { background: var(--azul-bg) !important; }
+  tbody tr.selected { background: #BFDBFE !important; }
+  tbody td { padding: 9px 12px; }
+  .td-loja { font-weight: 700; color: var(--azul); }
+  .td-reg  { font-size: 11px; color: #6B7FA3; }
+
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 11px; font-weight: 700;
+  }
+  .badge-green { background: var(--verde-bg); color: var(--verde); }
+  .badge-red   { background: var(--verm-bg);  color: var(--verm);  }
+  .badge-gray  { background: var(--cinza-cl); color: #6B7FA3; }
+  .badge-blue  { background: var(--azul-bg);  color: var(--azul);  }
+
+  /* ── PAINEL DIREITO ─────────────────────────────────────────────── */
+  .right-empty { text-align: center; color: #8B9CBB; padding: 60px 20px; }
+  .right-empty .icon { font-size: 40px; margin-bottom: 12px; }
+  .right-empty p { font-size: 13px; line-height: 1.6; }
+
+  .right-header { margin-bottom: 16px; }
+  .right-loja { font-size: 18px; font-weight: 700; color: var(--azul); }
+  .right-meta { font-size: 12px; color: #6B7FA3; margin-top: 2px; }
+
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .info-box { background: var(--cinza-cl); border-radius: 8px; padding: 10px 12px; }
+  .info-box-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #8B9CBB; margin-bottom: 3px; }
+  .info-box-val { font-size: 14px; font-weight: 700; color: var(--azul); }
+  .info-box-val.verde { color: var(--verde); }
+  .info-box-val.verm  { color: var(--verm);  }
+
+  /* Histórico mini-gráfico de texto */
+  .hist-section { margin-bottom: 16px; }
+  .hist-title { font-size: 11px; font-weight: 700; color: var(--azul); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .hist-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--cinza-bd); font-size: 12px; }
+  .hist-row:last-child { border-bottom: none; }
+  .hist-row-date { color: #6B7FA3; }
+  .hist-row-val  { font-weight: 600; color: var(--texto); }
+  .hist-row.current { background: var(--azul-bg); margin: 0 -4px; padding: 5px 4px; border-radius: 4px; }
+  .hist-row.current .hist-row-date { color: var(--azul); font-weight: 700; }
+
+  /* Títulos drill-down */
+  .titulos-section { margin-top: 16px; }
+  .titulos-title { font-size: 11px; font-weight: 700; color: var(--azul); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .titulo-item {
+    background: var(--cinza-cl); border-radius: 6px; padding: 8px 10px;
+    margin-bottom: 6px; border-left: 3px solid var(--azul-med);
+  }
+  .titulo-cliente { font-size: 12px; font-weight: 700; color: var(--texto); }
+  .titulo-meta { font-size: 11px; color: #6B7FA3; margin-top: 2px; }
+  .titulo-valor { font-size: 13px; font-weight: 700; color: var(--azul); margin-top: 4px; }
+
+  /* ── AUDITORIA PANEL ────────────────────────────────────────────── */
+  .audit-panel {
+    background: #FFF9E6; border: 1.5px solid var(--amar);
+    border-radius: 10px; padding: 14px; margin-bottom: 16px;
+  }
+  .audit-panel-title { font-size: 12px; font-weight: 700; color: #856404; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .5px; }
+  .audit-panel input[type="date"] {
+    width: 100%; padding: 8px 10px; border: 1.5px solid #E0C060;
+    border-radius: 6px; font-size: 13px; margin-bottom: 8px; outline: none;
+  }
+  .btn-registrar {
+    width: 100%; padding: 10px; background: var(--azul); color: var(--branco);
+    border: none; border-radius: 7px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: background .2s;
+  }
+  .btn-registrar:hover { background: var(--azul-med); }
+  .btn-registrar:disabled { background: #A0B0CC; cursor: not-allowed; }
+
+  /* Histórico de auditorias */
+  .audit-hist-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 0; border-bottom: 1px solid var(--cinza-bd); font-size: 12px;
+  }
+  .audit-hist-item:last-child { border-bottom: none; }
+  .audit-aud { font-weight: 600; color: var(--texto); }
+  .audit-date { color: #6B7FA3; font-size: 11px; }
+
+  /* ── TOAST ──────────────────────────────────────────────────────── */
+  #toast {
+    position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+    background: var(--azul); color: var(--branco); padding: 12px 20px;
+    border-radius: 8px; font-size: 13px; font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,.25); display: none;
+    animation: slideUp .3s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  /* ── LOADING ────────────────────────────────────────────────────── */
+  .loading { text-align: center; padding: 40px; color: #6B7FA3; }
+
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .panel-right { border-left: none; border-top: 1.5px solid var(--cinza-bd); }
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════ LOGIN ════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">AGROQUIMA</div>
+    <div class="login-title">Auditoria D60</div>
+    <div class="login-sub">Endividamento Vencido ≥ 60 dias</div>
+    <div class="login-err" id="login-err">Senha incorreta.</div>
+    <input type="password" id="login-senha" placeholder="Senha de acesso" autocomplete="off">
+    <select id="login-modo">
+      <option value="consulta">Apenas consultar</option>
+      <option value="auditoria">Registrar auditoria</option>
+    </select>
+    <div id="login-auditor-wrap" style="display:none">
+      <select id="login-auditor">
+        <option value="">— Selecione seu nome —</option>
+        <option>João Vitor Mendes</option>
+        <option>Carlos Poggian</option>
+        <option>Guilherme Lacerda</option>
+        <option>Fábio Ribeiro</option>
+        <option>Patrick Lima</option>
+      </select>
+    </div>
+    <button class="btn-login" onclick="fazerLogin()">Entrar</button>
+    <div class="modo-hint">Qualquer dúvida, contate a coordenação.</div>
+  </div>
+</div>
+
+<!-- ════════ APP ════════ -->
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div class="header-brand">AGROQUIMA</div>
+        <div class="header-title">Auditoria D60 — Endividamento Vencido</div>
+      </div>
+      <div id="modo-badge-header"></div>
+    </div>
+    <div class="header-right">
+      <div id="header-auditor" style="font-size:13px;opacity:.8"></div>
+      <button class="btn-sair" onclick="sair()">Sair</button>
+    </div>
+  </div>
+
+  <!-- IMPORT BAR -->
+  <div class="import-bar">
+    <div class="import-label">Importar Vencidos:</div>
+    <button class="btn-import" onclick="document.getElementById('file-input').click()">
+      📂 Selecionar arquivo Vencidos (.xls/.xlsx)
+    </button>
+    <input type="file" id="file-input" accept=".xls,.xlsx" onchange="importarVencidos(this)">
+    <div id="import-status"></div>
+    <div id="import-date-info" class="import-date-info"></div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filtros-bar">
+    <div class="filtro-label">Filtros:</div>
+    <select id="f-regional" onchange="aplicarFiltros()">
+      <option value="">Todos os Regionais</option>
+    </select>
+    <select id="f-filial" onchange="aplicarFiltros()">
+      <option value="">Todas as Filiais</option>
+    </select>
+    <select id="f-auditor" onchange="aplicarFiltros()">
+      <option value="">Todos os Auditores</option>
+      <option>João Vitor Mendes</option>
+      <option>Carlos Poggian</option>
+      <option>Guilherme Lacerda</option>
+      <option>Fábio Ribeiro</option>
+      <option>Patrick Lima</option>
+    </select>
+    <button class="btn-limpar" onclick="limparFiltros()">✕ Limpar</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-strip" id="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-label">Total D60 Atual</div>
+      <div class="kpi-val" id="kpi-total">—</div>
+      <div class="kpi-sub" id="kpi-semana">Aguardando importação</div>
+    </div>
+    <div class="kpi-card verde">
+      <div class="kpi-label">Pontuaram (↓)</div>
+      <div class="kpi-val verde" id="kpi-pont">—</div>
+      <div class="kpi-sub">D60 reduziu vs última auditoria</div>
+    </div>
+    <div class="kpi-card verm">
+      <div class="kpi-label">Não Pontuaram (↑)</div>
+      <div class="kpi-val verm" id="kpi-npont">—</div>
+      <div class="kpi-sub">D60 aumentou ou estável</div>
+    </div>
+    <div class="kpi-card amar">
+      <div class="kpi-label">Auditadas (semana)</div>
+      <div class="kpi-val amar" id="kpi-audit">—</div>
+      <div class="kpi-sub">Filiais com registro esta semana</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Sem auditoria</div>
+      <div class="kpi-val" id="kpi-sem-audit">—</div>
+      <div class="kpi-sub">Aguardando visita</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="panel-left">
+      <div class="section-title">Filiais <span id="count-badge">0</span></div>
+      <table id="tabela-filiais">
+        <thead>
+          <tr>
+            <th>LJ</th>
+            <th>Filial</th>
+            <th>Regional</th>
+            <th>Gerente</th>
+            <th>Auditor</th>
+            <th>D60 Ref. Atual</th>
+            <th>D60 Ref. Anterior</th>
+            <th>Variação</th>
+            <th>Pontuou</th>
+            <th>Auditada</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="panel-right" id="panel-right">
+      <div class="right-empty">
+        <div class="icon">📋</div>
+        <p>Clique em uma filial para ver detalhes, histórico de valores e títulos vencidos.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+// DADOS EMBARCADOS
+// ════════════════════════════════════════════════════════════════════
+const JSONBIN_ID  = '685ffb318960c979a597e28e';
+const JSONBIN_KEY = '$2a$10$p0NHMnO8WJZO3XoqFVoxgOx03o7c2m6u/a8OLVJB3gKXHqPCr8YSy';
+const SENHA       = 'AGRO-AUD-2951';
+
+const BASE_REGIONAIS = [
+  {lj:1,  sigla:'MTZ', loja:'MATRIZ',           estado:'GO', gerente:'REVALINO NETO',      supervisor:'ERON LUIZ',          regional:'SERGIO ADRIANO',   auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:3,  sigla:'ARG', loja:'ARAGUAÍNA',         estado:'TO', gerente:'FABIO AUGUSTO',      supervisor:'MAGNO ALVES',        regional:'LEANDRO CAMPOS',   auditor:'CARLOS POGGIAN', coord:'PATRICK LIMA',   regiao:'NORTE'},
+  {lj:4,  sigla:'RVD', loja:'RIO VERDE',         estado:'GO', gerente:'WENDER PARTATA',     supervisor:'NATANIELLE VARGAS',  regional:'WENDER PARTATA',   auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:5,  sigla:'UBR', loja:'UBERLÂNDIA',        estado:'MG', gerente:'JOÃO CLÁUDIO',       supervisor:'GISELE MARIA',       regional:'NABIO BARROS',     auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:10, sigla:'MAR', loja:'MARABÁ',            estado:'PA', gerente:'ENIO JOSAFE',        supervisor:'LUCAS DAMACENO',     regional:'LEANDRO CAMPOS',   auditor:'GUILHERME',      coord:'PATRICK LIMA',   regiao:'NORTE'},
+  {lj:11, sigla:'JAT', loja:'JATAÍ',             estado:'GO', gerente:'RENATO TEODORO',     supervisor:'LUBIA SILVA',        regional:'WENDER PARTATA',   auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:12, sigla:'CRI', loja:'CRISTALINA',        estado:'GO', gerente:'ANDRE FERNANDO',     supervisor:'MARCIA DE OLIVEIRA', regional:'NABIO BARROS',     auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:13, sigla:'FAG', loja:'UBS',               estado:'GO', gerente:'EVANDRO MACEDO',     supervisor:'KARINE GOMES',       regional:'EVANDRO MACEDO',   auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:14, sigla:'RED', loja:'REDENÇÃO',          estado:'PA', gerente:'ANDERSON PEREIRA',   supervisor:'BARBARA PEREIRA',    regional:'LEANDRO CAMPOS',   auditor:'CARLOS POGGIAN', coord:'PATRICK LIMA',   regiao:'NORTE'},
+  {lj:16, sigla:'IMP', loja:'IMPERATRIZ',        estado:'MA', gerente:'IALE MILHOMEM',      supervisor:'ROSIANE CANDIDO',    regional:'LEANDRO CAMPOS',   auditor:'GUILHERME',      coord:'PATRICK LIMA',   regiao:'NORTE'},
+  {lj:17, sigla:'BAR', loja:'BARRA DO GARÇAS',   estado:'MT', gerente:'VINICIUS BRITO',     supervisor:'KARINE SOARES',      regional:'MATO GROSSO',      auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:19, sigla:'PAL', loja:'PALMAS',            estado:'TO', gerente:'MARLON GERMANO',     supervisor:'PATRICIA PEREIRA',   regional:'LEANDRO CAMPOS',   auditor:'CARLOS POGGIAN', coord:'PATRICK LIMA',   regiao:'NORTE'},
+  {lj:21, sigla:'MOZ', loja:'MOZARLÂNDIA',       estado:'GO', gerente:'THIAGO VAZ',         supervisor:'NÚBIA GASPAROTTI',   regional:'SERGIO ADRIANO',   auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:22, sigla:'PGM', loja:'PARAGOMINAS',       estado:'PA', gerente:'LORENA MOISES',      supervisor:'ARTHUR SILVA',       regional:'LEANDRO CAMPOS',   auditor:'GUILHERME',      coord:'PATRICK LIMA',   regiao:'NORTE'},
+  {lj:23, sigla:'SFX', loja:'SÃO FELIX DO XINGU',estado:'PA', gerente:'PEDRO MACIEL',      supervisor:'LANNA KEROLAYNE',    regional:'LEANDRO CAMPOS',   auditor:'CARLOS POGGIAN', coord:'PATRICK LIMA',   regiao:'NORTE'},
+  {lj:24, sigla:'FAP', loja:'FABRICA APARECIDA', estado:'GO', gerente:'ANNAPAULLA GARCIA',  supervisor:'ANNAPAULLA GARCIA',  regional:'ANNAPAULLA GARCIA',auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:25, sigla:'FCB', loja:'CUIABÁ',            estado:'MT', gerente:'GEOVANNY VIGILATO',  supervisor:'JULIANA LIMA',       regional:'MATO GROSSO',      auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:27, sigla:'URU', loja:'URUAÇU',            estado:'GO', gerente:'EDVANDO JOSE',       supervisor:'NIVEA ALVES',        regional:'SERGIO ADRIANO',   auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:28, sigla:'MOR', loja:'MORRINHOS',         estado:'GO', gerente:'ABEL HANUN',         supervisor:'PAULA REGINA',       regional:'NABIO BARROS',     auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:29, sigla:'CON', loja:'CONFRESA',          estado:'MT', gerente:'AKYLLA OLIVEIRA',    supervisor:'FELIPE ANDRADE',     regional:'MATO GROSSO',      auditor:'CARLOS POGGIAN', coord:'PATRICK LIMA',   regiao:'NORTE'},
+  {lj:30, sigla:'FOR', loja:'FORMOSA',           estado:'GO', gerente:'DANIEL BARREIRA',    supervisor:'JULIANA MARIA',      regional:'NABIO BARROS',     auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:31, sigla:'JUS', loja:'JUSSARA',           estado:'GO', gerente:'CLESIO ALVES',       supervisor:'MARIANNE SAHARA',    regional:'SERGIO ADRIANO',   auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:32, sigla:'XRA', loja:'XINGUARA',          estado:'PA', gerente:'WILLIAN ANTIGO',     supervisor:'LEONICE MORAIS',     regional:'LEANDRO CAMPOS',   auditor:'GUILHERME',      coord:'PATRICK LIMA',   regiao:'NORTE'},
+  {lj:34, sigla:'POR', loja:'PORANGATU',         estado:'GO', gerente:'ANTONIO CARLOS',     supervisor:'ALLYNE LUCENA',      regional:'SERGIO ADRIANO',   auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:35, sigla:'PLA', loja:'PONTES E LACERDA',  estado:'MT', gerente:'MARCELO MULLER',     supervisor:'RENATA COSTA',       regional:'MATO GROSSO',      auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:36, sigla:'GRA', loja:'GOIANIRA',          estado:'GO', gerente:'HENISLEY SABINO',    supervisor:'HENISLEY SABINO',    regional:'HENISLEY SABINO',  auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:37, sigla:'CAN', loja:'CANARANA',          estado:'MT', gerente:'LEONARDO FREITAS',   supervisor:'INGRID KAROLAYNE',   regional:'MATO GROSSO',      auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:38, sigla:'GUR', loja:'GURUPI',            estado:'TO', gerente:'FREDERICO CARRIJO',  supervisor:'RENATA CERQUEIRA',   regional:'SERGIO ADRIANO',   auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:40, sigla:'RIA', loja:'RIALMA',            estado:'GO', gerente:'NATALINO NETO',      supervisor:'ROSILDA CURSINO',    regional:'SERGIO ADRIANO',   auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
+  {lj:41, sigla:'ALT', loja:'ALTAMIRA',          estado:'PA', gerente:'DAVID DOURADO',      supervisor:'JOSIMARA CABRAL',    regional:'LEANDRO CAMPOS',   auditor:'GUILHERME',      coord:'PATRICK LIMA',   regiao:'NORTE'},
+];
+
+const D60_HIST = {"1": {"2026-01-02": 372981.59, "2026-01-09": 372481.59, "2026-01-16": 378881.59, "2026-01-23": 376179.44, "2026-01-30": 368708.78, "2026-02-06": 362708.78, "2026-02-13": 361426.85, "2026-02-20": 358724.7, "2026-02-27": 351873.63, "2026-03-06": 351873.63, "2026-03-13": 351873.63, "2026-03-20": 347790.29, "2026-03-27": 346316.39, "2026-04-03": 346316.39, "2026-04-10": 346316.39, "2026-04-17": 342425.83, "2026-04-24": 342425.83, "2026-05-01": 343413.48, "2026-05-08": 342236.8, "2026-05-15": 342236.8, "2026-05-22": 542236.8, "2026-05-29": 540885.73, "2026-06-05": 540885.73, "2026-06-12": 540885.73}, "3": {"2026-01-02": 557251.97, "2026-01-09": 557251.97, "2026-01-16": 554751.97, "2026-01-23": 561644.3, "2026-01-30": 561644.3, "2026-02-06": 554751.97, "2026-02-13": 550177.98, "2026-02-20": 550177.98, "2026-02-27": 550177.98, "2026-03-06": 550177.98, "2026-03-13": 550177.98, "2026-03-20": 550177.98, "2026-03-27": 550177.98, "2026-04-03": 550177.98, "2026-04-10": 550177.98, "2026-04-17": 550177.98, "2026-04-24": 550177.98, "2026-05-01": 568768.38, "2026-05-08": 568768.38, "2026-05-15": 282137.54, "2026-05-22": 282137.54, "2026-05-29": 282137.54, "2026-06-05": 279337.54, "2026-06-12": 279337.54}, "4": {"2026-01-02": 565434.42, "2026-01-09": 533274.42, "2026-01-16": 549874.42, "2026-01-23": 549874.42, "2026-01-30": 549874.42, "2026-02-06": 536433.42, "2026-02-13": 619233.42, "2026-02-20": 619233.42, "2026-02-27": 619233.42, "2026-03-06": 618733.42, "2026-03-13": 526733.42, "2026-03-20": 526733.42, "2026-03-27": 465083.42, "2026-04-03": 465083.42, "2026-04-10": 465083.42, "2026-04-17": 465083.42, "2026-04-24": 465083.42, "2026-05-01": 465083.42, "2026-05-08": 464333.42, "2026-05-15": 464333.42, "2026-05-22": 344583.42, "2026-05-29": 1477705.87, "2026-06-05": 1478380.04, "2026-06-12": 487892.91}, "5": {"2026-01-02": 189232.53, "2026-01-09": 189232.53, "2026-01-16": 189232.53, "2026-01-23": 189232.53, "2026-01-30": 195592.53, "2026-02-06": 195592.53, "2026-02-13": 195592.53, "2026-02-20": 195592.53, "2026-02-27": 195592.53, "2026-03-06": 195592.53, "2026-03-13": 195592.53, "2026-03-20": 195592.53, "2026-03-27": 195592.53, "2026-04-03": 195592.53, "2026-04-10": 195592.53, "2026-04-17": 195592.53, "2026-04-24": 195592.53, "2026-05-01": 195592.53, "2026-05-08": 195592.53, "2026-05-15": 195592.53, "2026-05-22": 195592.53, "2026-05-29": 195592.53, "2026-06-05": 195592.53, "2026-06-12": 195592.53}, "10": {"2026-01-02": 227205.69, "2026-01-09": 227205.69, "2026-01-16": 227205.69, "2026-01-23": 224992.31, "2026-01-30": 232292.31, "2026-02-06": 222277.03, "2026-02-13": 222277.03, "2026-02-20": 222277.03, "2026-02-27": 222277.03, "2026-03-06": 291170.29, "2026-03-13": 291170.29, "2026-03-20": 291170.29, "2026-03-27": 262543.33, "2026-04-03": 302143.33, "2026-04-10": 294336.51, "2026-04-17": 262115.41, "2026-04-24": 234952.51, "2026-05-01": 195352.51, "2026-05-08": 194292.51, "2026-05-15": 194292.51, "2026-05-22": 194292.51, "2026-05-29": 194292.51, "2026-06-05": 193792.51, "2026-06-12": 193792.51}, "11": {"2026-01-02": 424585.74, "2026-01-09": 424585.74, "2026-01-16": 424585.74, "2026-01-23": 424585.74, "2026-01-30": 424585.74, "2026-02-06": 424585.74, "2026-02-13": 424585.74, "2026-02-20": 424585.74, "2026-02-27": 424585.74, "2026-03-06": 424585.74, "2026-03-13": 424585.74, "2026-03-20": 424585.74, "2026-03-27": 424585.74, "2026-04-03": 424585.74, "2026-04-10": 424585.74, "2026-04-17": 424585.74, "2026-04-24": 424585.74, "2026-05-01": 424585.74, "2026-05-08": 424585.74, "2026-05-15": 424585.74, "2026-05-22": 424585.74, "2026-05-29": 424585.74, "2026-06-05": 424585.74, "2026-06-12": 414585.74}, "12": {"2026-01-02": 830342.76, "2026-01-09": 830342.76, "2026-01-16": 830342.76, "2026-01-23": 830342.76, "2026-01-30": 855196.72, "2026-02-06": 830342.76, "2026-02-13": 830342.76, "2026-02-20": 830342.76, "2026-02-27": 830342.76, "2026-03-06": 830342.76, "2026-03-13": 826371.97, "2026-03-20": 826371.97, "2026-03-27": 826371.97, "2026-04-03": 826371.97, "2026-04-10": 826371.97, "2026-04-17": 826371.97, "2026-04-24": 630891.97, "2026-05-01": 510524.47, "2026-05-08": 510524.47, "2026-05-15": 510524.47, "2026-05-22": 510524.47, "2026-05-29": 464428.34, "2026-06-05": 464428.34, "2026-06-12": 464428.34}, "14": {"2026-01-02": 381238.3, "2026-01-09": 381238.3, "2026-01-16": 380738.3, "2026-01-23": 380738.3, "2026-01-30": 363513.3, "2026-02-06": 363013.3, "2026-02-13": 363013.3, "2026-02-20": 363013.3, "2026-02-27": 359175.8, "2026-03-06": 355725.8, "2026-03-13": 355725.8, "2026-03-20": 353005.8, "2026-03-27": 301105.8, "2026-04-03": 300605.8, "2026-04-10": 302105.8, "2026-04-17": 302105.8, "2026-04-24": 286755.8, "2026-05-01": 286755.8, "2026-05-08": 289109.8, "2026-05-15": 289109.8, "2026-05-22": 289109.8, "2026-05-29": 218904.8, "2026-06-05": 218904.8, "2026-06-12": 218904.8}, "16": {"2026-01-02": 323459.3, "2026-01-09": 321955.3, "2026-01-16": 321955.3, "2026-01-23": 316755.5, "2026-01-30": 316755.5, "2026-02-06": 319251.5, "2026-02-13": 318751.5, "2026-02-20": 426488.49, "2026-02-27": 434625.59, "2026-03-06": 385829.89, "2026-03-13": 390299.89, "2026-03-20": 322480.3, "2026-03-27": 322480.3, "2026-04-03": 308010.3, "2026-04-10": 325950.6, "2026-04-17": 312314.6, "2026-04-24": 312314.6, "2026-05-01": 312314.6, "2026-05-08": 314889.1, "2026-05-15": 314889.1, "2026-05-22": 314889.1, "2026-05-29": 304136.28, "2026-06-05": 309401.58, "2026-06-12": 304401.58}, "17": {"2026-01-02": 1394012.72, "2026-01-09": 1393512.72, "2026-01-16": 1376463.72, "2026-01-23": 1358689.86, "2026-01-30": 382389.6, "2026-02-06": 382089.6, "2026-02-13": 382089.6, "2026-02-20": 480204.73, "2026-02-27": 474928.06, "2026-03-06": 480596.06, "2026-03-13": 481964.08, "2026-03-20": 507164.08, "2026-03-27": 513997.41, "2026-04-03": 511510.41, "2026-04-10": 511510.41, "2026-04-17": 511510.41, "2026-04-24": 511510.41, "2026-05-01": 510023.41, "2026-05-08": 509523.41, "2026-05-15": 138511.61, "2026-05-22": 151430.17, "2026-05-29": 151430.17, "2026-06-05": 143415.46, "2026-06-12": 143415.46}, "19": {"2026-01-02": 395981.98, "2026-01-09": 395981.98, "2026-01-16": 395981.98, "2026-01-23": 395981.98, "2026-01-30": 377633.11, "2026-02-06": 377633.11, "2026-02-13": 377633.11, "2026-02-20": 377633.11, "2026-02-27": 377633.11, "2026-03-06": 359284.24, "2026-03-13": 359284.24, "2026-03-20": 357602.59, "2026-03-27": 357602.59, "2026-04-03": 357602.59, "2026-04-10": 357602.59, "2026-04-17": 357602.59, "2026-04-24": 357602.59, "2026-05-01": 357602.59, "2026-05-08": 357602.59, "2026-05-15": 357602.59, "2026-05-22": 357602.59, "2026-05-29": 282622.6, "2026-06-05": 282622.6, "2026-06-12": 282622.6}, "22": {"2026-01-02": 2010.0}, "23": {"2026-01-02": 173782.0, "2026-01-09": 171782.0, "2026-01-16": 174922.0, "2026-01-23": 174922.0, "2026-01-30": 211297.0, "2026-02-06": 192167.0, "2026-02-13": 192167.0, "2026-02-20": 192167.0, "2026-02-27": 192167.0, "2026-03-06": 154792.0, "2026-03-13": 161122.0, "2026-03-20": 161122.0, "2026-03-27": 184327.0, "2026-04-03": 183327.0, "2026-04-10": 160122.0, "2026-04-17": 160122.0, "2026-04-24": 160122.0, "2026-05-01": 135532.0, "2026-05-08": 135532.0, "2026-05-15": 131188.0, "2026-05-22": 131188.0, "2026-05-29": 131188.0, "2026-06-05": 130188.0, "2026-06-12": 130188.0}, "25": {"2026-01-02": 13504.9, "2026-01-09": 16874.9, "2026-01-16": 12804.9, "2026-01-23": 12804.9, "2026-01-30": 12804.9, "2026-02-06": 12426.46, "2026-02-13": 12426.46, "2026-02-20": 12426.46, "2026-02-27": 12426.46, "2026-03-06": 11726.46, "2026-03-13": 11726.46, "2026-03-20": 11726.46, "2026-03-27": 11726.46, "2026-04-03": 10556.0, "2026-04-10": 10556.0, "2026-04-17": 10556.0, "2026-04-24": 10556.0, "2026-05-01": 52328.0, "2026-05-08": 52328.0, "2026-05-15": 52328.0, "2026-05-22": 76462.0, "2026-05-29": 76462.0, "2026-06-05": 76462.0, "2026-06-12": 76462.0}, "27": {"2026-01-02": 352311.92, "2026-01-09": 352311.92, "2026-01-16": 352311.92, "2026-01-23": 352311.92, "2026-01-30": 352311.92, "2026-02-06": 352311.92, "2026-02-13": 353311.92, "2026-02-20": 352311.92, "2026-02-27": 352311.92, "2026-03-06": 352311.92, "2026-03-13": 352311.92, "2026-03-20": 352311.92, "2026-03-27": 352311.92, "2026-04-03": 352311.92, "2026-04-10": 352311.92, "2026-04-17": 352311.92, "2026-04-24": 352311.92, "2026-05-01": 352311.92, "2026-05-08": 352311.92, "2026-05-15": 352311.92, "2026-05-22": 352311.92, "2026-05-29": 352311.92, "2026-06-05": 352311.92, "2026-06-12": 352311.92}, "28": {"2026-01-02": 968890.46, "2026-01-09": 967790.46, "2026-01-16": 906909.46, "2026-01-23": 906909.46, "2026-01-30": 903224.71, "2026-02-06": 898358.01, "2026-02-13": 898358.01, "2026-02-20": 898358.01, "2026-02-27": 853327.97, "2026-03-06": 852627.97, "2026-03-13": 852627.97, "2026-03-20": 852627.97, "2026-03-27": 852627.97, "2026-04-03": 851927.97, "2026-04-10": 851927.97, "2026-04-17": 851927.97, "2026-04-24": 833927.97, "2026-05-01": 833927.97, "2026-05-08": 768973.56, "2026-05-15": 768273.56, "2026-05-22": 768273.56, "2026-05-29": 768273.56, "2026-06-05": 782024.19, "2026-06-12": 782024.19}, "29": {"2026-01-02": 257489.82, "2026-01-09": 292368.82, "2026-01-16": 292368.82, "2026-01-23": 272257.57, "2026-01-30": 272257.57, "2026-02-06": 271479.64, "2026-02-13": 251534.97, "2026-02-20": 253633.03, "2026-02-27": 258994.71, "2026-03-06": 289674.8, "2026-03-13": 258174.0, "2026-03-20": 297364.26, "2026-03-27": 297364.26, "2026-04-03": 276558.93, "2026-04-10": 276558.93, "2026-04-17": 276558.93, "2026-04-24": 276558.93, "2026-05-01": 276558.93, "2026-05-08": 264308.93, "2026-05-15": 264623.76, "2026-05-22": 264623.76, "2026-05-29": 193205.76, "2026-06-05": 202202.76, "2026-06-12": 197102.76}, "30": {"2026-01-02": 670042.23, "2026-01-09": 670042.23, "2026-01-16": 657506.15, "2026-01-23": 657506.15, "2026-01-30": 687074.15, "2026-02-06": 687074.15, "2026-02-13": 693074.15, "2026-02-20": 693074.15, "2026-02-27": 692148.15, "2026-03-06": 686148.15, "2026-03-13": 686148.15, "2026-03-20": 686148.15, "2026-03-27": 686148.15, "2026-04-03": 685112.15, "2026-04-10": 685112.15, "2026-04-17": 829112.15, "2026-04-24": 829112.15, "2026-05-01": 804102.47, "2026-05-08": 699490.3, "2026-05-15": 669922.3, "2026-05-22": 669922.3, "2026-05-29": 669922.3, "2026-06-05": 668886.3, "2026-06-12": 668886.3}, "31": {"2026-01-02": 131978.59, "2026-01-09": 131978.59, "2026-01-16": 131978.59, "2026-01-23": 131978.59, "2026-01-30": 142764.03, "2026-02-06": 142764.03, "2026-02-13": 142764.03, "2026-02-20": 143005.01, "2026-02-27": 131978.59, "2026-03-06": 131978.59, "2026-03-13": 131978.59, "2026-03-20": 131978.59, "2026-03-27": 131978.59, "2026-04-03": 131978.59, "2026-04-10": 131978.59, "2026-04-17": 131978.59, "2026-04-24": 131978.59, "2026-05-01": 131978.59, "2026-05-08": 131978.59, "2026-05-15": 131978.59, "2026-05-22": 131978.59, "2026-05-29": 131978.59, "2026-06-05": 131978.59, "2026-06-12": 131978.59}, "32": {"2026-04-10": 32691.66, "2026-04-17": 32691.66, "2026-04-24": 32691.66, "2026-05-01": 32691.66, "2026-05-08": 32691.66, "2026-05-15": 56909.16, "2026-05-22": 56909.16, "2026-05-29": 56909.16, "2026-06-05": 35316.66, "2026-06-12": 35316.66}, "34": {"2026-01-16": 20625.0, "2026-01-23": 20625.0, "2026-01-30": 20625.0, "2026-02-06": 20625.0, "2026-02-13": 20625.0, "2026-02-20": 20625.0, "2026-02-27": 20625.0}, "35": {"2026-01-02": 65745.61, "2026-01-09": 65745.61, "2026-01-16": 65745.61, "2026-01-23": 65745.61, "2026-01-30": 65745.61, "2026-02-06": 65745.61, "2026-02-13": 72578.7, "2026-02-20": 72578.7, "2026-02-27": 72578.7, "2026-03-06": 72578.7, "2026-03-13": 74009.03, "2026-03-20": 74009.03, "2026-03-27": 74009.03, "2026-04-03": 74009.03, "2026-04-10": 74009.03, "2026-04-17": 80842.11, "2026-04-24": 80842.11, "2026-05-01": 80842.11, "2026-05-08": 65745.61, "2026-05-15": 65745.61, "2026-05-22": 65745.61, "2026-05-29": 65745.61, "2026-06-05": 65745.61, "2026-06-12": 65745.61}, "37": {"2026-01-02": 186288.65, "2026-01-09": 146969.66, "2026-01-16": 146969.66, "2026-01-23": 146969.66, "2026-01-30": 139544.31, "2026-02-06": 183484.31, "2026-02-13": 171574.31, "2026-02-20": 170556.31, "2026-02-27": 179524.31, "2026-03-06": 139544.31, "2026-03-13": 139544.31, "2026-03-20": 164904.3, "2026-03-27": 167104.3, "2026-04-03": 167104.3, "2026-04-10": 167104.3, "2026-04-17": 154556.97, "2026-04-24": 154556.97, "2026-05-01": 154556.97, "2026-05-08": 154556.97, "2026-05-15": 146103.64, "2026-05-22": 146103.64, "2026-05-29": 146103.64, "2026-06-05": 146103.64, "2026-06-12": 161548.54}, "38": {"2026-01-02": 1405.0, "2026-01-09": 1405.0, "2026-01-16": 1405.0, "2026-01-23": 1405.0, "2026-01-30": 1405.0, "2026-02-06": 1405.0, "2026-02-13": 1405.0, "2026-02-20": 1405.0, "2026-02-27": 1405.0, "2026-03-06": 1703.0, "2026-03-13": 1405.0, "2026-03-20": 1405.0, "2026-03-27": 1405.0, "2026-04-03": 1405.0, "2026-04-10": 1405.0, "2026-04-17": 1405.0, "2026-04-24": 1405.0, "2026-05-01": 1405.0, "2026-05-08": 1405.0, "2026-05-15": 1405.0, "2026-05-22": 1405.0, "2026-05-29": 1405.0, "2026-06-05": 1405.0, "2026-06-12": 1405.0}, "40": {"2026-01-02": 148342.01, "2026-01-09": 147342.01, "2026-01-16": 145114.11, "2026-01-23": 145114.11, "2026-01-30": 145114.11, "2026-02-06": 144627.22, "2026-02-13": 144627.22, "2026-02-20": 144627.22, "2026-02-27": 144627.22, "2026-03-06": 144174.66, "2026-03-13": 144174.66, "2026-03-20": 144174.66, "2026-03-27": 144174.66, "2026-04-03": 143674.66, "2026-04-10": 143674.66, "2026-04-17": 143674.66, "2026-04-24": 143674.66, "2026-05-01": 143674.66, "2026-05-08": 143174.66, "2026-05-15": 143174.66, "2026-05-22": 143174.66, "2026-05-29": 143174.66, "2026-06-05": 142674.66, "2026-06-12": 142674.66}, "41": {"2026-01-02": 306453.82, "2026-01-09": 342453.82, "2026-01-16": 305553.82, "2026-01-23": 305553.82, "2026-01-30": 305553.82, "2026-02-06": 304953.82, "2026-02-13": 304953.82, "2026-02-20": 304953.82, "2026-02-27": 304953.82, "2026-03-06": 304353.82, "2026-03-13": 304353.82, "2026-03-20": 304353.82, "2026-03-27": 304353.82, "2026-04-03": 304053.82, "2026-04-10": 304053.82, "2026-04-17": 304053.82, "2026-04-24": 304053.82, "2026-05-01": 318643.82, "2026-05-08": 318343.82, "2026-05-15": 293446.72, "2026-05-22": 342973.72, "2026-05-29": 348223.72, "2026-06-05": 347923.72, "2026-06-12": 347923.72}};
+
+// ════════════════════════════════════════════════════════════════════
+// ESTADO
+// ════════════════════════════════════════════════════════════════════
+let MODO = 'consulta';
+let AUDITOR_ATUAL = '';
+let vencidosData = {};      // {lj: [{cliente,representante,vencto,atraso,valor,sit}]}
+let semanaAtual  = null;    // '2026-06-12'
+let auditorias   = {};      // {lj: [{auditor, data, d60_ref, pontuou, semana_ref}]}
+let filialSel    = null;
+let dadosTabela  = [];
+
+// ════════════════════════════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════════════════════════════
+document.getElementById('login-modo').addEventListener('change', function() {
+  document.getElementById('login-auditor-wrap').style.display =
+    this.value === 'auditoria' ? 'block' : 'none';
+});
+
+document.getElementById('login-senha').addEventListener('keydown', e => {
+  if (e.key === 'Enter') fazerLogin();
+});
+
+function fazerLogin() {
+  const senha  = document.getElementById('login-senha').value.trim();
+  const modo   = document.getElementById('login-modo').value;
+  const auditor= document.getElementById('login-auditor').value;
+  const err    = document.getElementById('login-err');
+
+  if (senha !== SENHA) { err.style.display = 'block'; return; }
+  if (modo === 'auditoria' && !auditor) {
+    err.textContent = 'Selecione seu nome para registrar auditoria.';
+    err.style.display = 'block'; return;
+  }
+  err.style.display = 'none';
+  MODO = modo; AUDITOR_ATUAL = auditor;
+
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  const badge = MODO === 'auditoria'
+    ? '<span class="modo-badge modo-auditoria">✏️ Modo Auditoria</span>'
+    : '<span class="modo-badge modo-consulta">👁 Modo Consulta</span>';
+  document.getElementById('modo-badge-header').innerHTML = badge;
+  document.getElementById('header-auditor').textContent =
+    AUDITOR_ATUAL ? AUDITOR_ATUAL : '';
+
+  popularFiltroRegional();
+  carregarNuvem();
+}
+
+function sair() {
+  location.reload();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// JSONBIN
+// ════════════════════════════════════════════════════════════════════
+async function carregarNuvem() {
+  try {
+    const r = await fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_ID + '/latest', {
+      headers: { 'X-Master-Key': JSONBIN_KEY }
+    });
+    if (r.ok) {
+      const d = await r.json();
+      auditorias = d.record.auditorias || {};
+    }
+  } catch(e) { console.warn('Nuvem offline:', e); }
+  renderTabela();
+}
+
+async function salvarNuvem() {
+  try {
+    await fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_ID, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
+      body: JSON.stringify({ auditorias })
+    });
+  } catch(e) { console.warn('Erro ao salvar:', e); }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// IMPORTAR VENCIDOS
+// ════════════════════════════════════════════════════════════════════
+function importarVencidos(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb    = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const ws    = wb.Sheets['Títulos'];
+      if (!ws) { toast('⚠️ Aba "Títulos" não encontrada no arquivo.'); return; }
+      const rows  = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      // detectar semana: última coluna com dados no D60_HIST
+      const allWeeks = [...new Set(
+        Object.values(D60_HIST).flatMap(h => Object.keys(h))
+      )].sort();
+      semanaAtual = allWeeks[allWeeks.length - 1];
+
+      // agrupar títulos por LJ
+      vencidosData = {};
+      rows.forEach(r => {
+        const lj = parseInt(r['LJ'] || r['lj'] || 0);
+        if (!lj) return;
+        if (!vencidosData[lj]) vencidosData[lj] = [];
+        let vencto = r['VENCTO'] || r['Vencto'] || '';
+        if (vencto instanceof Date) vencto = vencto.toISOString().slice(0,10);
+        else if (typeof vencto === 'number') {
+          // Excel serial
+          const d = new Date((vencto - 25569) * 86400000);
+          vencto = d.toISOString().slice(0,10);
+        }
+        vencidosData[lj].push({
+          representante: (r['REPRESENTANTE: '] || r['REPRESENTANTE'] || '').trim(),
+          cliente:       (r['CLIENTE'] || '').trim(),
+          praca:         (r['PRAÇA PAGTO'] || r['PRACA PAGTO'] || '').trim(),
+          vencto,
+          atraso:        parseInt(r['ATRASO'] || 0),
+          valor:         parseFloat(r['VALOR'] || 0),
+          sit:           (r['SIT.'] || r['SIT'] || '').trim(),
+        });
+      });
+
+      document.getElementById('import-status').innerHTML =
+        '<span class="import-status">✅ ' + file.name + '</span>';
+      document.getElementById('import-date-info').textContent =
+        'Semana de referência: ' + formatarData(semanaAtual);
+      toast('Vencidos importados com sucesso!');
+      renderTabela();
+    } catch(err) {
+      toast('⚠️ Erro ao ler o arquivo: ' + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// LÓGICA D60
+// ════════════════════════════════════════════════════════════════════
+function getD60Atual(lj) {
+  const hist = D60_HIST[lj];
+  if (!hist) return null;
+  if (semanaAtual && hist[semanaAtual] !== undefined) return hist[semanaAtual];
+  const semanas = Object.keys(hist).sort();
+  return semanas.length ? hist[semanas[semanas.length - 1]] : null;
+}
+
+function getD60RefAuditoria(lj) {
+  // Retorna o D60 da semana de referência da ÚLTIMA auditoria desta filial
+  const list = (auditorias[lj] || []);
+  if (!list.length) return null;
+  const ultima = list[list.length - 1];
+  return ultima.d60_ref;
+}
+
+function getSemanaRefAuditoria(lj) {
+  const list = (auditorias[lj] || []);
+  if (!list.length) return null;
+  return list[list.length - 1].semana_ref;
+}
+
+function getPontuou(lj) {
+  const atual = getD60Atual(lj);
+  const ant   = getD60RefAuditoria(lj);
+  if (atual === null || ant === null) return null;
+  return atual < ant;
+}
+
+function getSemanaAnterior(semana) {
+  const hist = D60_HIST;
+  const todasSemanas = [...new Set(
+    Object.values(hist).flatMap(h => Object.keys(h))
+  )].sort();
+  const idx = todasSemanas.indexOf(semana);
+  return idx > 0 ? todasSemanas[idx - 1] : null;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// RENDER TABELA
+// ════════════════════════════════════════════════════════════════════
+function renderTabela() {
+  const fReg    = document.getElementById('f-regional').value;
+  const fFilial = document.getElementById('f-filial').value;
+  const fAud    = document.getElementById('f-auditor').value;
+
+  dadosTabela = BASE_REGIONAIS.filter(b => {
+    if (fReg    && b.regional !== fReg)  return false;
+    if (fFilial && String(b.lj) !== fFilial) return false;
+    if (fAud    && !matchAuditor(b, fAud)) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  let totAtual = 0, nPont = 0, nNpont = 0, nAudit = 0, nSemAudit = 0;
+  const semanaAuditAtual = semanaAtual;
+
+  dadosTabela.forEach(b => {
+    const d60a  = getD60Atual(b.lj);
+    const d60ant= getD60RefAuditoria(b.lj);
+    const pont  = getPontuou(b.lj);
+    const ultAud= (auditorias[b.lj] || []).slice(-1)[0];
+    const auditadaEsta = ultAud && semanaAuditAtual &&
+      ultAud.semana_ref === semanaAuditAtual;
+
+    if (d60a) totAtual += d60a;
+    if (pont === true)  nPont++;
+    if (pont === false) nNpont++;
+    if (auditadaEsta)   nAudit++;
+    else                nSemAudit++;
+
+    const varVal = (d60a !== null && d60ant !== null) ? d60a - d60ant : null;
+    const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
+
+    let pontBadge = '<span class="badge badge-gray">—</span>';
+    if (pont === true)  pontBadge = '<span class="badge badge-green">✓ Sim</span>';
+    if (pont === false) pontBadge = '<span class="badge badge-red">✗ Não</span>';
+
+    let audBadge = auditadaEsta
+      ? '<span class="badge badge-blue">✓ Sim</span>'
+      : '<span class="badge badge-gray">Não</span>';
+
+    let varStr = '—';
+    if (varVal !== null) {
+      const cor = varVal < 0 ? 'color:var(--verde)' : (varVal > 0 ? 'color:var(--verm)' : '');
+      varStr = '<span style="' + cor + '">' +
+        (varVal > 0 ? '+' : '') + formatMoeda(varVal) +
+        '<br><small>' + (varPct > 0 ? '+' : '') + varPct.toFixed(1) + '%</small></span>';
+    }
+
+    const tr = document.createElement('tr');
+    if (filialSel === b.lj) tr.classList.add('selected');
+    tr.innerHTML = [
+      '<td><b>' + b.lj + '</b></td>',
+      '<td><div class="td-loja">' + b.loja + '</div><div class="td-reg">' + b.sigla + ' · ' + b.estado + '</div></td>',
+      '<td><div class="td-reg">' + b.regional + '</div></td>',
+      '<td style="font-size:12px">' + b.gerente + '</td>',
+      '<td style="font-size:11px;color:#6B7FA3">' + b.auditor + '</td>',
+      '<td style="font-weight:700;color:var(--azul)">' + (d60a !== null ? formatMoeda(d60a) : '—') + '</td>',
+      '<td style="font-size:12px;color:#6B7FA3">' + (d60ant !== null ? formatMoeda(d60ant) : '—') + '</td>',
+      '<td>' + varStr + '</td>',
+      '<td>' + pontBadge + '</td>',
+      '<td>' + audBadge + '</td>',
+    ].join('');
+    tr.addEventListener('click', () => selecionarFilial(b.lj));
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('count-badge').textContent = dadosTabela.length;
+  document.getElementById('kpi-total').textContent   = formatMoeda(totAtual);
+  document.getElementById('kpi-semana').textContent  = semanaAtual ? 'Ref: ' + formatarData(semanaAtual) : 'Aguardando importação';
+  document.getElementById('kpi-pont').textContent    = nPont;
+  document.getElementById('kpi-npont').textContent   = nNpont;
+  document.getElementById('kpi-audit').textContent   = nAudit;
+  document.getElementById('kpi-sem-audit').textContent = nSemAudit;
+}
+
+function matchAuditor(b, fAud) {
+  const nome = fAud.toLowerCase();
+  if (b.auditor.toLowerCase().includes(nome)) return true;
+  const aud = (auditorias[b.lj] || []).slice(-1)[0];
+  if (aud && aud.auditor.toLowerCase().includes(nome)) return true;
+  return false;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PAINEL DIREITO — DETALHE FILIAL
+// ════════════════════════════════════════════════════════════════════
+function selecionarFilial(lj) {
+  filialSel = lj;
+  // highlight
+  document.querySelectorAll('#tbody tr').forEach((tr,i) => {
+    tr.classList.toggle('selected', dadosTabela[i] && dadosTabela[i].lj === lj);
+  });
+  renderDetalhe(lj);
+}
+
+function renderDetalhe(lj) {
+  const base  = BASE_REGIONAIS.find(b => b.lj === lj);
+  if (!base) return;
+  const hist  = D60_HIST[lj] || {};
+  const d60a  = getD60Atual(lj);
+  const d60ant= getD60RefAuditoria(lj);
+  const pont  = getPontuou(lj);
+  const semAnt= getSemanaAnterior(semanaAtual);
+  const titulos = vencidosData[lj] || [];
+  const listAud = auditorias[lj] || [];
+
+  // Semana de referência = semana anterior à auditoria atual (semanaAtual = última do D60)
+  const semRef = semanaAtual;
+
+  let html = '';
+
+  // Header
+  html += '<div class="right-header">';
+  html += '<div class="right-loja">LJ ' + lj.toString().padStart(2,'0') + ' · ' + base.loja + '</div>';
+  html += '<div class="right-meta">' + base.regional + ' · ' + base.gerente + ' · ' + base.estado + '</div>';
+  html += '</div>';
+
+  // Info grid
+  const varVal = (d60a !== null && d60ant !== null) ? d60a - d60ant : null;
+  const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
+  html += '<div class="info-grid">';
+  html += infoBox('D60 Ref. Atual', d60a !== null ? formatMoeda(d60a) : '—', '');
+  html += infoBox('D60 Ref. Anterior', d60ant !== null ? formatMoeda(d60ant) : 'Sem auditoria', '');
+  html += infoBox('Variação',
+    varVal !== null ? (varVal > 0 ? '+' : '') + formatMoeda(varVal) + ' (' + varPct.toFixed(1) + '%)' : '—',
+    varVal === null ? '' : (varVal < 0 ? 'verde' : (varVal > 0 ? 'verm' : '')));
+  html += infoBox('Pontuou', pont === true ? '✓ SIM' : (pont === false ? '✗ NÃO' : '—'),
+    pont === true ? 'verde' : (pont === false ? 'verm' : ''));
+  html += '</div>';
+
+  // Painel de auditoria (modo auditoria)
+  if (MODO === 'auditoria') {
+    html += '<div class="audit-panel">';
+    html += '<div class="audit-panel-title">✏️ Registrar Auditoria</div>';
+    html += '<div style="font-size:12px;color:#856404;margin-bottom:8px">';
+    html += 'Auditor: <b>' + AUDITOR_ATUAL + '</b><br>';
+    html += 'Semana de referência: <b>' + formatarData(semRef) + '</b>';
+    if (d60a !== null) html += '<br>D60 desta semana: <b>' + formatMoeda(d60a) + '</b>';
+    html += '</div>';
+    html += '<input type="date" id="audit-data" value="' + hoje() + '">';
+    html += '<button class="btn-registrar" onclick="registrarAuditoria(' + lj + ')">';
+    html += 'Confirmar — Auditei esta filial';
+    html += '</button>';
+    html += '</div>';
+  }
+
+  // Histórico D60 (últimas 8 semanas)
+  const semanas = Object.keys(hist).sort().slice(-8);
+  if (semanas.length) {
+    html += '<div class="hist-section">';
+    html += '<div class="hist-title">Histórico D60</div>';
+    semanas.reverse().forEach(s => {
+      const isCurr = s === semRef;
+      html += '<div class="hist-row' + (isCurr ? ' current' : '') + '">';
+      html += '<span class="hist-row-date">' + formatarData(s) + (isCurr ? ' ◀' : '') + '</span>';
+      html += '<span class="hist-row-val">' + formatMoeda(hist[s]) + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Histórico de auditorias
+  if (listAud.length) {
+    html += '<div class="hist-section">';
+    html += '<div class="hist-title">Auditorias Registradas</div>';
+    listAud.slice().reverse().slice(0,6).forEach(a => {
+      const p = a.pontuou;
+      html += '<div class="audit-hist-item">';
+      html += '<div><div class="audit-aud">' + a.auditor + '</div>';
+      html += '<div class="audit-date">Auditado em ' + formatarData(a.data) + ' · Ref: ' + formatarData(a.semana_ref) + '</div>';
+      html += '<div class="audit-date">D60 ref: ' + formatMoeda(a.d60_ref) + '</div></div>';
+      html += '<div>' + (p === true ? '<span class="badge badge-green">✓</span>' :
+                          p === false ? '<span class="badge badge-red">✗</span>' :
+                          '<span class="badge badge-gray">—</span>') + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Títulos drill-down
+  if (titulos.length) {
+    html += '<div class="titulos-section">';
+    html += '<div class="titulos-title">Títulos Vencidos (' + titulos.length + ')</div>';
+    titulos.slice(0, 20).forEach(t => {
+      html += '<div class="titulo-item">';
+      html += '<div class="titulo-cliente">' + (t.cliente || t.representante || '—') + '</div>';
+      html += '<div class="titulo-meta">Venc: ' + formatarData(t.vencto) + ' · ' + t.atraso + ' dias · ' + t.sit + '</div>';
+      html += '<div class="titulo-valor">' + formatMoeda(t.valor) + '</div>';
+      html += '</div>';
+    });
+    if (titulos.length > 20) {
+      html += '<div style="font-size:11px;color:#6B7FA3;padding:6px 0">...e mais ' + (titulos.length - 20) + ' títulos</div>';
+    }
+    html += '</div>';
+  } else if (semanaAtual) {
+    html += '<div class="titulos-section">';
+    html += '<div class="titulos-title">Títulos Vencidos</div>';
+    html += '<div style="font-size:12px;color:#8B9CBB;padding:8px 0">Nenhum título vencido nesta filial.</div>';
+    html += '</div>';
+  }
+
+  document.getElementById('panel-right').innerHTML = html;
+}
+
+function infoBox(label, val, cls) {
+  return '<div class="info-box"><div class="info-box-label">' + label + '</div>' +
+         '<div class="info-box-val ' + cls + '">' + val + '</div></div>';
+}
+
+// ════════════════════════════════════════════════════════════════════
+// REGISTRAR AUDITORIA
+// ════════════════════════════════════════════════════════════════════
+function registrarAuditoria(lj) {
+  const dataAudit = document.getElementById('audit-data').value;
+  if (!dataAudit) { toast('Informe a data da auditoria.'); return; }
+
+  const d60_ref   = getD60Atual(lj);
+  const d60_ant   = getD60RefAuditoria(lj);
+  const pontuou   = d60_ref !== null && d60_ant !== null ? d60_ref < d60_ant : null;
+  const semana_ref= semanaAtual;
+
+  if (!auditorias[lj]) auditorias[lj] = [];
+  auditorias[lj].push({
+    auditor:    AUDITOR_ATUAL,
+    data:       dataAudit,
+    semana_ref,
+    d60_ref,
+    d60_ref_ant: d60_ant,
+    pontuou,
+    ts: new Date().toISOString(),
+  });
+
+  salvarNuvem();
+  renderTabela();
+  renderDetalhe(lj);
+  const base = BASE_REGIONAIS.find(b => b.lj === lj);
+  toast('✅ Auditoria registrada — ' + (base ? base.loja : 'LJ ' + lj) +
+    (pontuou === true ? ' · PONTUOU ✓' : pontuou === false ? ' · NÃO PONTUOU ✗' : ''));
+}
+
+// ════════════════════════════════════════════════════════════════════
+// FILTROS
+// ════════════════════════════════════════════════════════════════════
+function popularFiltroRegional() {
+  const regionais = [...new Set(BASE_REGIONAIS.map(b => b.regional))].sort();
+  const sel = document.getElementById('f-regional');
+  regionais.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r; opt.textContent = r;
+    sel.appendChild(opt);
+  });
+
+  const selF = document.getElementById('f-filial');
+  BASE_REGIONAIS.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.lj; opt.textContent = 'LJ ' + b.lj + ' — ' + b.loja;
+    selF.appendChild(opt);
+  });
+}
+
+function aplicarFiltros() { filialSel = null; renderTabela(); }
+function limparFiltros() {
+  ['f-regional','f-filial','f-auditor'].forEach(id => document.getElementById(id).value = '');
+  filialSel = null; renderTabela();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════════════════
+function formatMoeda(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return 'R$ ' + parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function formatarData(s) {
+  if (!s) return '—';
+  const p = s.split('-');
+  if (p.length === 3) return p[2] + '/' + p[1] + '/' + p[0];
+  return s;
+}
+function hoje() {
+  return new Date().toISOString().slice(0,10);
+}
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3500);
+}
+</script>
+</body>
+</html>
