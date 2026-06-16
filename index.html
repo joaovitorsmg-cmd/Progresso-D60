@@ -299,7 +299,7 @@
   <div class="header">
     <div class="header-left">
       <div>
-        <div class="header-brand">AGROQUIMA</div>
+        <div class="header-brand" onclick="configClick()" style="cursor:default">AGROQUIMA</div>
         <div class="header-title">Auditoria D60 — Endividamento Vencido</div>
       </div>
       <div id="modo-badge-header"></div>
@@ -329,6 +329,9 @@
     </select>
     <select id="f-filial" onchange="aplicarFiltros()">
       <option value="">Todas as Filiais</option>
+    </select>
+    <select id="f-auditor" onchange="aplicarFiltros()">
+      <option value="">Todos os Auditores</option>
     </select>
     <button class="btn-limpar" onclick="limparFiltros()">✕ Limpar</button>
   </div>
@@ -395,6 +398,18 @@
 
 <div id="toast"></div>
 
+<div id="config-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:10px;padding:24px;min-width:300px;max-width:400px">
+    <div style="font-weight:700;font-size:15px;margin-bottom:16px;color:#1a2940">⚙️ Configurações</div>
+    <label style="font-size:13px;color:#444;display:block;margin-bottom:6px">Auto-atualização da nuvem (minutos, 0 = desativado):</label>
+    <input id="cfg-intervalo" type="number" min="0" max="60" value="0" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:14px;margin-bottom:16px">
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="fecharConfig()" style="padding:8px 16px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer">Cancelar</button>
+      <button onclick="salvarConfig()" style="padding:8px 16px;background:#1a2940;color:#fff;border:none;border-radius:6px;cursor:pointer">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════════════════════════════════
 // DADOS EMBARCADOS
@@ -411,7 +426,6 @@ const BASE_REGIONAIS = [
   {lj:10, sigla:'MAR', loja:'MARABÁ',            estado:'PA', gerente:'ENIO JOSAFE',        supervisor:'LUCAS DAMACENO',     regional:'LEANDRO CAMPOS',   auditor:'GUILHERME',      coord:'PATRICK LIMA',   regiao:'NORTE'},
   {lj:11, sigla:'JAT', loja:'JATAÍ',             estado:'GO', gerente:'RENATO TEODORO',     supervisor:'LUBIA SILVA',        regional:'WENDER PARTATA',   auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
   {lj:12, sigla:'CRI', loja:'CRISTALINA',        estado:'GO', gerente:'ANDRE FERNANDO',     supervisor:'MARCIA DE OLIVEIRA', regional:'NABIO BARROS',     auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
-  {lj:13, sigla:'FAG', loja:'UBS',               estado:'GO', gerente:'EVANDRO MACEDO',     supervisor:'KARINE GOMES',       regional:'EVANDRO MACEDO',   auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
   {lj:14, sigla:'RED', loja:'REDENÇÃO',          estado:'PA', gerente:'ANDERSON PEREIRA',   supervisor:'BARBARA PEREIRA',    regional:'LEANDRO CAMPOS',   auditor:'CARLOS POGGIAN', coord:'PATRICK LIMA',   regiao:'NORTE'},
   {lj:16, sigla:'IMP', loja:'IMPERATRIZ',        estado:'MA', gerente:'IALE MILHOMEM',      supervisor:'ROSIANE CANDIDO',    regional:'LEANDRO CAMPOS',   auditor:'GUILHERME',      coord:'PATRICK LIMA',   regiao:'NORTE'},
   {lj:17, sigla:'BAR', loja:'BARRA DO GARÇAS',   estado:'MT', gerente:'VINICIUS BRITO',     supervisor:'KARINE SOARES',      regional:'MATO GROSSO',      auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
@@ -419,7 +433,6 @@ const BASE_REGIONAIS = [
   {lj:21, sigla:'MOZ', loja:'MOZARLÂNDIA',       estado:'GO', gerente:'THIAGO VAZ',         supervisor:'NÚBIA GASPAROTTI',   regional:'SERGIO ADRIANO',   auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
   {lj:22, sigla:'PGM', loja:'PARAGOMINAS',       estado:'PA', gerente:'LORENA MOISES',      supervisor:'ARTHUR SILVA',       regional:'LEANDRO CAMPOS',   auditor:'GUILHERME',      coord:'PATRICK LIMA',   regiao:'NORTE'},
   {lj:23, sigla:'SFX', loja:'SÃO FELIX DO XINGU',estado:'PA', gerente:'PEDRO MACIEL',      supervisor:'LANNA KEROLAYNE',    regional:'LEANDRO CAMPOS',   auditor:'CARLOS POGGIAN', coord:'PATRICK LIMA',   regiao:'NORTE'},
-  {lj:24, sigla:'FAP', loja:'FABRICA APARECIDA', estado:'GO', gerente:'ANNAPAULLA GARCIA',  supervisor:'ANNAPAULLA GARCIA',  regional:'ANNAPAULLA GARCIA',auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
   {lj:25, sigla:'FCB', loja:'CUIABÁ',            estado:'MT', gerente:'GEOVANNY VIGILATO',  supervisor:'JULIANA LIMA',       regional:'MATO GROSSO',      auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
   {lj:27, sigla:'URU', loja:'URUAÇU',            estado:'GO', gerente:'EDVANDO JOSE',       supervisor:'NIVEA ALVES',        regional:'SERGIO ADRIANO',   auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
   {lj:28, sigla:'MOR', loja:'MORRINHOS',         estado:'GO', gerente:'ABEL HANUN',         supervisor:'PAULA REGINA',       regional:'NABIO BARROS',     auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
@@ -429,7 +442,6 @@ const BASE_REGIONAIS = [
   {lj:32, sigla:'XRA', loja:'XINGUARA',          estado:'PA', gerente:'WILLIAN ANTIGO',     supervisor:'LEONICE MORAIS',     regional:'LEANDRO CAMPOS',   auditor:'GUILHERME',      coord:'PATRICK LIMA',   regiao:'NORTE'},
   {lj:34, sigla:'POR', loja:'PORANGATU',         estado:'GO', gerente:'ANTONIO CARLOS',     supervisor:'ALLYNE LUCENA',      regional:'SERGIO ADRIANO',   auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
   {lj:35, sigla:'PLA', loja:'PONTES E LACERDA',  estado:'MT', gerente:'MARCELO MULLER',     supervisor:'RENATA COSTA',       regional:'MATO GROSSO',      auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
-  {lj:36, sigla:'GRA', loja:'GOIANIRA',          estado:'GO', gerente:'HENISLEY SABINO',    supervisor:'HENISLEY SABINO',    regional:'HENISLEY SABINO',  auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
   {lj:37, sigla:'CAN', loja:'CANARANA',          estado:'MT', gerente:'LEONARDO FREITAS',   supervisor:'INGRID KAROLAYNE',   regional:'MATO GROSSO',      auditor:'JOÃO VITOR',     coord:'ADRIANO SANTOS', regiao:'SUL'},
   {lj:38, sigla:'GUR', loja:'GURUPI',            estado:'TO', gerente:'FREDERICO CARRIJO',  supervisor:'RENATA CERQUEIRA',   regional:'SERGIO ADRIANO',   auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
   {lj:40, sigla:'RIA', loja:'RIALMA',            estado:'GO', gerente:'NATALINO NETO',      supervisor:'ROSILDA CURSINO',    regional:'SERGIO ADRIANO',   auditor:'FÁBIO',          coord:'ADRIANO SANTOS', regiao:'SUL'},
@@ -624,9 +636,11 @@ function getSemanaAnterior(semana) {
 function renderTabela() {
   const fReg    = document.getElementById('f-regional').value;
   const fFilial = document.getElementById('f-filial').value;
+  const fAud    = document.getElementById('f-auditor').value;
   dadosTabela = BASE_REGIONAIS.filter(b => {
     if (fReg    && b.regional !== fReg)  return false;
     if (fFilial && String(b.lj) !== fFilial) return false;
+    if (fAud    && !matchAuditor(b, fAud)) return false;
     return true;
   });
 
@@ -785,24 +799,34 @@ function renderDetalhe(lj) {
   if (listAud.length) {
     html += '<div class="hist-section">';
     html += '<div class="hist-title">Auditorias Registradas</div>';
-    listAud.slice().reverse().slice(0,6).forEach(a => {
+    listAud.slice().reverse().slice(0,6).forEach((a, i) => {
+      const realIdx = listAud.length - 1 - i;
       const p = a.pontuou;
       html += '<div class="audit-hist-item">';
       html += '<div><div class="audit-aud">' + a.auditor + '</div>';
       html += '<div class="audit-date">Auditado em ' + formatarData(a.data) + ' · Ref: ' + formatarData(a.semana_ref) + '</div>';
       html += '<div class="audit-date">D60 ref: ' + formatMoeda(a.d60_ref) + '</div></div>';
-      html += '<div>' + (p === true ? '<span class="badge badge-green">✓</span>' :
-                          p === false ? '<span class="badge badge-red">✗</span>' :
-                          '<span class="badge badge-gray">—</span>') + '</div>';
+      html += '<div style="display:flex;align-items:center;gap:8px">';
+      html += (p === true ? '<span class="badge badge-green">✓</span>' :
+                p === false ? '<span class="badge badge-red">✗</span>' :
+                '<span class="badge badge-gray">—</span>');
+      if (MODO === 'auditoria') {
+        html += '<button onclick="excluirAuditoria(' + lj + ',' + realIdx + ')" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:13px;padding:2px 4px" title="Excluir">✕</button>';
+      }
+      html += '</div>';
       html += '</div>';
     });
     html += '</div>';
   }
 
   // Títulos drill-down
-  if (titulos.length) {
-    html += '<div class="titulos-section">';
-    html += '<div class="titulos-title">Títulos Vencidos (' + titulos.length + ')</div>';
+  html += '<div class="titulos-section">';
+  html += '<div class="titulos-title">Títulos Vencidos' + (titulos.length ? ' (' + titulos.length + ')' : '') + '</div>';
+  if (!semanaAtual) {
+    html += '<div style="font-size:12px;color:#8B9CBB;padding:8px 0">Importe o arquivo de vencidos para visualizar os títulos.</div>';
+  } else if (titulos.length === 0) {
+    html += '<div style="font-size:12px;color:#8B9CBB;padding:8px 0">Nenhum título vencido nesta filial.</div>';
+  } else {
     titulos.slice(0, 20).forEach(t => {
       html += '<div class="titulo-item">';
       html += '<div class="titulo-cliente">' + (t.cliente || t.representante || '—') + '</div>';
@@ -813,13 +837,8 @@ function renderDetalhe(lj) {
     if (titulos.length > 20) {
       html += '<div style="font-size:11px;color:#6B7FA3;padding:6px 0">...e mais ' + (titulos.length - 20) + ' títulos</div>';
     }
-    html += '</div>';
-  } else if (semanaAtual) {
-    html += '<div class="titulos-section">';
-    html += '<div class="titulos-title">Títulos Vencidos</div>';
-    html += '<div style="font-size:12px;color:#8B9CBB;padding:8px 0">Nenhum título vencido nesta filial.</div>';
-    html += '</div>';
   }
+  html += '</div>';
 
   document.getElementById('panel-right').innerHTML = html;
 }
@@ -860,6 +879,16 @@ function registrarAuditoria(lj) {
     (pontuou === true ? ' · PONTUOU ✓' : pontuou === false ? ' · NÃO PONTUOU ✗' : ''));
 }
 
+function excluirAuditoria(lj, idx) {
+  if (!confirm('Excluir esta auditoria?')) return;
+  auditorias[lj].splice(idx, 1);
+  if (auditorias[lj].length === 0) delete auditorias[lj];
+  salvarNuvem();
+  renderTabela();
+  renderDetalhe(lj);
+  toast('Auditoria excluída.');
+}
+
 // ════════════════════════════════════════════════════════════════════
 // FILTROS
 // ════════════════════════════════════════════════════════════════════
@@ -878,11 +907,19 @@ function popularFiltroRegional() {
     opt.value = b.lj; opt.textContent = 'LJ ' + b.lj + ' — ' + b.loja;
     selF.appendChild(opt);
   });
+
+  const selA = document.getElementById('f-auditor');
+  const auditores = [...new Set(BASE_REGIONAIS.map(b => b.auditor))].sort();
+  auditores.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a; opt.textContent = a;
+    selA.appendChild(opt);
+  });
 }
 
 function aplicarFiltros() { filialSel = null; renderTabela(); }
 function limparFiltros() {
-  ['f-regional','f-filial'].forEach(id => document.getElementById(id).value = '');
+  ['f-regional','f-filial','f-auditor'].forEach(id => document.getElementById(id).value = '');
   filialSel = null; renderTabela();
 }
 
@@ -906,6 +943,34 @@ function toast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg; el.style.display = 'block';
   setTimeout(() => el.style.display = 'none', 3500);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// CONFIG OCULTA — AUTO-ATUALIZAÇÃO
+// ════════════════════════════════════════════════════════════════════
+let _configClicks = 0, _configTimer = null, _autoInterval = null;
+function configClick() {
+  _configClicks++;
+  clearTimeout(_configTimer);
+  _configTimer = setTimeout(() => _configClicks = 0, 2000);
+  if (_configClicks >= 5) {
+    _configClicks = 0;
+    document.getElementById('config-modal').style.display = 'flex';
+  }
+}
+function fecharConfig() {
+  document.getElementById('config-modal').style.display = 'none';
+}
+function salvarConfig() {
+  const mins = parseInt(document.getElementById('cfg-intervalo').value) || 0;
+  clearInterval(_autoInterval);
+  if (mins > 0) {
+    _autoInterval = setInterval(() => carregarNuvem(), mins * 60000);
+    toast('Auto-atualização a cada ' + mins + ' min ativada.');
+  } else {
+    toast('Auto-atualização desativada.');
+  }
+  fecharConfig();
 }
 </script>
 </body>
