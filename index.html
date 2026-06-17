@@ -69,14 +69,14 @@
   /* ── HEADER ─────────────────────────────────────────────────────── */
   .header {
     background: var(--azul); color: var(--branco);
-    padding: 0 28px; display: flex; align-items: center;
-    justify-content: space-between; height: 58px;
+    padding: 0 32px; display: flex; align-items: center;
+    justify-content: space-between; height: 72px;
     box-shadow: 0 2px 8px rgba(0,0,0,.2);
   }
-  .header-left { display: flex; align-items: center; gap: 16px; }
-  .header-brand { font-size: 11px; letter-spacing: 2.5px; font-weight: 700; opacity: .7; }
-  .header-title { font-size: 16px; font-weight: 700; }
-  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header-left { display: flex; align-items: center; gap: 22px; }
+  .header-brand { font-size: 12px; letter-spacing: 2.5px; font-weight: 700; color: #CBD5E1; }
+  .header-title { font-size: 17px; font-weight: 700; margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
   .btn-sair {
     background: rgba(255,255,255,.12); color: var(--branco); border: none;
     padding: 7px 16px; border-radius: 6px; font-size: 13px; cursor: pointer;
@@ -155,19 +155,19 @@
   }
   .section-title span { background: var(--azul); color: var(--branco); padding: 2px 8px; border-radius: 10px; font-size: 11px; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead th {
+  #tabela-filiais { width: 100%; border-collapse: collapse; font-size: 13px; }
+  #tabela-filiais thead th {
     background: var(--azul); color: var(--branco); padding: 10px 12px;
     text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase;
     letter-spacing: .5px; position: sticky; top: 0; z-index: 1;
   }
-  thead th:first-child { border-radius: 6px 0 0 0; }
-  thead th:last-child  { border-radius: 0 6px 0 0; }
-  tbody tr { cursor: pointer; transition: background .15s; border-bottom: 1px solid var(--cinza-bd); }
-  tbody tr:nth-child(even) { background: #0D1F35; }
-  tbody tr:hover { background: var(--azul-bg) !important; }
-  tbody tr.selected { background: #1E3A8A !important; }
-  tbody td { padding: 9px 12px; }
+  #tabela-filiais thead th:first-child { border-radius: 6px 0 0 0; }
+  #tabela-filiais thead th:last-child  { border-radius: 0 6px 0 0; }
+  #tabela-filiais tbody tr { cursor: pointer; transition: background .15s; border-bottom: 1px solid var(--cinza-bd); }
+  #tabela-filiais tbody tr:nth-child(even) { background: #0D1F35; }
+  #tabela-filiais tbody tr:hover { background: var(--azul-bg) !important; }
+  #tabela-filiais tbody tr.selected { background: #1E3A8A !important; }
+  #tabela-filiais tbody td { padding: 9px 12px; }
   .td-loja { font-weight: 700; color: var(--azul); }
   .td-reg  { font-size: 11px; color: #6B7FA3; }
 
@@ -269,9 +269,9 @@
     .filtros-bar select { min-width: 120px; font-size: 12px; }
     .panel-left { padding: 12px 14px; }
     .panel-right { padding: 14px; }
-    table { font-size: 12px; }
-    thead th { padding: 8px 6px; font-size: 10px; }
-    tbody td { padding: 7px 6px; }
+    #tabela-filiais { font-size: 12px; }
+    #tabela-filiais thead th { padding: 8px 6px; font-size: 10px; }
+    #tabela-filiais tbody td { padding: 7px 6px; }
     .kpi-strip { padding: 12px 14px; gap: 8px; }
     .kpi-val { font-size: 16px; }
     .info-grid { grid-template-columns: 1fr 1fr; }
@@ -283,7 +283,7 @@
     .btn-limpar { width: 100%; }
     .header-left { flex-wrap: wrap; gap: 6px; }
     .main { grid-template-columns: 1fr; }
-    table { display: block; overflow-x: auto; white-space: nowrap; }
+    #tabela-filiais { display: block; overflow-x: auto; white-space: nowrap; }
     .info-grid { grid-template-columns: 1fr; }
   }
 </style>
@@ -327,7 +327,7 @@
     <div class="header-left">
       <div>
         <div onclick="configClick()" style="cursor:default;display:flex;align-items:center;gap:10px">
-          <img id="header-logo-img" alt="Agroquima" style="width:36px;height:36px;object-fit:contain;border-radius:8px">
+          <img id="header-logo-img" alt="Agroquima" style="width:48px;height:48px;object-fit:contain;border-radius:9px">
           <span class="header-brand">AGROQUIMA</span>
         </div>
         <div class="header-title">Auditoria D60 — Endividamento Vencido</div>
@@ -1023,7 +1023,7 @@ function renderDetalhe(lj) {
   if (semsEx.length) {
     html += '<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;color:#1E3A8A;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Histórico D60 (últimas 8 semanas)</div>';
     html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
-    html += '<tr style="background:#E8EFF8"><th style="text-align:left;padding:5px 8px;font-size:11px">Semana</th><th style="text-align:right;padding:5px 8px;font-size:11px">D60</th></tr>';
+    html += '<tr style="background:#E8EFF8"><th style="text-align:left;padding:5px 8px;font-size:11px;color:#0A1628">Semana</th><th style="text-align:right;padding:5px 8px;font-size:11px;color:#0A1628">D60</th></tr>';
     semsEx.forEach(s => {
       const isCurr = s === semanaAtual;
       html += '<tr style="border-bottom:1px solid #E5E7EB' + (isCurr ? ';background:#DBEAFE;font-weight:700' : '') + '">';
@@ -1037,7 +1037,7 @@ function renderDetalhe(lj) {
   if (titulosEx.length) {
     html += '<div><div style="font-size:11px;font-weight:700;color:#1E3A8A;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Títulos Vencidos (' + titulosEx.length + ') — maiores primeiro</div>';
     html += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
-    html += '<tr style="background:#E8EFF8"><th style="text-align:left;padding:4px 6px">Cliente</th><th style="text-align:left;padding:4px 6px">Representante</th><th style="text-align:center;padding:4px 6px">Vencimento</th><th style="text-align:center;padding:4px 6px">Atraso</th><th style="text-align:right;padding:4px 6px">Valor</th></tr>';
+    html += '<tr style="background:#E8EFF8"><th style="text-align:left;padding:4px 6px;color:#0A1628">Cliente</th><th style="text-align:left;padding:4px 6px;color:#0A1628">Representante</th><th style="text-align:center;padding:4px 6px;color:#0A1628">Vencimento</th><th style="text-align:center;padding:4px 6px;color:#0A1628">Atraso</th><th style="text-align:right;padding:4px 6px;color:#0A1628">Valor</th></tr>';
     titulosEx.forEach((t,i) => {
       html += '<tr style="border-bottom:1px solid #E5E7EB;background:' + (i%2===0?'#fff':'#F9FAFB') + '">';
       html += '<td style="padding:4px 6px">' + (t.cliente||'—') + '</td>';
