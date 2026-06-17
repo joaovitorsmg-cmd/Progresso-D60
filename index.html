@@ -39,7 +39,7 @@
   }
   .login-logo { font-size: 13px; letter-spacing: 3px; color: var(--azul-cl); font-weight: 700; margin-bottom: 6px; }
   .login-title { font-size: 22px; font-weight: 700; color: #93C5FD; margin-bottom: 4px; }
-  .login-sub { font-size: 13px; color: #64748B; margin-bottom: 32px; }
+  .login-sub { font-size: 13px; color: #A9BBD9; margin-bottom: 32px; }
   .login-card input, .login-card select {
     width: 100%; padding: 12px 16px; border: 1.5px solid var(--cinza-bd);
     border-radius: 8px; font-size: 14px; color: var(--texto); margin-bottom: 14px;
@@ -53,7 +53,7 @@
     cursor: pointer; transition: background .2s; margin-bottom: 10px;
   }
   .btn-login:hover { background: var(--azul-med); }
-  .modo-hint { font-size: 12px; color: #8B9CBB; margin-top: 8px; }
+  .modo-hint { font-size: 12px; color: #CBD5E1; margin-top: 8px; }
 
   /* ── MODO BADGE ─────────────────────────────────────────────────── */
   .modo-badge {
@@ -76,7 +76,7 @@
   .header-left { display: flex; align-items: center; gap: 14px; }
   .header-logo-box { width: 44px; height: 44px; border-radius: 9px; overflow: hidden; flex-shrink: 0; box-shadow: 0 2px 10px rgba(37,99,235,.45); }
   .header-brand { font-size: 15px; font-weight: 800; letter-spacing: .2px; color: var(--branco); }
-  .header-title { font-size: 11px; font-weight: 500; color: #8B9CBB; margin-top: 2px; }
+  .header-title { font-size: 11px; font-weight: 500; color: #CBD5E1; margin-top: 2px; }
   .header-right { display: flex; align-items: center; gap: 16px; }
   .btn-sair {
     background: rgba(255,255,255,.12); color: var(--branco); border: none;
@@ -90,17 +90,17 @@
     background: #0D1F35; border-bottom: 1.5px solid var(--cinza-bd);
     padding: 12px 28px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   }
-  .import-label { font-size: 13px; color: #5A6E8A; font-weight: 600; }
+  .import-label { font-size: 13px; color: #B7C6E0; font-weight: 700; }
   .btn-import {
-    display: flex; align-items: center; gap: 8px;
-    background: var(--azul-med); color: var(--branco);
-    border: none; padding: 9px 18px; border-radius: 7px; font-size: 13px;
-    font-weight: 600; cursor: pointer; transition: background .2s;
+    display: flex; align-items: center; gap: 7px;
+    background: transparent; color: #93B4E0;
+    border: 1.5px solid #2A4A78; padding: 6px 14px; border-radius: 6px; font-size: 12px;
+    font-weight: 600; cursor: pointer; transition: all .2s;
   }
-  .btn-import:hover { background: var(--azul); }
+  .btn-import:hover { background: rgba(37,99,235,.12); color: var(--branco); border-color: var(--azul-med); }
   #file-input { display: none; }
   .import-status { font-size: 13px; color: var(--verde); font-weight: 600; }
-  .import-date-info { font-size: 12px; color: #6B7FA3; }
+  .import-date-info { font-size: 12px; color: #B7C6E0; }
 
   /* ── FILTROS ─────────────────────────────────────────────────────── */
   .filtros-bar {
@@ -115,7 +115,7 @@
   }
   .filtros-bar select:focus { border-color: var(--azul-cl); }
   .btn-limpar {
-    background: transparent; border: 1.5px solid var(--cinza-bd); color: #6B7FA3;
+    background: transparent; border: 1.5px solid var(--cinza-bd); color: #B7C6E0;
     padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer;
     transition: all .2s;
   }
@@ -134,12 +134,12 @@
   .kpi-card.verde  { border-left-color: var(--verde); background: var(--verde-bg); }
   .kpi-card.verm   { border-left-color: var(--verm); background: var(--verm-bg); }
   .kpi-card.amar   { border-left-color: var(--amar); background: var(--amar-bg); }
-  .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #6B7FA3; margin-bottom: 4px; }
+  .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #C3D2EA; margin-bottom: 4px; }
   .kpi-val   { font-size: 20px; font-weight: 700; color: var(--azul); }
   .kpi-val.verde { color: var(--verde); }
   .kpi-val.verm  { color: var(--verm); }
   .kpi-val.amar  { color: var(--amar); }
-  .kpi-sub   { font-size: 11px; color: #8B9CBB; margin-top: 2px; }
+  .kpi-sub   { font-size: 11px; color: #CBD5E1; font-weight: 500; margin-top: 2px; }
 
   /* ── MAIN GRID ──────────────────────────────────────────────────── */
   .main { display: grid; grid-template-columns: 1fr 380px; gap: 0; min-height: calc(100vh - 220px); }
@@ -170,7 +170,7 @@
   #tabela-filiais tbody tr.selected { background: #1E3A8A !important; }
   #tabela-filiais tbody td { padding: 9px 12px; }
   .td-loja { font-weight: 700; color: var(--azul); }
-  .td-reg  { font-size: 11px; color: #6B7FA3; }
+  .td-reg  { font-size: 11px; color: #B7C6E0; font-weight: 600; }
 
   .badge {
     display: inline-block; padding: 2px 10px; border-radius: 10px;
@@ -178,21 +178,21 @@
   }
   .badge-green { background: var(--verde-bg); color: var(--verde); }
   .badge-red   { background: var(--verm-bg);  color: var(--verm);  }
-  .badge-gray  { background: var(--cinza-cl); color: #6B7FA3; }
+  .badge-gray  { background: var(--cinza-cl); color: #C3D2EA; font-weight: 700; }
   .badge-blue  { background: var(--azul-bg);  color: var(--azul);  }
 
   /* ── PAINEL DIREITO ─────────────────────────────────────────────── */
-  .right-empty { text-align: center; color: #8B9CBB; padding: 60px 20px; }
+  .right-empty { text-align: center; color: #CBD5E1; padding: 60px 20px; }
   .right-empty .icon { font-size: 40px; margin-bottom: 12px; }
   .right-empty p { font-size: 13px; line-height: 1.6; }
 
   .right-header { margin-bottom: 16px; }
   .right-loja { font-size: 18px; font-weight: 700; color: var(--azul); }
-  .right-meta { font-size: 12px; color: #6B7FA3; margin-top: 2px; }
+  .right-meta { font-size: 12px; color: #B7C6E0; margin-top: 2px; }
 
   .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
   .info-box { background: #112240; border-radius: 8px; padding: 10px 12px; }
-  .info-box-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #8B9CBB; margin-bottom: 3px; }
+  .info-box-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #CBD5E1; margin-bottom: 3px; }
   .info-box-val { font-size: 14px; font-weight: 700; color: var(--azul); }
   .info-box-val.verde { color: var(--verde); }
   .info-box-val.verm  { color: var(--verm);  }
@@ -202,7 +202,7 @@
   .hist-title { font-size: 11px; font-weight: 700; color: var(--azul); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
   .hist-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--cinza-bd); font-size: 12px; }
   .hist-row:last-child { border-bottom: none; }
-  .hist-row-date { color: #6B7FA3; }
+  .hist-row-date { color: #B7C6E0; }
   .hist-row-val  { font-weight: 600; color: var(--texto); }
   .hist-row.current { background: #1E3A5F; margin: 0 -4px; padding: 5px 4px; border-radius: 4px; }
   .hist-row.current .hist-row-date { color: var(--azul); font-weight: 700; }
@@ -215,7 +215,7 @@
     margin-bottom: 6px; border-left: 3px solid var(--azul-med);
   }
   .titulo-cliente { font-size: 12px; font-weight: 700; color: var(--texto); }
-  .titulo-meta { font-size: 11px; color: #6B7FA3; margin-top: 2px; }
+  .titulo-meta { font-size: 11px; color: #B7C6E0; margin-top: 2px; }
   .titulo-valor { font-size: 13px; font-weight: 700; color: var(--azul); margin-top: 4px; }
 
   /* ── AUDITORIA PANEL ────────────────────────────────────────────── */
@@ -244,7 +244,7 @@
   }
   .audit-hist-item:last-child { border-bottom: none; }
   .audit-aud { font-weight: 600; color: var(--texto); }
-  .audit-date { color: #6B7FA3; font-size: 11px; }
+  .audit-date { color: #B7C6E0; font-size: 11px; }
 
   /* ── TOAST ──────────────────────────────────────────────────────── */
   #toast {
@@ -257,7 +257,7 @@
   @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
   /* ── LOADING ────────────────────────────────────────────────────── */
-  .loading { text-align: center; padding: 40px; color: #6B7FA3; }
+  .loading { text-align: center; padding: 40px; color: #B7C6E0; }
 
   @media (max-width: 900px) {
     .main { grid-template-columns: 1fr; }
@@ -436,12 +436,12 @@
 <div id="config-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center">
   <div style="background:#112240;border:1px solid #1E3A5F;border-radius:10px;padding:24px;min-width:340px;max-width:440px;color:#CBD5E1">
     <div style="font-weight:700;font-size:15px;margin-bottom:16px;color:#93C5FD">⚙️ Configurações</div>
-    <label style="font-size:12px;color:#94A3B8;display:block;margin-bottom:4px">Auto-atualização da nuvem (min, 0 = off):</label>
+    <label style="font-size:12px;color:#C3D2EA;display:block;margin-bottom:4px">Auto-atualização da nuvem (min, 0 = off):</label>
     <input id="cfg-intervalo" type="number" min="0" max="60" value="0" style="width:100%;padding:8px;border:1px solid #1E3A5F;border-radius:6px;font-size:13px;margin-bottom:14px;background:#0A1628;color:#CBD5E1">
-    <label style="font-size:12px;color:#94A3B8;display:block;margin-bottom:4px">JSONbin ID (Vencidos compartilhado):</label>
+    <label style="font-size:12px;color:#C3D2EA;display:block;margin-bottom:4px">JSONbin ID (Vencidos compartilhado):</label>
     <input id="cfg-ven-id" type="text" placeholder="ID do bin de vencidos" style="width:100%;padding:8px;border:1px solid #1E3A5F;border-radius:6px;font-size:13px;margin-bottom:14px;background:#0A1628;color:#CBD5E1">
     <button onclick="criarBinVencidos()" style="width:100%;padding:7px;background:#1E3A5F;color:#93C5FD;border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:14px">⚡ Criar bin automaticamente (usa a Master Key abaixo)</button>
-    <label style="font-size:12px;color:#94A3B8;display:block;margin-bottom:4px">JSONbin Master Key (Vencidos):</label>
+    <label style="font-size:12px;color:#C3D2EA;display:block;margin-bottom:4px">JSONbin Master Key (Vencidos):</label>
     <input id="cfg-ven-key" type="password" placeholder="Master key" style="width:100%;padding:8px;border:1px solid #1E3A5F;border-radius:6px;font-size:13px;margin-bottom:16px;background:#0A1628;color:#CBD5E1">
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button onclick="fecharConfig()" style="padding:8px 16px;border:1px solid #1E3A5F;background:#0A1628;color:#CBD5E1;border-radius:6px;cursor:pointer">Cancelar</button>
@@ -654,6 +654,10 @@ async function carregarVencidosNuvem() {
 function importarVencidos(input) {
   const file = input.files[0];
   if (!file) return;
+  if (!confirm('ATUALIZAÇÃO DESTE RELATÓRIO APAGA TODO HISTÓRICO ANTERIOR. DESEJA SEGUIR?')) {
+    input.value = '';
+    return;
+  }
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
@@ -823,10 +827,10 @@ function renderTabela() {
       '<td><b>' + b.lj + '</b></td>',
       '<td><div class="td-loja">' + b.loja + '</div><div class="td-reg">' + b.sigla + ' · ' + b.estado + '</div></td>',
       '<td><div class="td-reg">' + b.regional + '</div></td>',
-      '<td style="font-size:12px">' + b.gerente + '</td>',
-      '<td style="font-size:11px;color:#6B7FA3">' + b.auditor + '</td>',
-      '<td style="font-weight:700;color:var(--azul)">' + (d60a !== null ? formatMoeda(d60a) : '—') + '</td>',
-      '<td style="font-size:12px;color:#6B7FA3">' + (d60ant !== null ? formatMoeda(d60ant) : '—') + '</td>',
+      '<td style="font-size:12px;color:var(--texto)">' + b.gerente + '</td>',
+      '<td style="font-size:11px;color:#B7C6E0;font-weight:600">' + b.auditor + '</td>',
+      '<td style="font-weight:700;color:#5B9BFF">' + (d60a !== null ? formatMoeda(d60a) : '—') + '</td>',
+      '<td style="font-size:12px;color:#B7C6E0;font-weight:600">' + (d60ant !== null ? formatMoeda(d60ant) : '—') + '</td>',
       '<td>' + varStr + '</td>',
       '<td>' + pontBadge + '</td>',
       '<td>' + audBadge + '</td>',
@@ -914,22 +918,22 @@ function renderDetalhe(lj) {
 
     // Date of previous audit
     html += '<div>';
-    html += '<label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;display:block;margin-bottom:4px">Ref. anterior</label>';
+    html += '<label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#C3D2EA;display:block;margin-bottom:4px">Ref. anterior</label>';
     html += '<input type="date" id="audit-data-ant" onchange="calcularPreviewAuditoria(' + lj + ')" style="width:100%;padding:8px 10px;border:1.5px solid #1E3A5F;border-radius:6px;font-size:13px;background:#0A1628;color:var(--texto);outline:none">';
-    html += '<div id="audit-d60-ant-preview" style="font-size:11px;color:#64748B;margin-top:4px">Selecione a data anterior</div>';
+    html += '<div id="audit-d60-ant-preview" style="font-size:11px;color:#A9BBD9;margin-top:4px">Selecione a data anterior</div>';
     html += '</div>';
 
     // Date of this audit
     html += '<div>';
-    html += '<label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;display:block;margin-bottom:4px">Data auditoria</label>';
+    html += '<label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#C3D2EA;display:block;margin-bottom:4px">Data auditoria</label>';
     html += '<input type="date" id="audit-data" value="' + hoje() + '" onchange="calcularPreviewAuditoria(' + lj + ')" style="width:100%;padding:8px 10px;border:1.5px solid #1E3A5F;border-radius:6px;font-size:13px;background:#0A1628;color:var(--texto);outline:none">';
-    html += '<div id="audit-d60-at-preview" style="font-size:11px;color:#64748B;margin-top:4px">Semana atual: <b>' + formatarData(semanaAtual) + '</b></div>';
+    html += '<div id="audit-d60-at-preview" style="font-size:11px;color:#A9BBD9;margin-top:4px">Semana atual: <b>' + formatarData(semanaAtual) + '</b></div>';
     html += '</div>';
 
     html += '</div>'; // end grid
 
     // Preview result
-    html += '<div id="audit-preview-result" style="background:#0A1628;border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;color:#94A3B8;min-height:40px">Selecione as datas para calcular a variação.</div>';
+    html += '<div id="audit-preview-result" style="background:#0A1628;border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;color:#C3D2EA;min-height:40px">Selecione as datas para calcular a variação.</div>';
 
     html += '<button class="btn-registrar" onclick="registrarAuditoria(' + lj + ')">Confirmar — Auditei esta filial</button>';
     html += '</div>';
@@ -978,16 +982,16 @@ function renderDetalhe(lj) {
   html += '<div class="titulos-section">';
   html += '<div class="titulos-title">Títulos Vencidos' + (titulos.length ? ' (' + titulos.length + ')' : '') + '</div>';
   if (!semanaAtual) {
-    html += '<div style="font-size:12px;color:#8B9CBB;padding:8px 0">Importe o arquivo de vencidos para visualizar os títulos.</div>';
+    html += '<div style="font-size:12px;color:#CBD5E1;padding:8px 0">Importe o arquivo de vencidos para visualizar os títulos.</div>';
   } else if (titulos.length === 0) {
-    html += '<div style="font-size:12px;color:#8B9CBB;padding:8px 0">Nenhum título vencido nesta filial.</div>';
+    html += '<div style="font-size:12px;color:#CBD5E1;padding:8px 0">Nenhum título vencido nesta filial.</div>';
   } else {
     titulos.slice(0, 20).forEach(t => {
       html += '<div class="titulo-item">';
       html += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
       html += '<div style="flex:1">';
       html += '<div class="titulo-cliente">' + (t.cliente || '—') + '</div>';
-      if (t.representante) html += '<div class="titulo-meta" style="color:#64748B;font-size:10px">Rep: ' + t.representante + '</div>';
+      if (t.representante) html += '<div class="titulo-meta" style="color:#A9BBD9;font-size:10px">Rep: ' + t.representante + '</div>';
       html += '<div class="titulo-meta">Venc: ' + formatarData(t.vencto) + (t.emissao ? ' · Emis: ' + formatarData(t.emissao) : '') + ' · ' + t.atraso + ' dias · ' + t.sit + '</div>';
       if (t.nf) html += '<div class="titulo-meta">NF: ' + t.nf + (t.lote ? ' · Lote: ' + t.lote : '') + '</div>';
       html += '</div>';
@@ -996,7 +1000,7 @@ function renderDetalhe(lj) {
       html += '</div>';
     });
     if (titulos.length > 20) {
-      html += '<div style="font-size:11px;color:#6B7FA3;padding:6px 0">...e mais ' + (titulos.length - 20) + ' títulos</div>';
+      html += '<div style="font-size:11px;color:#B7C6E0;padding:6px 0">...e mais ' + (titulos.length - 20) + ' títulos</div>';
     }
   }
   html += '</div>';
@@ -1195,11 +1199,11 @@ function calcularPreviewAuditoria(lj) {
   if (!prevEl) return;
 
   if (!dataAnt) {
-    prevEl.innerHTML = '<span style="color:#64748B">Selecione a data da auditoria anterior para calcular.</span>';
+    prevEl.innerHTML = '<span style="color:#A9BBD9">Selecione a data da auditoria anterior para calcular.</span>';
     return;
   }
   if (d60At === null) {
-    prevEl.innerHTML = '<span style="color:#64748B">D60 atual não disponível.</span>';
+    prevEl.innerHTML = '<span style="color:#A9BBD9">D60 atual não disponível.</span>';
     return;
   }
 
@@ -1208,15 +1212,15 @@ function calcularPreviewAuditoria(lj) {
   const pontuou = varVal !== null ? varVal >= 0 : null;
 
   let html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
-  html += '<div><div style="font-size:9px;color:#64748B;text-transform:uppercase">D60 Anterior</div><div style="font-weight:700;color:var(--texto)">' + (d60Ant !== null ? formatMoeda(d60Ant) : '—') + '</div><div style="font-size:9px;color:#475569">' + (semAnt ? formatarData(semAnt) : '') + '</div></div>';
-  html += '<div><div style="font-size:9px;color:#64748B;text-transform:uppercase">D60 Atual</div><div style="font-weight:700;color:var(--texto)">' + formatMoeda(d60At) + '</div><div style="font-size:9px;color:#475569">' + formatarData(semAt) + '</div></div>';
-  html += '<div><div style="font-size:9px;color:#64748B;text-transform:uppercase">Variação</div>';
+  html += '<div><div style="font-size:9px;color:#A9BBD9;text-transform:uppercase">D60 Anterior</div><div style="font-weight:700;color:var(--texto)">' + (d60Ant !== null ? formatMoeda(d60Ant) : '—') + '</div><div style="font-size:9px;color:#8FA3C7">' + (semAnt ? formatarData(semAnt) : '') + '</div></div>';
+  html += '<div><div style="font-size:9px;color:#A9BBD9;text-transform:uppercase">D60 Atual</div><div style="font-weight:700;color:var(--texto)">' + formatMoeda(d60At) + '</div><div style="font-size:9px;color:#8FA3C7">' + formatarData(semAt) + '</div></div>';
+  html += '<div><div style="font-size:9px;color:#A9BBD9;text-transform:uppercase">Variação</div>';
   if (varVal !== null) {
     const cor = varVal > 0 ? 'var(--verde)' : (varVal < 0 ? 'var(--verm)' : 'var(--texto)');
     html += '<div style="font-weight:700;color:' + cor + '">' + (varVal > 0 ? '+' : '') + formatMoeda(varVal) + '</div>';
     html += '<div style="font-size:9px;color:' + cor + '">' + (varPct > 0 ? '+' : '') + varPct.toFixed(1) + '% · ' + (pontuou ? '✓ PONTUOU' : '✗ NÃO PONTUOU') + '</div>';
   } else {
-    html += '<div style="color:#64748B">—</div>';
+    html += '<div style="color:#A9BBD9">—</div>';
   }
   html += '</div>';
   html += '</div>';
