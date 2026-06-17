@@ -86,21 +86,16 @@
   .btn-sair:hover { background: rgba(255,255,255,.22); }
 
   /* ── IMPORT BAR ─────────────────────────────────────────────────── */
-  .import-bar {
-    background: #0D1F35; border-bottom: 1.5px solid var(--cinza-bd);
-    padding: 12px 28px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  .btn-import-icon {
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; color: #6F87B3;
+    border: none; width: 28px; height: 28px; border-radius: 6px; font-size: 14px;
+    cursor: pointer; transition: all .2s; opacity: .55;
   }
-  .import-label { font-size: 13px; color: #B7C6E0; font-weight: 700; }
-  .btn-import {
-    display: flex; align-items: center; gap: 7px;
-    background: transparent; color: #93B4E0;
-    border: 1.5px solid #2A4A78; padding: 6px 14px; border-radius: 6px; font-size: 12px;
-    font-weight: 600; cursor: pointer; transition: all .2s;
-  }
-  .btn-import:hover { background: rgba(37,99,235,.12); color: var(--branco); border-color: var(--azul-med); }
+  .btn-import-icon:hover { background: rgba(255,255,255,.1); color: var(--branco); opacity: 1; }
   #file-input { display: none; }
-  .import-status { font-size: 13px; color: var(--verde); font-weight: 600; }
-  .import-date-info { font-size: 12px; color: #B7C6E0; }
+  .import-status { font-size: 11px; color: var(--verde); font-weight: 600; }
+  .import-date-info { font-size: 11px; color: #B7C6E0; }
 
   /* ── FILTROS ─────────────────────────────────────────────────────── */
   .filtros-bar {
@@ -266,7 +261,6 @@
     .header { padding: 0 14px; height: auto; min-height: 52px; flex-wrap: wrap; gap: 6px; padding-top: 8px; padding-bottom: 8px; }
     .header-brand { font-size: 13px; }
     .header-logo-box { width: 36px; height: 36px; }
-    .import-bar { padding: 10px 14px; }
     .filtros-bar { padding: 8px 14px; gap: 8px; }
     .filtros-bar select { min-width: 120px; font-size: 12px; }
     .panel-left { padding: 12px 14px; }
@@ -339,21 +333,14 @@
       <div id="modo-badge-header"></div>
     </div>
     <div class="header-right">
+      <div id="import-status"></div>
+      <div id="import-date-info" class="import-date-info"></div>
+      <button id="btn-reverter" onclick="reverterVencidos()" title="Reverter upload" style="display:none;background:transparent;border:none;color:#EF4444;padding:4px;font-size:14px;cursor:pointer;opacity:.6">↩</button>
+      <button class="btn-import-icon" title="Importar Vencidos (.xls/.xlsx)" onclick="document.getElementById('file-input').click()">📂</button>
+      <input type="file" id="file-input" accept=".xls,.xlsx" onchange="importarVencidos(this)">
       <div id="header-auditor" style="font-size:13px;opacity:.8"></div>
       <button class="btn-sair" onclick="sair()">Sair</button>
     </div>
-  </div>
-
-  <!-- IMPORT BAR -->
-  <div class="import-bar">
-    <div class="import-label">Importar Vencidos:</div>
-    <button class="btn-import" onclick="document.getElementById('file-input').click()">
-      📂 Selecionar arquivo Vencidos (.xls/.xlsx)
-    </button>
-    <input type="file" id="file-input" accept=".xls,.xlsx" onchange="importarVencidos(this)">
-    <div id="import-status"></div>
-    <div id="import-date-info" class="import-date-info"></div>
-    <button id="btn-reverter" onclick="reverterVencidos()" style="display:none;background:transparent;border:1.5px solid #991B1B;color:#EF4444;padding:7px 14px;border-radius:6px;font-size:12px;cursor:pointer">↩ Reverter upload</button>
   </div>
 
   <!-- FILTROS -->
