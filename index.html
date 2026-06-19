@@ -1070,8 +1070,8 @@ function renderRelatorioGeral() {
   html += '<th class="th-sort" data-col="regional" onclick="ordenarRelatorio(\'regional\')">Regional<span class="sort-arrow"></span></th>';
   html += '<th class="th-sort" data-col="gerente" onclick="ordenarRelatorio(\'gerente\')">Gerente<span class="sort-arrow"></span></th>';
   html += '<th class="th-sort" data-col="auditor" onclick="ordenarRelatorio(\'auditor\')">Auditor<span class="sort-arrow"></span></th>';
-  html += '<th class="th-sort" data-col="anterior" style="text-align:right" onclick="ordenarRelatorio(\'anterior\')">D60 Sem. Anterior<span class="sort-arrow"></span></th>';
-  html += '<th class="th-sort" data-col="atual" style="text-align:right" onclick="ordenarRelatorio(\'atual\')">D60 Sem. Atual<span class="sort-arrow"></span></th>';
+  html += '<th class="th-sort" data-col="anterior" style="text-align:right" onclick="ordenarRelatorio(\'anterior\')">D60 ' + formatarDataCurta(semAnt) + '<span class="sort-arrow"></span></th>';
+  html += '<th class="th-sort" data-col="atual" style="text-align:right" onclick="ordenarRelatorio(\'atual\')">D60 ' + formatarDataCurta(semanaAtual) + '<span class="sort-arrow"></span></th>';
   html += '<th class="th-sort" data-col="variacao" style="text-align:right" onclick="ordenarRelatorio(\'variacao\')">Variação<span class="sort-arrow"></span></th>';
   html += '</tr></thead><tbody>';
 
@@ -1114,7 +1114,7 @@ function exportarRelatorioXLSX() {
     ['AGROQUIMA — RELATÓRIO GERAL D60'],
     ['D60 Sem. Anterior', semAnt ? formatarData(semAnt) : '—', 'D60 Sem. Atual', semanaAtual ? formatarData(semanaAtual) : '—'],
     [],
-    ['LJ','Filial','Regional','Gerente','Auditor','D60 Sem. Anterior','D60 Sem. Atual','Variação (R$)','Variação (%)'],
+    ['LJ','Filial','Regional','Gerente','Auditor','D60 ' + formatarDataCurta(semAnt),'D60 ' + formatarDataCurta(semanaAtual),'Variação (R$)','Variação (%)'],
   ];
   let totAnt = 0, totAtual = 0, totVar = 0;
   linhas.forEach(({ b, d60a, d60ant, varVal, varPct }) => {
@@ -1610,6 +1610,11 @@ function formatarData(s) {
   const p = s.split('-');
   if (p.length === 3) return p[2] + '/' + p[1] + '/' + p[0];
   return s;
+}
+function formatarDataCurta(s) {
+  if (!s) return '—';
+  const p = s.split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] : s;
 }
 function hoje() {
   return new Date().toISOString().slice(0,10);
