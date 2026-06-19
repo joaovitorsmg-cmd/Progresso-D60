@@ -673,9 +673,17 @@ async function salvarVencidosNuvem() {
     await fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_VEN_ID, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_VEN_KEY },
-      body: JSON.stringify({ vencidosData, semanaAtual, ts: new Date().toISOString() })
+      body: JSON.stringify({ vencidosData, semanaAtual, d60Hist: D60_HIST, ts: new Date().toISOString() })
     });
   } catch(e) { console.warn('Erro ao salvar vencidos na nuvem:', e); }
+}
+
+function mesclarD60Hist(cloudHist) {
+  if (!cloudHist) return;
+  Object.keys(cloudHist).forEach(lj => {
+    if (!D60_HIST[lj]) D60_HIST[lj] = {};
+    Object.assign(D60_HIST[lj], cloudHist[lj]);
+  });
 }
 
 async function carregarVencidosNuvem() {
@@ -689,6 +697,7 @@ async function carregarVencidosNuvem() {
       if (d.record && d.record.vencidosData) {
         vencidosData = d.record.vencidosData;
         semanaAtual  = d.record.semanaAtual || semanaAtual;
+        mesclarD60Hist(d.record.d60Hist);
         const ts = d.record.ts ? new Date(d.record.ts).toLocaleDateString('pt-BR') : '—';
         document.getElementById('import-status').innerHTML = '<span class="import-status">☁️ Vencidos da nuvem (' + ts + ')</span>';
         document.getElementById('import-date-info').textContent = 'Semana de referência: ' + formatarData(semanaAtual);
@@ -705,7 +714,9 @@ async function carregarVencidosNuvem() {
 function importarVencidos(input) {
   const file = input.files[0];
   if (!file) return;
-  if (!confirm('ATUALIZAÇÃO DESTE RELATÓRIO APAGA TODO HISTÓRICO ANTERIOR. DESEJA SEGUIR?')) {
+  const semanaNova = prompt('Data de referência desta atualização (semana atual):', hoje());
+  if (!semanaNova) { input.value = ''; return; }
+  if (!confirm('Isso cria a semana ' + formatarData(semanaNova) + ' no histórico D60 (a partir da soma dos títulos do arquivo) e mantém o histórico anterior. Deseja seguir?')) {
     input.value = '';
     return;
   }
@@ -717,16 +728,14 @@ function importarVencidos(input) {
       if (!ws) { toast('⚠️ Aba "Títulos" não encontrada no arquivo.'); return; }
       const rows  = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-      // detectar semana: última coluna com dados no D60_HIST
-      const allWeeks = [...new Set(
-        Object.values(D60_HIST).flatMap(h => Object.keys(h))
-      )].sort();
-      semanaAtual = allWeeks[allWeeks.length - 1];
+      const semanaAnterior = semanaAtual;
 
-      // Backup previous vencidos for revert
-      if (Object.keys(vencidosData).length > 0) {
-        try { localStorage.setItem('ven_backup', JSON.stringify({ vencidosData, semanaAtual, ts: new Date().toISOString() })); } catch(e) {}
-      }
+      // Backup previous vencidos/histórico for revert
+      try {
+        localStorage.setItem('ven_backup', JSON.stringify({
+          vencidosData, semanaAtual: semanaAnterior, semanaNova, ts: new Date().toISOString()
+        }));
+      } catch(e) {}
 
       // agrupar títulos por LJ
       vencidosData = {};
@@ -761,6 +770,14 @@ function importarVencidos(input) {
           sit:           (r['SIT.'] || r['SIT'] || '').trim(),
         });
       });
+
+      // soma dos títulos por filial = novo D60 da semana, adicionado ao histórico
+      Object.keys(vencidosData).forEach(lj => {
+        const total = vencidosData[lj].reduce((s, t) => s + (t.valor || 0), 0);
+        if (!D60_HIST[lj]) D60_HIST[lj] = {};
+        D60_HIST[lj][semanaNova] = total;
+      });
+      semanaAtual = semanaNova;
 
       document.getElementById('import-status').innerHTML =
         '<span class="import-status">✅ ' + file.name + '</span>';
@@ -1509,6 +1526,9 @@ function reverterVencidos() {
   if (!confirm('Reverter para os vencidos anteriores?')) return;
   const obj = JSON.parse(bk);
   vencidosData = obj.vencidosData || {};
+  if (obj.semanaNova) {
+    Object.keys(D60_HIST).forEach(lj => { delete D60_HIST[lj][obj.semanaNova]; });
+  }
   semanaAtual  = obj.semanaAtual  || semanaAtual;
   const ts = obj.ts ? new Date(obj.ts).toLocaleDateString('pt-BR') : '—';
   document.getElementById('import-status').innerHTML = '<span class="import-status">↩ Vencidos revertidos (' + ts + ')</span>';
@@ -1517,6 +1537,7 @@ function reverterVencidos() {
   localStorage.removeItem('ven_backup');
   renderTabela();
   if (filialSel) renderDetalhe(filialSel);
+  salvarVencidosNuvem();
   toast('Vencidos revertidos com sucesso.');
 }
 
