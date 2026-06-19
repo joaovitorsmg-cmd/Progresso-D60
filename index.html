@@ -244,6 +244,43 @@
   .audit-aud { font-weight: 600; color: var(--texto); }
   .audit-date { color: #B7C6E0; font-size: 11px; }
 
+  /* ── ABAS ───────────────────────────────────────────────────────── */
+  .tabs-bar {
+    background: #0A1628; border-bottom: 1px solid var(--cinza-bd);
+    padding: 0 28px; display: flex; gap: 4px;
+  }
+  .tab-btn {
+    background: transparent; border: none; color: #B7C6E0;
+    padding: 12px 18px; font-size: 13px; font-weight: 700; cursor: pointer;
+    border-bottom: 3px solid transparent; transition: all .2s;
+  }
+  .tab-btn:hover { color: var(--branco); }
+  .tab-btn.active { color: var(--branco); border-bottom-color: var(--azul-med); }
+  .tab-page { display: none; }
+  .tab-page.active { display: block; }
+
+  /* ── RELATÓRIO GERAL (export branco/neutro) ───────────────────────── */
+  .relatorio-bar {
+    padding: 16px 28px; display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap; background: #0D1F35; border-bottom: 1px solid var(--cinza-bd);
+  }
+  .relatorio-bar .btn-rel {
+    background: #1E3A8A; color: #93C5FD; border: none; border-radius: 6px;
+    padding: 8px 16px; font-size: 12px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; transition: background .2s;
+  }
+  .relatorio-bar .btn-rel:hover { background: var(--azul-med); }
+  #relatorio-area-wrap { padding: 20px 28px; overflow-x: auto; }
+  #relatorio-area { background: #fff; color: #111; padding: 24px; font-family: Arial, sans-serif; min-width: 920px; }
+  #relatorio-area table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  #relatorio-area thead th {
+    background: #F1F5F9; color: #0A1628; text-align: left; padding: 8px 10px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+    border-bottom: 2px solid #CBD5E1;
+  }
+  #relatorio-area tbody td { padding: 7px 10px; border-bottom: 1px solid #E5E7EB; }
+  #relatorio-area tbody tr:nth-child(even) { background: #F9FAFB; }
+
   /* ── TOAST ──────────────────────────────────────────────────────── */
   #toast {
     position: fixed; bottom: 28px; right: 28px; z-index: 9999;
@@ -346,6 +383,15 @@
     </div>
   </div>
 
+  <!-- ABAS -->
+  <div class="tabs-bar">
+    <button class="tab-btn active" id="tab-btn-painel" onclick="trocarAba('painel')">📋 Painel</button>
+    <button class="tab-btn" id="tab-btn-relatorio" onclick="trocarAba('relatorio')">📊 Relatório Geral</button>
+  </div>
+
+  <!-- ABA: PAINEL -->
+  <div class="tab-page active" id="tab-painel">
+
   <!-- FILTROS -->
   <div class="filtros-bar">
     <div class="filtro-label">Filtros:</div>
@@ -417,6 +463,21 @@
         <div class="icon">📋</div>
         <p>Clique em uma filial para ver detalhes, histórico de valores e títulos vencidos.</p>
       </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ABA: RELATÓRIO GERAL -->
+  <div class="tab-page" id="tab-relatorio">
+    <div class="relatorio-bar">
+      <div style="font-size:13px;color:#B7C6E0">Relatório completo de todas as filiais — D60 semana anterior x D60 semana atual, pronto para enviar.</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-rel" onclick="exportarRelatorioXLSX()">📊 Exportar XLSX</button>
+        <button class="btn-rel" onclick="exportarRelatorioPNG()">🖼 Exportar PNG</button>
+      </div>
+    </div>
+    <div id="relatorio-area-wrap">
+      <div id="relatorio-area"></div>
     </div>
   </div>
 </div>
@@ -893,6 +954,109 @@ function renderTabela() {
   document.getElementById('kpi-audit').textContent   = nAudit;
   document.getElementById('kpi-sem-audit').textContent = nSemAudit;
   atualizarSetasOrdenacao();
+  renderRelatorioGeral();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// ABAS
+// ════════════════════════════════════════════════════════════════════
+function trocarAba(aba) {
+  document.getElementById('tab-painel').classList.toggle('active', aba === 'painel');
+  document.getElementById('tab-relatorio').classList.toggle('active', aba === 'relatorio');
+  document.getElementById('tab-btn-painel').classList.toggle('active', aba === 'painel');
+  document.getElementById('tab-btn-relatorio').classList.toggle('active', aba === 'relatorio');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// RELATÓRIO GERAL (Carlos) — todas as filiais, D60 atual x anterior
+// ════════════════════════════════════════════════════════════════════
+function dadosRelatorioGeral() {
+  return BASE_REGIONAIS.map(b => {
+    const d60a   = getD60Atual(b.lj);
+    const d60ant = getD60RefAuditoria(b.lj);
+    const varVal = (d60a !== null && d60ant !== null) ? d60ant - d60a : null;
+    const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
+    const pont   = getPontuou(b.lj);
+    return { b, d60a, d60ant, varVal, varPct, pont };
+  });
+}
+
+function renderRelatorioGeral() {
+  const el = document.getElementById('relatorio-area');
+  if (!el) return;
+  const linhas = dadosRelatorioGeral();
+  const semAnt = getSemanaAnterior(semanaAtual);
+
+  let html = '<div style="border-bottom:3px solid #1E3A8A;padding-bottom:12px;margin-bottom:16px">';
+  html += '<div style="font-size:11px;letter-spacing:2px;color:#1E3A8A;font-weight:700">AGROQUIMA · AUDITORIA D60</div>';
+  html += '<div style="font-size:20px;font-weight:900;color:#0A1628;margin:4px 0">Relatório Geral — Todas as Filiais</div>';
+  html += '<div style="font-size:12px;color:#444">D60 Semana Anterior (' + (semAnt ? formatarData(semAnt) : '—') + ') x D60 Semana Atual (' + (semanaAtual ? formatarData(semanaAtual) : '—') + ')</div>';
+  html += '</div>';
+
+  html += '<table><thead><tr>';
+  html += '<th>LJ</th><th>Filial</th><th>Regional</th><th>Gerente</th><th>Auditor</th>';
+  html += '<th style="text-align:right">D60 Sem. Anterior</th><th style="text-align:right">D60 Sem. Atual</th>';
+  html += '<th style="text-align:right">Variação</th><th style="text-align:center">Pontuou</th>';
+  html += '</tr></thead><tbody>';
+
+  linhas.forEach(({ b, d60a, d60ant, varVal, varPct, pont }) => {
+    const corVar = varVal === null ? '#374151' : (varVal > 0 ? '#065F46' : (varVal < 0 ? '#991B1B' : '#374151'));
+    const varTxt = varVal !== null
+      ? (varVal > 0 ? '+' : '') + formatMoeda(varVal) + ' (' + (varPct > 0 ? '+' : '') + varPct.toFixed(1) + '%)'
+      : '—';
+    const pontTxt = pont === true ? '✓ Sim' : (pont === false ? '✗ Não' : '—');
+    const corPont = pont === true ? '#065F46' : (pont === false ? '#991B1B' : '#374151');
+    html += '<tr>';
+    html += '<td><b>' + b.lj + '</b></td>';
+    html += '<td>' + b.loja + '</td>';
+    html += '<td>' + b.regional + '</td>';
+    html += '<td>' + b.gerente + '</td>';
+    html += '<td>' + b.auditor + '</td>';
+    html += '<td style="text-align:right">' + (d60ant !== null ? formatMoeda(d60ant) : '—') + '</td>';
+    html += '<td style="text-align:right;font-weight:700">' + (d60a !== null ? formatMoeda(d60a) : '—') + '</td>';
+    html += '<td style="text-align:right;color:' + corVar + ';font-weight:700">' + varTxt + '</td>';
+    html += '<td style="text-align:center;color:' + corPont + ';font-weight:700">' + pontTxt + '</td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function exportarRelatorioXLSX() {
+  const linhas = dadosRelatorioGeral();
+  const semAnt = getSemanaAnterior(semanaAtual);
+  const aoa = [
+    ['AGROQUIMA — RELATÓRIO GERAL D60'],
+    ['D60 Sem. Anterior', semAnt ? formatarData(semAnt) : '—', 'D60 Sem. Atual', semanaAtual ? formatarData(semanaAtual) : '—'],
+    [],
+    ['LJ','Filial','Regional','Gerente','Auditor','D60 Sem. Anterior','D60 Sem. Atual','Variação (R$)','Variação (%)','Pontuou'],
+  ];
+  linhas.forEach(({ b, d60a, d60ant, varVal, varPct, pont }) => {
+    aoa.push([
+      b.lj, b.loja, b.regional, b.gerente, b.auditor,
+      d60ant, d60a, varVal,
+      varPct !== null ? varPct.toFixed(2) + '%' : '—',
+      pont === true ? 'SIM' : (pont === false ? 'NÃO' : '—'),
+    ]);
+  });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Relatório Geral');
+  XLSX.writeFile(wb, 'D60_Relatorio_Geral_' + hoje() + '.xlsx');
+}
+
+async function exportarRelatorioPNG() {
+  const el = document.getElementById('relatorio-area');
+  if (!el) return;
+  try {
+    const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2 });
+    const link = document.createElement('a');
+    link.download = 'D60_Relatorio_Geral_' + hoje() + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) {
+    toast('Erro ao gerar imagem: ' + e.message);
+  }
 }
 
 function matchAuditor(b, fAud) {
