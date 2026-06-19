@@ -989,13 +989,58 @@ function trocarAba(aba) {
 // ════════════════════════════════════════════════════════════════════
 function dadosRelatorioGeral() {
   const semAnt = getSemanaAnterior(semanaAtual);
-  return BASE_REGIONAIS.map(b => {
+  let linhas = BASE_REGIONAIS.map(b => {
     const d60a   = getD60Atual(b.lj);
     const hist   = D60_HIST[b.lj] || {};
     const d60ant = semAnt && hist[semAnt] !== undefined ? hist[semAnt] : null;
     const varVal = (d60a !== null && d60ant !== null) ? d60ant - d60a : null;
     const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
     return { b, d60a, d60ant, varVal, varPct };
+  });
+  if (sortRelState.col) {
+    linhas = linhas.slice().sort((x, y) => {
+      const vx = valorOrdenacaoRel(x, sortRelState.col);
+      const vy = valorOrdenacaoRel(y, sortRelState.col);
+      if (typeof vx === 'string' || typeof vy === 'string') {
+        return String(vx).localeCompare(String(vy)) * sortRelState.dir;
+      }
+      return (vx - vy) * sortRelState.dir;
+    });
+  }
+  return linhas;
+}
+
+let sortRelState = { col: null, dir: -1 };
+
+function valorOrdenacaoRel(row, col) {
+  switch (col) {
+    case 'lj':       return row.b.lj;
+    case 'filial':   return row.b.loja;
+    case 'regional': return row.b.regional;
+    case 'gerente':  return row.b.gerente;
+    case 'auditor':  return row.b.auditor;
+    case 'anterior': return row.d60ant === null ? -Infinity : row.d60ant;
+    case 'atual':    return row.d60a   === null ? -Infinity : row.d60a;
+    case 'variacao': return row.varVal === null ? -Infinity : row.varVal;
+    default: return 0;
+  }
+}
+
+function ordenarRelatorio(col) {
+  if (sortRelState.col === col) {
+    sortRelState.dir = -sortRelState.dir;
+  } else {
+    sortRelState.col = col;
+    sortRelState.dir = -1; // primeiro clique: maior para menor
+  }
+  renderRelatorioGeral();
+}
+
+function atualizarSetasOrdenacaoRel() {
+  document.querySelectorAll('#relatorio-area .th-sort').forEach(th => {
+    const arrow = th.querySelector('.sort-arrow');
+    if (!arrow) return;
+    arrow.textContent = th.dataset.col === sortRelState.col ? (sortRelState.dir === -1 ? '▼' : '▲') : '';
   });
 }
 
@@ -1020,9 +1065,14 @@ function renderRelatorioGeral() {
   html += '</div>';
 
   html += '<table><thead><tr>';
-  html += '<th>LJ</th><th>Filial</th><th>Regional</th><th>Gerente</th><th>Auditor</th>';
-  html += '<th style="text-align:right">D60 Sem. Anterior</th><th style="text-align:right">D60 Sem. Atual</th>';
-  html += '<th style="text-align:right">Variação</th>';
+  html += '<th class="th-sort" data-col="lj" onclick="ordenarRelatorio(\'lj\')">LJ<span class="sort-arrow"></span></th>';
+  html += '<th class="th-sort" data-col="filial" onclick="ordenarRelatorio(\'filial\')">Filial<span class="sort-arrow"></span></th>';
+  html += '<th class="th-sort" data-col="regional" onclick="ordenarRelatorio(\'regional\')">Regional<span class="sort-arrow"></span></th>';
+  html += '<th class="th-sort" data-col="gerente" onclick="ordenarRelatorio(\'gerente\')">Gerente<span class="sort-arrow"></span></th>';
+  html += '<th class="th-sort" data-col="auditor" onclick="ordenarRelatorio(\'auditor\')">Auditor<span class="sort-arrow"></span></th>';
+  html += '<th class="th-sort" data-col="anterior" style="text-align:right" onclick="ordenarRelatorio(\'anterior\')">D60 Sem. Anterior<span class="sort-arrow"></span></th>';
+  html += '<th class="th-sort" data-col="atual" style="text-align:right" onclick="ordenarRelatorio(\'atual\')">D60 Sem. Atual<span class="sort-arrow"></span></th>';
+  html += '<th class="th-sort" data-col="variacao" style="text-align:right" onclick="ordenarRelatorio(\'variacao\')">Variação<span class="sort-arrow"></span></th>';
   html += '</tr></thead><tbody>';
 
   linhas.forEach(({ b, d60a, d60ant, varVal, varPct }) => {
@@ -1054,6 +1104,7 @@ function renderRelatorioGeral() {
 
   html += '</tbody></table>';
   el.innerHTML = html;
+  atualizarSetasOrdenacaoRel();
 }
 
 function exportarRelatorioXLSX() {
