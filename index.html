@@ -971,13 +971,14 @@ function trocarAba(aba) {
 // RELATÓRIO GERAL (Carlos) — todas as filiais, D60 atual x anterior
 // ════════════════════════════════════════════════════════════════════
 function dadosRelatorioGeral() {
+  const semAnt = getSemanaAnterior(semanaAtual);
   return BASE_REGIONAIS.map(b => {
     const d60a   = getD60Atual(b.lj);
-    const d60ant = getD60RefAuditoria(b.lj);
+    const hist   = D60_HIST[b.lj] || {};
+    const d60ant = semAnt && hist[semAnt] !== undefined ? hist[semAnt] : null;
     const varVal = (d60a !== null && d60ant !== null) ? d60ant - d60a : null;
     const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
-    const pont   = getPontuou(b.lj);
-    return { b, d60a, d60ant, varVal, varPct, pont };
+    return { b, d60a, d60ant, varVal, varPct };
   });
 }
 
@@ -986,6 +987,14 @@ function renderRelatorioGeral() {
   if (!el) return;
   const linhas = dadosRelatorioGeral();
   const semAnt = getSemanaAnterior(semanaAtual);
+
+  let totAnt = 0, totAtual = 0, totVar = 0;
+  linhas.forEach(({ d60a, d60ant, varVal }) => {
+    if (d60a !== null)   totAtual += d60a;
+    if (d60ant !== null) totAnt   += d60ant;
+    if (varVal !== null) totVar   += varVal;
+  });
+  const totVarPct = totAnt ? totVar / totAnt * 100 : null;
 
   let html = '<div style="border-bottom:3px solid #1E3A8A;padding-bottom:12px;margin-bottom:16px">';
   html += '<div style="font-size:11px;letter-spacing:2px;color:#1E3A8A;font-weight:700">AGROQUIMA · AUDITORIA D60</div>';
@@ -996,16 +1005,14 @@ function renderRelatorioGeral() {
   html += '<table><thead><tr>';
   html += '<th>LJ</th><th>Filial</th><th>Regional</th><th>Gerente</th><th>Auditor</th>';
   html += '<th style="text-align:right">D60 Sem. Anterior</th><th style="text-align:right">D60 Sem. Atual</th>';
-  html += '<th style="text-align:right">Variação</th><th style="text-align:center">Pontuou</th>';
+  html += '<th style="text-align:right">Variação</th>';
   html += '</tr></thead><tbody>';
 
-  linhas.forEach(({ b, d60a, d60ant, varVal, varPct, pont }) => {
+  linhas.forEach(({ b, d60a, d60ant, varVal, varPct }) => {
     const corVar = varVal === null ? '#374151' : (varVal > 0 ? '#065F46' : (varVal < 0 ? '#991B1B' : '#374151'));
     const varTxt = varVal !== null
       ? (varVal > 0 ? '+' : '') + formatMoeda(varVal) + ' (' + (varPct > 0 ? '+' : '') + varPct.toFixed(1) + '%)'
       : '—';
-    const pontTxt = pont === true ? '✓ Sim' : (pont === false ? '✗ Não' : '—');
-    const corPont = pont === true ? '#065F46' : (pont === false ? '#991B1B' : '#374151');
     html += '<tr>';
     html += '<td><b>' + b.lj + '</b></td>';
     html += '<td>' + b.loja + '</td>';
@@ -1015,9 +1022,18 @@ function renderRelatorioGeral() {
     html += '<td style="text-align:right">' + (d60ant !== null ? formatMoeda(d60ant) : '—') + '</td>';
     html += '<td style="text-align:right;font-weight:700">' + (d60a !== null ? formatMoeda(d60a) : '—') + '</td>';
     html += '<td style="text-align:right;color:' + corVar + ';font-weight:700">' + varTxt + '</td>';
-    html += '<td style="text-align:center;color:' + corPont + ';font-weight:700">' + pontTxt + '</td>';
     html += '</tr>';
   });
+
+  const corTotVar = totVar > 0 ? '#065F46' : (totVar < 0 ? '#991B1B' : '#0A1628');
+  const totVarTxt = (totVar > 0 ? '+' : '') + formatMoeda(totVar) +
+    (totVarPct !== null ? ' (' + (totVarPct > 0 ? '+' : '') + totVarPct.toFixed(1) + '%)' : '');
+  html += '<tr style="background:#E8EFF8;font-weight:800">';
+  html += '<td colspan="5">TOTAL</td>';
+  html += '<td style="text-align:right">' + formatMoeda(totAnt) + '</td>';
+  html += '<td style="text-align:right">' + formatMoeda(totAtual) + '</td>';
+  html += '<td style="text-align:right;color:' + corTotVar + '">' + totVarTxt + '</td>';
+  html += '</tr>';
 
   html += '</tbody></table>';
   el.innerHTML = html;
@@ -1030,16 +1046,22 @@ function exportarRelatorioXLSX() {
     ['AGROQUIMA — RELATÓRIO GERAL D60'],
     ['D60 Sem. Anterior', semAnt ? formatarData(semAnt) : '—', 'D60 Sem. Atual', semanaAtual ? formatarData(semanaAtual) : '—'],
     [],
-    ['LJ','Filial','Regional','Gerente','Auditor','D60 Sem. Anterior','D60 Sem. Atual','Variação (R$)','Variação (%)','Pontuou'],
+    ['LJ','Filial','Regional','Gerente','Auditor','D60 Sem. Anterior','D60 Sem. Atual','Variação (R$)','Variação (%)'],
   ];
-  linhas.forEach(({ b, d60a, d60ant, varVal, varPct, pont }) => {
+  let totAnt = 0, totAtual = 0, totVar = 0;
+  linhas.forEach(({ b, d60a, d60ant, varVal, varPct }) => {
+    if (d60a !== null)   totAtual += d60a;
+    if (d60ant !== null) totAnt   += d60ant;
+    if (varVal !== null) totVar   += varVal;
     aoa.push([
       b.lj, b.loja, b.regional, b.gerente, b.auditor,
       d60ant, d60a, varVal,
       varPct !== null ? varPct.toFixed(2) + '%' : '—',
-      pont === true ? 'SIM' : (pont === false ? 'NÃO' : '—'),
     ]);
   });
+  const totVarPct = totAnt ? (totVar / totAnt * 100).toFixed(2) + '%' : '—';
+  aoa.push([]);
+  aoa.push(['TOTAL', '', '', '', '', totAnt, totAtual, totVar, totVarPct]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Relatório Geral');
   XLSX.writeFile(wb, 'D60_Relatorio_Geral_' + hoje() + '.xlsx');
