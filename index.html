@@ -1440,6 +1440,11 @@ function registrarAuditoria(lj) {
   let pontuou  = null;
   let semana_ref = semanaAtual;
 
+  if (prevEl && prevEl.dataset.d60At !== undefined && prevEl.dataset.d60At !== '') {
+    d60_ref    = parseFloat(prevEl.dataset.d60At);
+    semana_ref = prevEl.dataset.semAt || semanaAtual;
+  }
+
   if (prevEl && prevEl.dataset.d60Ant !== undefined && prevEl.dataset.d60Ant !== '') {
     d60_ant  = parseFloat(prevEl.dataset.d60Ant);
     pontuou  = prevEl.dataset.pontuou === 'true' ? true : (prevEl.dataset.pontuou === 'false' ? false : null);
@@ -1487,14 +1492,18 @@ function calcularPreviewAuditoria(lj) {
 
   const semAnt = semMaisProxima(dataAnt);
   const d60Ant = semAnt ? hist[semAnt] : null;
-  const semAt  = semanaAtual; // always use the current week
-  const d60At  = getD60Atual(lj);
+  const semAt  = semMaisProxima(dataAt) || semanaAtual; // semana correspondente à data da auditoria informada
+  const d60At  = semAt ? hist[semAt] : getD60Atual(lj);
 
   const prevEl = document.getElementById('audit-preview-result');
   const antPrev = document.getElementById('audit-d60-ant-preview');
+  const atPrev  = document.getElementById('audit-d60-at-preview');
 
   if (antPrev) {
     antPrev.textContent = semAnt ? 'Semana: ' + formatarData(semAnt) + ' → ' + formatMoeda(d60Ant) : 'Busca automática no histórico';
+  }
+  if (atPrev) {
+    atPrev.innerHTML = semAt ? 'Semana: <b>' + formatarData(semAt) + '</b> → ' + formatMoeda(d60At) : 'Semana atual: <b>' + formatarData(semanaAtual) + '</b>';
   }
 
   if (!prevEl) return;
@@ -1530,6 +1539,8 @@ function calcularPreviewAuditoria(lj) {
   // Store calculated values for use in registrarAuditoria
   prevEl.dataset.d60Ant = d60Ant !== null ? d60Ant : '';
   prevEl.dataset.semAnt = semAnt || '';
+  prevEl.dataset.d60At  = d60At !== null ? d60At : '';
+  prevEl.dataset.semAt  = semAt || '';
   prevEl.dataset.pontuou = pontuou === null ? '' : String(pontuou);
 }
 
