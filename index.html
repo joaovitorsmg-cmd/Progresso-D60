@@ -159,6 +159,9 @@
   }
   #tabela-filiais thead th:first-child { border-radius: 6px 0 0 0; }
   #tabela-filiais thead th:last-child  { border-radius: 0 6px 0 0; }
+  .th-sort { cursor: pointer; user-select: none; transition: background .15s; }
+  .th-sort:hover { background: var(--azul-med); }
+  .sort-arrow { display: inline-block; width: 12px; margin-left: 3px; opacity: .8; }
   #tabela-filiais tbody tr { cursor: pointer; transition: background .15s; border-bottom: 1px solid var(--cinza-bd); }
   #tabela-filiais tbody tr:nth-child(even) { background: #0D1F35; }
   #tabela-filiais tbody tr:hover { background: var(--azul-bg) !important; }
@@ -394,16 +397,16 @@
       <table id="tabela-filiais">
         <thead>
           <tr>
-            <th>LJ</th>
-            <th>Filial</th>
-            <th>Regional</th>
-            <th>Gerente</th>
-            <th>Auditor</th>
-            <th>D60 Ref. Atual</th>
-            <th>D60 Ref. Anterior</th>
-            <th>Variação</th>
-            <th>Pontuou</th>
-            <th>Auditada</th>
+            <th class="th-sort" data-col="lj" onclick="ordenarTabela('lj')">LJ<span class="sort-arrow"></span></th>
+            <th class="th-sort" data-col="filial" onclick="ordenarTabela('filial')">Filial<span class="sort-arrow"></span></th>
+            <th class="th-sort" data-col="regional" onclick="ordenarTabela('regional')">Regional<span class="sort-arrow"></span></th>
+            <th class="th-sort" data-col="gerente" onclick="ordenarTabela('gerente')">Gerente<span class="sort-arrow"></span></th>
+            <th class="th-sort" data-col="auditor" onclick="ordenarTabela('auditor')">Auditor<span class="sort-arrow"></span></th>
+            <th class="th-sort" data-col="atual" onclick="ordenarTabela('atual')">D60 Ref. Atual<span class="sort-arrow"></span></th>
+            <th class="th-sort" data-col="anterior" onclick="ordenarTabela('anterior')">D60 Ref. Anterior<span class="sort-arrow"></span></th>
+            <th class="th-sort" data-col="variacao" onclick="ordenarTabela('variacao')">Variação<span class="sort-arrow"></span></th>
+            <th class="th-sort" data-col="pontuou" onclick="ordenarTabela('pontuou')">Pontuou<span class="sort-arrow"></span></th>
+            <th class="th-sort" data-col="auditada" onclick="ordenarTabela('auditada')">Auditada<span class="sort-arrow"></span></th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -727,11 +730,11 @@ function getD60Atual(lj) {
 }
 
 function getD60RefAuditoria(lj) {
-  // Retorna o D60 da semana de referência da ÚLTIMA auditoria desta filial
+  // Retorna o D60 da semana de referência ANTERIOR usada na última auditoria desta filial
   const list = (auditorias[lj] || []);
   if (!list.length) return null;
   const ultima = list[list.length - 1];
-  return ultima.d60_ref;
+  return ultima.d60_ref_ant !== undefined ? ultima.d60_ref_ant : null;
 }
 
 function getSemanaRefAuditoria(lj) {
@@ -757,6 +760,51 @@ function getSemanaAnterior(semana) {
 }
 
 // ════════════════════════════════════════════════════════════════════
+// ORDENAÇÃO DA TABELA
+// ════════════════════════════════════════════════════════════════════
+let sortState = { col: null, dir: -1 };
+
+function valorOrdenacao(b, col) {
+  switch (col) {
+    case 'lj':       return b.lj;
+    case 'filial':   return b.loja;
+    case 'regional': return b.regional;
+    case 'gerente':  return b.gerente;
+    case 'auditor':  return b.auditor;
+    case 'atual':    { const v = getD60Atual(b.lj); return v === null ? -Infinity : v; }
+    case 'anterior': { const v = getD60RefAuditoria(b.lj); return v === null ? -Infinity : v; }
+    case 'variacao': {
+      const a = getD60Atual(b.lj), an = getD60RefAuditoria(b.lj);
+      return (a !== null && an !== null) ? an - a : -Infinity;
+    }
+    case 'pontuou':  { const p = getPontuou(b.lj); return p === true ? 1 : (p === false ? 0 : -1); }
+    case 'auditada': {
+      const ultAud = (auditorias[b.lj] || []).slice(-1)[0];
+      return (ultAud && semanaAtual && ultAud.semana_ref === semanaAtual) ? 1 : 0;
+    }
+    default: return 0;
+  }
+}
+
+function ordenarTabela(col) {
+  if (sortState.col === col) {
+    sortState.dir = -sortState.dir;
+  } else {
+    sortState.col = col;
+    sortState.dir = -1; // primeiro clique: maior para menor
+  }
+  renderTabela();
+}
+
+function atualizarSetasOrdenacao() {
+  document.querySelectorAll('#tabela-filiais .th-sort').forEach(th => {
+    const arrow = th.querySelector('.sort-arrow');
+    if (!arrow) return;
+    arrow.textContent = th.dataset.col === sortState.col ? (sortState.dir === -1 ? '▼' : '▲') : '';
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
 // RENDER TABELA
 // ════════════════════════════════════════════════════════════════════
 function renderTabela() {
@@ -769,6 +817,17 @@ function renderTabela() {
     if (fAud    && !matchAuditor(b, fAud)) return false;
     return true;
   });
+
+  if (sortState.col) {
+    dadosTabela.sort((x, y) => {
+      const vx = valorOrdenacao(x, sortState.col);
+      const vy = valorOrdenacao(y, sortState.col);
+      if (typeof vx === 'string' || typeof vy === 'string') {
+        return String(vx).localeCompare(String(vy)) * sortState.dir;
+      }
+      return (vx - vy) * sortState.dir;
+    });
+  }
 
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = '';
@@ -833,6 +892,7 @@ function renderTabela() {
   document.getElementById('kpi-npont').textContent   = nNpont;
   document.getElementById('kpi-audit').textContent   = nAudit;
   document.getElementById('kpi-sem-audit').textContent = nSemAudit;
+  atualizarSetasOrdenacao();
 }
 
 function matchAuditor(b, fAud) {
