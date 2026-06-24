@@ -6,6 +6,7 @@
 <title>Auditoria D60 — Agroquima</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <style>
   :root {
     --azul:     #1E3A8A;
@@ -670,11 +671,17 @@ async function salvarNuvem() {
 async function salvarVencidosNuvem() {
   if (!JSONBIN_VEN_ID || !JSONBIN_VEN_KEY) return;
   try {
-    await fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_VEN_ID, {
+    const payload = JSON.stringify({ vencidosData, semanaAtual, d60Hist: D60_HIST, ts: new Date().toISOString() });
+    const comprimido = LZString.compressToBase64(payload);
+    const r = await fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_VEN_ID, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_VEN_KEY },
-      body: JSON.stringify({ vencidosData, semanaAtual, d60Hist: D60_HIST, ts: new Date().toISOString() })
+      body: JSON.stringify({ lz: comprimido })
     });
+    if (!r.ok) {
+      const txt = await r.text().catch(() => r.status);
+      console.warn('JSONbin erro ao salvar vencidos:', txt);
+    }
   } catch(e) { console.warn('Erro ao salvar vencidos na nuvem:', e); }
 }
 
@@ -694,11 +701,15 @@ async function carregarVencidosNuvem() {
     });
     if (r.ok) {
       const d = await r.json();
-      if (d.record && d.record.vencidosData) {
-        vencidosData = d.record.vencidosData;
-        semanaAtual  = d.record.semanaAtual || semanaAtual;
-        mesclarD60Hist(d.record.d60Hist);
-        const ts = d.record.ts ? new Date(d.record.ts).toLocaleDateString('pt-BR') : '—';
+      let registro = d.record;
+      if (registro && registro.lz) {
+        registro = JSON.parse(LZString.decompressFromBase64(registro.lz));
+      }
+      if (registro && registro.vencidosData) {
+        vencidosData = registro.vencidosData;
+        semanaAtual  = registro.semanaAtual || semanaAtual;
+        mesclarD60Hist(registro.d60Hist);
+        const ts = registro.ts ? new Date(registro.ts).toLocaleDateString('pt-BR') : '—';
         document.getElementById('import-status').innerHTML = '<span class="import-status">☁️ Vencidos da nuvem (' + ts + ')</span>';
         document.getElementById('import-date-info').textContent = 'Semana de referência: ' + formatarData(semanaAtual);
         renderTabela();
