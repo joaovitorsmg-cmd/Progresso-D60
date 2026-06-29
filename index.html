@@ -740,7 +740,7 @@ function importarVencidos(input) {
       // agrupar títulos por LJ
       vencidosData = {};
       rows.forEach(r => {
-        const lj = parseInt(r['LOJA'] || r['LJ'] || r['lj'] || 0);
+        const lj = parseInt(r['LOJA_LOT'] || r['LOJA'] || r['LJ'] || r['lj'] || 0);
         if (!lj) return;
         if (!vencidosData[lj]) vencidosData[lj] = [];
         let vencto = r['VENCTO'] || r['Vencto'] || '';
