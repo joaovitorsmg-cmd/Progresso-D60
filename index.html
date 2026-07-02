@@ -2292,7 +2292,7 @@ async function exportarSlideRegional() {
 
   for (const reg of regsAExportar) {
     const filiais = [...regMap[reg]];
-    filiais.sort((a,b) => (statusOrd[a.status]||9) - (statusOrd[b.status]||9) || (b.valAtual||0) - (a.valAtual||0));
+    filiais.sort((a,b) => (a.delta||0) - (b.delta||0));
 
     const totalReg = filiais.reduce((s, e) => s + (e.valAtual || 0), 0);
     const pctGeral = totalGeral > 0 ? ((totalReg / totalGeral) * 100).toFixed(1) : '0.0';
