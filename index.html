@@ -2214,17 +2214,10 @@ function preencherDatalistsEvolucao() {
 
 // ── EXPORTAR SLIDE REGIONAL ───────────────────────────────────────────
 async function exportarSlideRegional() {
-  if (typeof html2canvas === 'undefined') {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
-    document.head.appendChild(s);
-    await new Promise(res => s.onload = res);
-  }
-
-  const ev = calcEvolucao();
+  const ev  = calcEvolucao();
   const fReg = (document.getElementById('ef-regional') || {value:''}).value.trim();
 
-  // Agrupamento por regional
+  // Agrupar por regional
   const regMap = {};
   ev.forEach(e => {
     const reg = e.base.regional;
@@ -2233,148 +2226,282 @@ async function exportarSlideRegional() {
     regMap[reg].push(e);
   });
 
-  const regsAExportar = Object.keys(regMap);
-  if (regsAExportar.length === 0) { toast('Nenhum regional para exportar.'); return; }
+  const regsAExportar = Object.keys(regMap).sort();
+  if (!regsAExportar.length) { toast('Nenhum regional para exportar.'); return; }
 
-  // Total geral D60 para calcular %
   const totalGeral = BASE_REGIONAIS.reduce((s, b) => s + (getD60Atual(b.lj) || 0), 0);
+  const semanaRef  = semanaAtual ? formatarData(semanaAtual) : 'última semana';
 
-  const statusLabel = { 'zero-total':'🌟 Nunca registrou','excel':'⭐ Hist. mínimo','reducao':'🟢 Redução','estavel':'🟡 Estável','crescimento':'🔴 Crescimento','sem-dados':'⚫ Sem dados' };
-  const statusColor = { 'zero-total':'#A78BFA','excel':'#60A5FA','reducao':'#22C55E','estavel':'#EAB308','crescimento':'#EF4444','sem-dados':'#6B7280' };
+  // Paleta Agroquima — fundo claro, royal blue
+  const C = {
+    bg:        '#F0F4FB',   // fundo geral azul-gelo
+    bgCard:    '#FFFFFF',   // linhas brancas
+    bgAlt:     '#EBF1FA',   // linhas alternadas azul muito claro
+    bgHeader:  '#1E3A8A',   // header tabela azul royal escuro
+    accent:    '#2563EB',   // azul royal principal
+    accentLt:  '#3B82F6',   // azul royal médio
+    topBar1:   '#1E3A8A',
+    topBar2:   '#2563EB',
+    topBar3:   '#60A5FA',
+    txt:       '#0F172A',   // texto escuro
+    txtMed:    '#334155',   // texto médio
+    txtSub:    '#64748B',   // texto suave
+    sep:       '#CBD5E1',   // separadores
+    green:     '#16A34A',
+    red:       '#DC2626',
+    yellow:    '#CA8A04',
+    purple:    '#7C3AED',
+    blue:      '#2563EB',
+    gray:      '#64748B',
+  };
+
+  const statusLabel = {
+    'zero-total': 'Nunca registrou',
+    'excel':      'Hist. mínimo',
+    'reducao':    'Redução',
+    'estavel':    'Estável',
+    'crescimento':'Crescimento',
+    'sem-dados':  'Sem dados'
+  };
+  const statusColor = {
+    'zero-total': C.purple,
+    'excel':      C.blue,
+    'reducao':    C.green,
+    'estavel':    C.yellow,
+    'crescimento':C.red,
+    'sem-dados':  C.gray
+  };
+  const statusOrd = {'zero-total':0,'excel':1,'reducao':2,'estavel':3,'crescimento':4,'sem-dados':5};
+
+  // Layout fixo — colunas com x e largura bem definidos para não sobrepor
+  const W    = 1400;
+  const PAD  = 48;
+  const SCALE = 2;
+
+  // Definição de colunas (x = início, w = largura disponível, align)
+  const COLS = [
+    { label:'LJ',          key:'lj',      x: PAD,       w: 44,  align:'left'  },
+    { label:'FILIAL',      key:'loja',    x: PAD+52,    w: 190, align:'left'  },
+    { label:'GERENTE',     key:'gerente', x: PAD+250,   w: 175, align:'left'  },
+    { label:'JAN/2026',    key:'inicio',  x: PAD+432,   w: 130, align:'right' },
+    { label:'ATUAL',       key:'atual',   x: PAD+570,   w: 130, align:'right' },
+    { label:'VARIAÇÃO R$', key:'delta',   x: PAD+708,   w: 145, align:'right' },
+    { label:'VAR %',       key:'deltapct',x: PAD+860,   w: 80,  align:'right' },
+    { label:'STATUS',      key:'status',  x: PAD+956,   w: 148, align:'center'},
+  ];
 
   for (const reg of regsAExportar) {
-    const filiais = regMap[reg];
-    const totalReg = filiais.reduce((s, e) => s + (e.valAtual || 0), 0);
-    const pctGeral = totalGeral > 0 ? ((totalReg / totalGeral) * 100).toFixed(1) : '0.0';
-    const semanaRef = semanaAtual ? formatarData(semanaAtual) : 'última semana';
-
-    // Ordenar por status depois por valor atual desc
-    const statusOrd = {'zero-total':0,'excel':1,'reducao':2,'estavel':3,'crescimento':4,'sem-dados':5};
+    const filiais = [...regMap[reg]];
     filiais.sort((a,b) => (statusOrd[a.status]||9) - (statusOrd[b.status]||9) || (b.valAtual||0) - (a.valAtual||0));
 
-    const W = 1280, PAD = 56;
-    const HEADER_H = 130;
-    const ROW_H = 68;
-    const FOOTER_H = 48;
-    const totalH = HEADER_H + filiais.length * ROW_H + FOOTER_H + PAD;
+    const totalReg = filiais.reduce((s, e) => s + (e.valAtual || 0), 0);
+    const pctGeral = totalGeral > 0 ? ((totalReg / totalGeral) * 100).toFixed(1) : '0.0';
+
+    // Alturas de seção
+    const TOP_STRIPE  = 6;
+    const LOGO_AREA   = 72;   // logo + linha azul
+    const TITLE_AREA  = 80;   // título + subtítulo
+    const KPIS_AREA   = 72;   // 3 KPI cards
+    const GAP         = 16;
+    const COL_HDR_H   = 36;
+    const ROW_H       = 52;
+    const FOOTER_H    = 50;
+
+    const totalH = TOP_STRIPE + LOGO_AREA + TITLE_AREA + KPIS_AREA + GAP + COL_HDR_H + filiais.length * ROW_H + FOOTER_H;
 
     const canvas = document.createElement('canvas');
-    canvas.width  = W * 2;   // 2× para alta resolução
-    canvas.height = totalH * 2;
+    canvas.width  = W * SCALE;
+    canvas.height = totalH * SCALE;
     const ctx = canvas.getContext('2d');
-    ctx.scale(2, 2);
+    ctx.scale(SCALE, SCALE);
 
-    // Fundo neutro escuro para slide
-    ctx.fillStyle = '#111827';
+    // ── FUNDO GERAL ──
+    ctx.fillStyle = C.bg;
     ctx.fillRect(0, 0, W, totalH);
 
-    // Linha decorativa topo
-    const grad = ctx.createLinearGradient(0, 0, W, 0);
-    grad.addColorStop(0, '#2563EB');
-    grad.addColorStop(0.5, '#7C3AED');
-    grad.addColorStop(1, '#0EA5E9');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, 4);
+    // ── FAIXA TOPO ──
+    const gTop = ctx.createLinearGradient(0, 0, W, 0);
+    gTop.addColorStop(0,   C.topBar1);
+    gTop.addColorStop(0.5, C.topBar2);
+    gTop.addColorStop(1,   C.topBar3);
+    ctx.fillStyle = gTop;
+    ctx.fillRect(0, 0, W, TOP_STRIPE);
 
-    // Título regional
-    ctx.fillStyle = '#F1F5F9';
-    ctx.font = 'bold 22px Inter, Arial, sans-serif';
-    ctx.fillText('D60 — REGIONAL ' + reg.toUpperCase(), PAD, 46);
+    // ── ÁREA LOGO / CABEÇALHO AZUL ──
+    const gLogo = ctx.createLinearGradient(0, TOP_STRIPE, 0, TOP_STRIPE + LOGO_AREA);
+    gLogo.addColorStop(0, '#1E3A8A');
+    gLogo.addColorStop(1, '#1D4ED8');
+    ctx.fillStyle = gLogo;
+    ctx.fillRect(0, TOP_STRIPE, W, LOGO_AREA);
 
-    // Subtítulo
-    ctx.fillStyle = '#94A3B8';
-    ctx.font = '13px Inter, Arial, sans-serif';
-    ctx.fillText('Posição em ' + semanaRef + '  ·  Evolução Jan/2026 vs Atual', PAD, 68);
+    // Nome empresa + produto
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 20px Arial, sans-serif';
+    ctx.fillText('AGROQUIMA', PAD, TOP_STRIPE + 32);
+    ctx.fillStyle = '#BFDBFE';
+    ctx.font = '12px Arial, sans-serif';
+    ctx.fillText('GESTÃO DE CRÉDITO · D60 LIVRE', PAD, TOP_STRIPE + 50);
 
-    // Total regional + %
-    ctx.fillStyle = '#60A5FA';
-    ctx.font = 'bold 18px Inter, Arial, sans-serif';
-    const totalStr = formatMoeda(totalReg);
-    ctx.fillText(totalStr, PAD, 98);
-    ctx.fillStyle = '#94A3B8';
-    ctx.font = '12px Inter, Arial, sans-serif';
-    ctx.fillText('  representa ' + pctGeral + '% do D60 total da empresa', PAD + ctx.measureText(totalStr).width + 6, 98);
+    // Data + semana à direita
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#BFDBFE';
+    ctx.font = '11px Arial, sans-serif';
+    ctx.fillText('Posição: ' + semanaRef, W - PAD, TOP_STRIPE + 32);
+    ctx.fillText('Exportado em ' + new Date().toLocaleDateString('pt-BR'), W - PAD, TOP_STRIPE + 50);
+    ctx.textAlign = 'left';
 
-    // Linha separadora header
-    ctx.strokeStyle = '#1E293B';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(PAD, 114); ctx.lineTo(W - PAD, 114); ctx.stroke();
+    // ── TÍTULO REGIONAL ──
+    let yy = TOP_STRIPE + LOGO_AREA + 22;
+    ctx.fillStyle = C.accent;
+    ctx.font = 'bold 26px Arial, sans-serif';
+    ctx.fillText('D60 — REGIONAL ' + reg.toUpperCase(), PAD, yy);
 
-    // Colunas header
-    ctx.fillStyle = '#64748B';
-    ctx.font = 'bold 10px Inter, Arial, sans-serif';
-    const cols = [
-      {label:'LJ',       x: PAD,        w: 40,  align:'left'},
-      {label:'FILIAL',   x: PAD+50,     w: 200, align:'left'},
-      {label:'JAN/2026', x: PAD+270,    w: 110, align:'right'},
-      {label:'ATUAL',    x: PAD+390,    w: 110, align:'right'},
-      {label:'VARIAÇÃO R$', x: PAD+510, w: 120, align:'right'},
-      {label:'VAR %',    x: PAD+640,    w: 80,  align:'right'},
-      {label:'GERENTE',  x: PAD+730,    w: 200, align:'left'},
-      {label:'STATUS',   x: PAD+940,    w: 200, align:'left'},
+    yy += 22;
+    ctx.fillStyle = C.txtSub;
+    ctx.font = '13px Arial, sans-serif';
+    ctx.fillText('Evolução Jan/2026 vs semana atual', PAD, yy);
+
+    // ── 3 KPI CARDS ──
+    yy = TOP_STRIPE + LOGO_AREA + TITLE_AREA + 4;
+    const kpiW = Math.floor((W - PAD * 2 - 24) / 3);
+
+    const reducoes  = filiais.filter(e => e.status === 'reducao');
+    const crescs    = filiais.filter(e => e.status === 'crescimento');
+    const excels    = filiais.filter(e => e.status === 'zero-total' || e.status === 'excel');
+    const totRed    = reducoes.reduce((s,e) => s + Math.abs(e.delta||0), 0);
+    const totCres   = crescs.reduce((s,e) => s + (e.delta||0), 0);
+
+    const kpis = [
+      { label: 'TOTAL D60 REGIONAL', val: formatMoeda(totalReg), sub: pctGeral + '% do D60 total da empresa', cor: C.accent,  border: C.accent  },
+      { label: 'FILIAIS EM REDUÇÃO',  val: reducoes.length + ' filial' + (reducoes.length!==1?'is':''), sub: 'Redução acum: ' + formatMoeda(totRed), cor: C.green,  border: C.green   },
+      { label: 'EM CRESCIMENTO',      val: crescs.length   + ' filial' + (crescs.length!==1?'is':''),   sub: crescs.length ? 'Crescimento acum: ' + formatMoeda(totCres) : 'Nenhuma em crescimento', cor: C.red, border: C.red },
     ];
-    cols.forEach(c => {
-      ctx.textAlign = c.align;
-      const tx = c.align === 'right' ? c.x + c.w : c.x;
-      ctx.fillText(c.label, tx, HEADER_H - 12);
+
+    kpis.forEach((k, i) => {
+      const kx = PAD + i * (kpiW + 12);
+      // card branco com borda colorida topo
+      ctx.fillStyle = '#FFFFFF';
+      roundRect(ctx, kx, yy, kpiW, 56, 8); ctx.fill();
+      ctx.fillStyle = k.border;
+      roundRect(ctx, kx, yy, kpiW, 4, 4); ctx.fill();
+      // sombra sutil
+      ctx.shadowColor = 'rgba(30,58,138,0.10)';
+      ctx.shadowBlur  = 8; ctx.shadowOffsetY = 2;
+      ctx.fillStyle = '#FFFFFF';
+      roundRect(ctx, kx, yy, kpiW, 56, 8); ctx.fill();
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+      ctx.fillStyle = k.border;
+      roundRect(ctx, kx, yy, kpiW, 4, 4); ctx.fill();
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = C.txtSub;
+      ctx.font = 'bold 9px Arial, sans-serif';
+      ctx.fillText(k.label, kx + 12, yy + 18);
+
+      ctx.fillStyle = k.cor;
+      ctx.font = 'bold 16px Arial, sans-serif';
+      ctx.fillText(k.val, kx + 12, yy + 36);
+
+      ctx.fillStyle = C.txtSub;
+      ctx.font = '10px Arial, sans-serif';
+      ctx.fillText(k.sub, kx + 12, yy + 50);
+    });
+
+    // ── HEADER TABELA ──
+    yy = TOP_STRIPE + LOGO_AREA + TITLE_AREA + KPIS_AREA + GAP;
+
+    ctx.fillStyle = C.bgHeader;
+    ctx.fillRect(PAD, yy, W - PAD*2, COL_HDR_H);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 10px Arial, sans-serif';
+    COLS.forEach(c => {
+      ctx.textAlign = c.align === 'right' ? 'right' : c.align === 'center' ? 'center' : 'left';
+      const cx = c.align === 'right'  ? c.x + c.w :
+                 c.align === 'center' ? c.x + c.w / 2 : c.x;
+      ctx.fillText(c.label, cx, yy + COL_HDR_H / 2 + 4);
     });
     ctx.textAlign = 'left';
 
-    // Linhas de filiais
+    // ── LINHAS FILIAIS ──
+    yy += COL_HDR_H;
     filiais.forEach((e, i) => {
-      const y = HEADER_H + i * ROW_H;
-      // fundo alternado
-      ctx.fillStyle = i % 2 === 0 ? '#1A2332' : '#151E2D';
-      ctx.fillRect(PAD - 8, y, W - 2*PAD + 16, ROW_H - 2);
+      const ry = yy + i * ROW_H;
+      ctx.fillStyle = i % 2 === 0 ? C.bgCard : C.bgAlt;
+      ctx.fillRect(PAD, ry, W - PAD*2, ROW_H);
 
-      const mid = y + ROW_H / 2 + 5;
-      const ini   = e.valInicio !== null ? formatMoeda(e.valInicio) : '—';
-      const atu   = e.valAtual  !== null ? formatMoeda(e.valAtual)  : '—';
-      const dR    = e.delta !== null ? (e.delta > 0 ? '+' : '') + formatMoeda(e.delta) : '—';
-      const dP    = e.deltaPct !== null ? (e.deltaPct > 0 ? '+' : '') + e.deltaPct.toFixed(1) + '%' : '—';
-      const dCor  = e.delta === null ? '#94A3B8' : e.delta < 0 ? '#22C55E' : e.delta > 0 ? '#EF4444' : '#EAB308';
-      const sCor  = statusColor[e.status] || '#6B7280';
-      const sLbl  = statusLabel[e.status] || '—';
+      // borda lateral esquerda colorida por status
+      ctx.fillStyle = statusColor[e.status] || C.gray;
+      ctx.fillRect(PAD, ry, 3, ROW_H);
 
-      ctx.font = 'bold 13px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#93C5FD'; ctx.textAlign = 'left';
-      ctx.fillText(String(e.base.lj), PAD, mid);
+      const mid = ry + ROW_H / 2 + 5;
 
-      ctx.font = '13px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#E2E8F0';
-      ctx.fillText(e.base.loja, PAD + 50, mid);
+      const ini  = e.valInicio !== null ? formatMoeda(e.valInicio) : '—';
+      const atu  = e.valAtual  !== null ? formatMoeda(e.valAtual)  : '—';
+      const dR   = e.delta    !== null ? (e.delta  > 0 ? '+' : '') + formatMoeda(e.delta)            : '—';
+      const dP   = e.deltaPct !== null ? (e.deltaPct > 0 ? '+' : '') + e.deltaPct.toFixed(1) + '%'   : '—';
+      const dCor = e.delta === null ? C.gray : e.delta < 0 ? C.green : e.delta > 0 ? C.red : C.yellow;
+      const sCor = statusColor[e.status] || C.gray;
+      const sLbl = statusLabel[e.status] || '—';
 
-      ctx.textAlign = 'right';
-      ctx.fillStyle = '#CBD5E1'; ctx.font = '12px Inter, Arial, sans-serif';
-      ctx.fillText(ini, PAD + 270 + 110, mid);
-      ctx.font = 'bold 12px Inter, Arial, sans-serif';
-      ctx.fillText(atu, PAD + 390 + 110, mid);
+      // LJ
+      ctx.textAlign = 'left'; ctx.fillStyle = C.accent;
+      ctx.font = 'bold 13px Arial, sans-serif';
+      ctx.fillText(String(e.base.lj), COLS[0].x + 4, mid);
 
-      ctx.fillStyle = dCor;
-      ctx.fillText(dR, PAD + 510 + 120, mid);
-      ctx.fillText(dP, PAD + 640 + 80, mid);
+      // Filial
+      ctx.fillStyle = C.txt; ctx.font = 'bold 12px Arial, sans-serif';
+      ctx.fillText(clipText(ctx, e.base.loja, COLS[1].w - 4), COLS[1].x + 4, mid);
 
-      ctx.textAlign = 'left'; ctx.fillStyle = '#94A3B8'; ctx.font = '11px Inter, Arial, sans-serif';
-      ctx.fillText(e.base.gerente, PAD + 730, mid);
+      // Gerente
+      ctx.fillStyle = C.txtMed; ctx.font = '11px Arial, sans-serif';
+      ctx.fillText(clipText(ctx, e.base.gerente, COLS[2].w - 4), COLS[2].x + 4, mid);
 
-      // Badge status
-      ctx.fillStyle = sCor + '30';
-      const sX = PAD + 940, sW = ctx.measureText(sLbl).width + 20;
-      roundRect(ctx, sX, mid - 14, sW, 20, 6);
-      ctx.fill();
+      // Jan/2026
+      ctx.textAlign = 'right'; ctx.fillStyle = C.txtMed; ctx.font = '12px Arial, sans-serif';
+      ctx.fillText(ini, COLS[3].x + COLS[3].w, mid);
+
+      // Atual
+      ctx.fillStyle = C.txt; ctx.font = 'bold 12px Arial, sans-serif';
+      ctx.fillText(atu, COLS[4].x + COLS[4].w, mid);
+
+      // Variação R$
+      ctx.fillStyle = dCor; ctx.font = 'bold 12px Arial, sans-serif';
+      ctx.fillText(dR, COLS[5].x + COLS[5].w, mid);
+
+      // Var %
+      ctx.fillText(dP, COLS[6].x + COLS[6].w, mid);
+
+      // Badge Status
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 10px Arial, sans-serif';
+      const badgeW = Math.min(ctx.measureText(sLbl).width + 18, COLS[7].w - 4);
+      const badgeX = COLS[7].x + (COLS[7].w - badgeW) / 2;
+      const badgeY = mid - 12;
+      ctx.fillStyle = sCor + '22';
+      roundRect(ctx, badgeX, badgeY, badgeW, 18, 5); ctx.fill();
+      ctx.strokeStyle = sCor + '66'; ctx.lineWidth = 1;
+      roundRect(ctx, badgeX, badgeY, badgeW, 18, 5); ctx.stroke();
       ctx.fillStyle = sCor;
-      ctx.font = 'bold 11px Inter, Arial, sans-serif';
-      ctx.fillText(sLbl, sX + 8, mid);
+      ctx.textAlign = 'center';
+      ctx.fillText(sLbl, badgeX + badgeW / 2, mid);
+
+      // separador linha
+      ctx.strokeStyle = C.sep; ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(PAD, ry + ROW_H); ctx.lineTo(W - PAD, ry + ROW_H); ctx.stroke();
     });
 
-    // Footer
-    const footY = HEADER_H + filiais.length * ROW_H + 22;
-    ctx.strokeStyle = '#1E293B'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(PAD, footY - 10); ctx.lineTo(W - PAD, footY - 10); ctx.stroke();
-    ctx.fillStyle = '#475569'; ctx.font = '11px Inter, Arial, sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText('Agroquima · D60 Livre · Exportado em ' + new Date().toLocaleDateString('pt-BR'), PAD, footY + 12);
-    ctx.textAlign = 'right';
-    ctx.fillText('Total regional: ' + formatMoeda(totalReg) + ' (' + pctGeral + '% da empresa)', W - PAD, footY + 12);
+    // ── FOOTER ──
+    const footY = TOP_STRIPE + LOGO_AREA + TITLE_AREA + KPIS_AREA + GAP + COL_HDR_H + filiais.length * ROW_H;
+    ctx.fillStyle = '#1E3A8A';
+    ctx.fillRect(0, footY, W, FOOTER_H);
+
+    ctx.textAlign = 'left'; ctx.fillStyle = '#BFDBFE'; ctx.font = '11px Arial, sans-serif';
+    ctx.fillText('Agroquima · Gestão de Crédito D60 Livre · ' + new Date().toLocaleDateString('pt-BR'), PAD, footY + FOOTER_H / 2 + 4);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 11px Arial, sans-serif';
+    ctx.fillText('Total regional: ' + formatMoeda(totalReg) + '  (' + pctGeral + '% do D60 total)', W - PAD, footY + FOOTER_H / 2 + 4);
 
     // Download
     const link = document.createElement('a');
@@ -2382,7 +2509,14 @@ async function exportarSlideRegional() {
     link.href = canvas.toDataURL('image/png');
     link.click();
   }
-  toast('✅ Slide(s) exportado(s) com sucesso!');
+  toast('✅ Slide(s) exportado(s)!');
+}
+
+function clipText(ctx, text, maxW) {
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  return t + '…';
 }
 
 function roundRect(ctx, x, y, w, h, r) {
