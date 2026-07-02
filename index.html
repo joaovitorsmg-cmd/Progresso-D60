@@ -556,9 +556,19 @@
         <div id="evol-chart-tooltip" style="display:none;position:absolute;background:#0A1628;border:1px solid #1E3A5F;border-radius:6px;padding:6px 10px;font-size:11px;color:#CBD5E1;pointer-events:none;z-index:100"></div>
       </div>
 
+      <!-- datalists para autocomplete -->
+      <datalist id="dl-regionais"></datalist>
+      <datalist id="dl-filiais"></datalist>
+      <datalist id="dl-ljs"></datalist>
+
       <!-- Tabela por filial -->
       <div style="background:#112240;border-radius:10px;padding:20px">
-        <div style="font-size:12px;font-weight:700;color:#93C5FD;margin-bottom:14px;text-transform:uppercase;letter-spacing:.6px">Evolução por Filial — Início do Ano vs Atual</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+          <div style="font-size:12px;font-weight:700;color:#93C5FD;text-transform:uppercase;letter-spacing:.6px">Evolução por Filial — Início do Ano vs Atual</div>
+          <button onclick="exportarSlideRegional()" title="Exportar slide PNG do regional filtrado" style="background:linear-gradient(135deg,#1E3A8A,#2563EB);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;letter-spacing:.3px;transition:opacity .2s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            🖼 Exportar Slide do Regional
+          </button>
+        </div>
         <div style="overflow-x:auto">
           <table id="evol-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
             <thead>
@@ -575,9 +585,9 @@
                 <th style="padding:9px 12px;text-align:center;border-radius:0 6px 0 0" onclick="evolOrdenar('status')" title="Ordenar por Status">Status <span id="evol-arrow-status"></span></th>
               </tr>
               <tr class="evol-filter-row" style="background:#0A1628">
-                <td style="padding:4px 6px"><input id="ef-lj" placeholder="LJ…" oninput="renderEvolucao()"></td>
-                <td style="padding:4px 6px"><input id="ef-loja" placeholder="Filial…" oninput="renderEvolucao()"></td>
-                <td style="padding:4px 6px"><input id="ef-regional" placeholder="Regional…" oninput="renderEvolucao()"></td>
+                <td style="padding:4px 6px"><input id="ef-lj" list="dl-ljs" placeholder="LJ…" oninput="renderEvolucao()"></td>
+                <td style="padding:4px 6px"><input id="ef-loja" list="dl-filiais" placeholder="Filial…" oninput="renderEvolucao()"></td>
+                <td style="padding:4px 6px"><input id="ef-regional" list="dl-regionais" placeholder="Regional…" oninput="renderEvolucao()"></td>
                 <td colspan="4"></td>
                 <td></td>
                 <td></td>
@@ -657,6 +667,7 @@ document.addEventListener('DOMContentLoaded', function(){
   const l2 = document.getElementById('header-logo-img');
   if (l1) l1.src = src;
   if (l2) l2.src = src;
+  preencherDatalistsEvolucao();
 });
 
 const BASE_REGIONAIS = [
@@ -2185,6 +2196,207 @@ function mostrarTooltipGraf(evt, texto) {
 }
 function ocultarTooltipGraf() {
   document.getElementById('evol-chart-tooltip').style.display = 'none';
+}
+
+// ── DATALISTS PARA FILTROS DE EVOLUÇÃO ───────────────────────────────
+function preencherDatalistsEvolucao() {
+  const regionais = [...new Set(BASE_REGIONAIS.map(b => b.regional))].sort();
+  const filiais   = [...BASE_REGIONAIS.map(b => b.loja)].sort();
+  const ljs       = [...BASE_REGIONAIS.map(b => String(b.lj))].sort((a,b) => +a - +b);
+
+  const dlR = document.getElementById('dl-regionais');
+  if (dlR) dlR.innerHTML = regionais.map(r => '<option value="' + r + '">').join('');
+  const dlF = document.getElementById('dl-filiais');
+  if (dlF) dlF.innerHTML = filiais.map(f => '<option value="' + f + '">').join('');
+  const dlL = document.getElementById('dl-ljs');
+  if (dlL) dlL.innerHTML = ljs.map(l => '<option value="' + l + '">').join('');
+}
+
+// ── EXPORTAR SLIDE REGIONAL ───────────────────────────────────────────
+async function exportarSlideRegional() {
+  if (typeof html2canvas === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+    document.head.appendChild(s);
+    await new Promise(res => s.onload = res);
+  }
+
+  const ev = calcEvolucao();
+  const fReg = (document.getElementById('ef-regional') || {value:''}).value.trim();
+
+  // Agrupamento por regional
+  const regMap = {};
+  ev.forEach(e => {
+    const reg = e.base.regional;
+    if (fReg && reg.toLowerCase() !== fReg.toLowerCase()) return;
+    if (!regMap[reg]) regMap[reg] = [];
+    regMap[reg].push(e);
+  });
+
+  const regsAExportar = Object.keys(regMap);
+  if (regsAExportar.length === 0) { toast('Nenhum regional para exportar.'); return; }
+
+  // Total geral D60 para calcular %
+  const totalGeral = BASE_REGIONAIS.reduce((s, b) => s + (getD60Atual(b.lj) || 0), 0);
+
+  const statusLabel = { 'zero-total':'🌟 Nunca registrou','excel':'⭐ Hist. mínimo','reducao':'🟢 Redução','estavel':'🟡 Estável','crescimento':'🔴 Crescimento','sem-dados':'⚫ Sem dados' };
+  const statusColor = { 'zero-total':'#A78BFA','excel':'#60A5FA','reducao':'#22C55E','estavel':'#EAB308','crescimento':'#EF4444','sem-dados':'#6B7280' };
+
+  for (const reg of regsAExportar) {
+    const filiais = regMap[reg];
+    const totalReg = filiais.reduce((s, e) => s + (e.valAtual || 0), 0);
+    const pctGeral = totalGeral > 0 ? ((totalReg / totalGeral) * 100).toFixed(1) : '0.0';
+    const semanaRef = semanaAtual ? formatarData(semanaAtual) : 'última semana';
+
+    // Ordenar por status depois por valor atual desc
+    const statusOrd = {'zero-total':0,'excel':1,'reducao':2,'estavel':3,'crescimento':4,'sem-dados':5};
+    filiais.sort((a,b) => (statusOrd[a.status]||9) - (statusOrd[b.status]||9) || (b.valAtual||0) - (a.valAtual||0));
+
+    const W = 1280, PAD = 56;
+    const HEADER_H = 130;
+    const ROW_H = 68;
+    const FOOTER_H = 48;
+    const totalH = HEADER_H + filiais.length * ROW_H + FOOTER_H + PAD;
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = W * 2;   // 2× para alta resolução
+    canvas.height = totalH * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(2, 2);
+
+    // Fundo neutro escuro para slide
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(0, 0, W, totalH);
+
+    // Linha decorativa topo
+    const grad = ctx.createLinearGradient(0, 0, W, 0);
+    grad.addColorStop(0, '#2563EB');
+    grad.addColorStop(0.5, '#7C3AED');
+    grad.addColorStop(1, '#0EA5E9');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, 4);
+
+    // Título regional
+    ctx.fillStyle = '#F1F5F9';
+    ctx.font = 'bold 22px Inter, Arial, sans-serif';
+    ctx.fillText('D60 — REGIONAL ' + reg.toUpperCase(), PAD, 46);
+
+    // Subtítulo
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = '13px Inter, Arial, sans-serif';
+    ctx.fillText('Posição em ' + semanaRef + '  ·  Evolução Jan/2026 vs Atual', PAD, 68);
+
+    // Total regional + %
+    ctx.fillStyle = '#60A5FA';
+    ctx.font = 'bold 18px Inter, Arial, sans-serif';
+    const totalStr = formatMoeda(totalReg);
+    ctx.fillText(totalStr, PAD, 98);
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = '12px Inter, Arial, sans-serif';
+    ctx.fillText('  representa ' + pctGeral + '% do D60 total da empresa', PAD + ctx.measureText(totalStr).width + 6, 98);
+
+    // Linha separadora header
+    ctx.strokeStyle = '#1E293B';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD, 114); ctx.lineTo(W - PAD, 114); ctx.stroke();
+
+    // Colunas header
+    ctx.fillStyle = '#64748B';
+    ctx.font = 'bold 10px Inter, Arial, sans-serif';
+    const cols = [
+      {label:'LJ',       x: PAD,        w: 40,  align:'left'},
+      {label:'FILIAL',   x: PAD+50,     w: 200, align:'left'},
+      {label:'JAN/2026', x: PAD+270,    w: 110, align:'right'},
+      {label:'ATUAL',    x: PAD+390,    w: 110, align:'right'},
+      {label:'VARIAÇÃO R$', x: PAD+510, w: 120, align:'right'},
+      {label:'VAR %',    x: PAD+640,    w: 80,  align:'right'},
+      {label:'GERENTE',  x: PAD+730,    w: 200, align:'left'},
+      {label:'STATUS',   x: PAD+940,    w: 200, align:'left'},
+    ];
+    cols.forEach(c => {
+      ctx.textAlign = c.align;
+      const tx = c.align === 'right' ? c.x + c.w : c.x;
+      ctx.fillText(c.label, tx, HEADER_H - 12);
+    });
+    ctx.textAlign = 'left';
+
+    // Linhas de filiais
+    filiais.forEach((e, i) => {
+      const y = HEADER_H + i * ROW_H;
+      // fundo alternado
+      ctx.fillStyle = i % 2 === 0 ? '#1A2332' : '#151E2D';
+      ctx.fillRect(PAD - 8, y, W - 2*PAD + 16, ROW_H - 2);
+
+      const mid = y + ROW_H / 2 + 5;
+      const ini   = e.valInicio !== null ? formatMoeda(e.valInicio) : '—';
+      const atu   = e.valAtual  !== null ? formatMoeda(e.valAtual)  : '—';
+      const dR    = e.delta !== null ? (e.delta > 0 ? '+' : '') + formatMoeda(e.delta) : '—';
+      const dP    = e.deltaPct !== null ? (e.deltaPct > 0 ? '+' : '') + e.deltaPct.toFixed(1) + '%' : '—';
+      const dCor  = e.delta === null ? '#94A3B8' : e.delta < 0 ? '#22C55E' : e.delta > 0 ? '#EF4444' : '#EAB308';
+      const sCor  = statusColor[e.status] || '#6B7280';
+      const sLbl  = statusLabel[e.status] || '—';
+
+      ctx.font = 'bold 13px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#93C5FD'; ctx.textAlign = 'left';
+      ctx.fillText(String(e.base.lj), PAD, mid);
+
+      ctx.font = '13px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#E2E8F0';
+      ctx.fillText(e.base.loja, PAD + 50, mid);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#CBD5E1'; ctx.font = '12px Inter, Arial, sans-serif';
+      ctx.fillText(ini, PAD + 270 + 110, mid);
+      ctx.font = 'bold 12px Inter, Arial, sans-serif';
+      ctx.fillText(atu, PAD + 390 + 110, mid);
+
+      ctx.fillStyle = dCor;
+      ctx.fillText(dR, PAD + 510 + 120, mid);
+      ctx.fillText(dP, PAD + 640 + 80, mid);
+
+      ctx.textAlign = 'left'; ctx.fillStyle = '#94A3B8'; ctx.font = '11px Inter, Arial, sans-serif';
+      ctx.fillText(e.base.gerente, PAD + 730, mid);
+
+      // Badge status
+      ctx.fillStyle = sCor + '30';
+      const sX = PAD + 940, sW = ctx.measureText(sLbl).width + 20;
+      roundRect(ctx, sX, mid - 14, sW, 20, 6);
+      ctx.fill();
+      ctx.fillStyle = sCor;
+      ctx.font = 'bold 11px Inter, Arial, sans-serif';
+      ctx.fillText(sLbl, sX + 8, mid);
+    });
+
+    // Footer
+    const footY = HEADER_H + filiais.length * ROW_H + 22;
+    ctx.strokeStyle = '#1E293B'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD, footY - 10); ctx.lineTo(W - PAD, footY - 10); ctx.stroke();
+    ctx.fillStyle = '#475569'; ctx.font = '11px Inter, Arial, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('Agroquima · D60 Livre · Exportado em ' + new Date().toLocaleDateString('pt-BR'), PAD, footY + 12);
+    ctx.textAlign = 'right';
+    ctx.fillText('Total regional: ' + formatMoeda(totalReg) + ' (' + pctGeral + '% da empresa)', W - PAD, footY + 12);
+
+    // Download
+    const link = document.createElement('a');
+    link.download = 'D60_Regional_' + reg.replace(/\s+/g,'_') + '_' + (semanaAtual || 'atual') + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+  toast('✅ Slide(s) exportado(s) com sucesso!');
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
 }
 
 // CONFIG OCULTA — AUTO-ATUALIZAÇÃO
