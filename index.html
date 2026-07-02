@@ -128,14 +128,36 @@
     display:inline-block; padding:3px 9px; border-radius:10px;
     font-size:10px; font-weight:700; letter-spacing:.4px;
   }
+  .evol-status-zero   { background:rgba(167,139,250,.18); color:#A78BFA; }
   .evol-status-excel  { background:rgba(96,165,250,.15);  color:#60A5FA; }
   .evol-status-red    { background:rgba(239,68,68,.15);   color:#EF4444; }
   .evol-status-green  { background:rgba(34,197,94,.15);   color:#22C55E; }
   .evol-status-yellow { background:rgba(234,179,8,.15);   color:#EAB308; }
   .evol-status-gray   { background:rgba(107,114,128,.15); color:#9CA3AF; }
-  #evol-table tbody tr { border-bottom:1px solid #1E3A5F; transition:background .12s; }
+  #evol-table tbody tr { border-bottom:1px solid #1E3A5F; transition:background .12s; cursor:default; }
   #evol-table tbody tr:nth-child(even) { background:#0D1F35; }
-  #evol-table tbody tr:hover { background:#1E3A8A44; }
+  #evol-table tbody tr:hover { background:#1E3A8A55; }
+  #evol-table thead th { cursor:pointer; user-select:none; }
+  #evol-table thead th:hover { background:#2563EB88; }
+  .evol-filter-row input {
+    width:100%; box-sizing:border-box; padding:4px 6px; font-size:10px;
+    background:#0A1628; border:1px solid #1E3A5F; border-radius:4px;
+    color:#CBD5E1; outline:none;
+  }
+  .evol-filter-row input:focus { border-color:#2563EB; }
+  .kpi-card { cursor:pointer; transition:box-shadow .15s, transform .1s; }
+  .kpi-card:hover { box-shadow:0 0 0 2px #2563EB66; transform:translateY(-1px); }
+  #kpi-detalhe-panel {
+    display:none; background:#0D1F35; border-bottom:1px solid #1E3A5F;
+    padding:14px 28px; animation: slideDown .2s ease;
+  }
+  @keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  #evol-row-tooltip {
+    display:none; position:fixed; z-index:9000; pointer-events:none;
+    background:#0A1628; border:1px solid #1E3A5F; border-radius:8px;
+    padding:10px 14px; font-size:11px; color:#CBD5E1; max-width:280px;
+    box-shadow:0 4px 20px rgba(0,0,0,.5);
+  }
   .kpi-card {
     background: #112240; border-radius: 10px; padding: 14px 16px;
     border-left: 4px solid var(--azul-med);
@@ -424,31 +446,40 @@
 
   <!-- KPIs -->
   <div class="kpi-strip" id="kpi-strip">
-    <div class="kpi-card">
+    <div class="kpi-card" onclick="abrirCardDetalhe('total')" title="Clique para ver detalhes">
       <div class="kpi-label">Total D60 Atual</div>
       <div class="kpi-val" id="kpi-total">—</div>
       <div class="kpi-sub" id="kpi-semana">Aguardando importação</div>
     </div>
-    <div class="kpi-card verde">
+    <div class="kpi-card verde" onclick="abrirCardDetalhe('reducao')" title="Clique para ver filiais em redução">
       <div class="kpi-label">Em Redução no Ano ↓</div>
       <div class="kpi-val verde" id="kpi-pont">—</div>
       <div class="kpi-sub" id="kpi-pont-sub">D60 menor que em jan/2026</div>
     </div>
-    <div class="kpi-card verm">
+    <div class="kpi-card verm" onclick="abrirCardDetalhe('crescimento')" title="Clique para ver filiais em crescimento">
       <div class="kpi-label">Em Crescimento no Ano ↑</div>
       <div class="kpi-val verm" id="kpi-npont">—</div>
       <div class="kpi-sub" id="kpi-npont-sub">D60 maior que em jan/2026</div>
     </div>
-    <div class="kpi-card" style="border-left-color:#60A5FA;background:rgba(96,165,250,.07)">
+    <div class="kpi-card" style="border-left-color:#60A5FA;background:rgba(96,165,250,.07)" onclick="abrirCardDetalhe('excel')" title="Clique para ver filiais de excelência">
       <div class="kpi-label">Excelência em Crédito ⭐</div>
       <div class="kpi-val" style="color:#60A5FA" id="kpi-excel">—</div>
       <div class="kpi-sub" id="kpi-excel-sub">Zero ou mínimo histórico</div>
     </div>
-    <div class="kpi-card verm">
+    <div class="kpi-card verm" onclick="abrirCardDetalhe('alerta')" title="Clique para ver top alertas">
       <div class="kpi-label">Maior Alerta ⚠️</div>
       <div class="kpi-val verm" id="kpi-alerta-val">—</div>
       <div class="kpi-sub" id="kpi-alerta-sub">—</div>
     </div>
+  </div>
+
+  <!-- PAINEL DETALHE DO CARD -->
+  <div id="kpi-detalhe-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div id="kpi-detalhe-titulo" style="font-size:12px;font-weight:700;color:#93C5FD;text-transform:uppercase;letter-spacing:.6px"></div>
+      <button onclick="fecharCardDetalhe()" style="background:transparent;border:none;color:#CBD5E1;font-size:15px;cursor:pointer;opacity:.7">✕</button>
+    </div>
+    <div id="kpi-detalhe-corpo" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px"></div>
   </div>
 
   <!-- MAIN -->
@@ -532,16 +563,35 @@
           <table id="evol-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
             <thead>
               <tr style="background:#1E3A5F;color:#93C5FD;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">
-                <th style="padding:9px 12px;text-align:left;border-radius:6px 0 0 0">LJ</th>
-                <th style="padding:9px 12px;text-align:left">Filial</th>
-                <th style="padding:9px 12px;text-align:left">Regional</th>
-                <th style="padding:9px 12px;text-align:right">Jan/2026</th>
-                <th style="padding:9px 12px;text-align:right">Atual</th>
-                <th style="padding:9px 12px;text-align:right">Variação R$</th>
-                <th style="padding:9px 12px;text-align:right">Var %</th>
+                <th style="padding:9px 12px;text-align:left;border-radius:6px 0 0 0" onclick="evolOrdenar('lj')" title="Ordenar por LJ">LJ <span id="evol-arrow-lj"></span></th>
+                <th style="padding:9px 12px;text-align:left" onclick="evolOrdenar('loja')" title="Ordenar por Filial">Filial <span id="evol-arrow-loja"></span></th>
+                <th style="padding:9px 12px;text-align:left" onclick="evolOrdenar('regional')" title="Ordenar por Regional">Regional <span id="evol-arrow-regional"></span></th>
+                <th style="padding:9px 12px;text-align:right" onclick="evolOrdenar('inicio')" title="Ordenar pelo valor inicial">Jan/2026 <span id="evol-arrow-inicio"></span></th>
+                <th style="padding:9px 12px;text-align:right" onclick="evolOrdenar('atual')" title="Ordenar pelo valor atual">Atual <span id="evol-arrow-atual"></span></th>
+                <th style="padding:9px 12px;text-align:right" onclick="evolOrdenar('delta')" title="Ordenar por variação R$">Variação R$ <span id="evol-arrow-delta"></span></th>
+                <th style="padding:9px 12px;text-align:right" onclick="evolOrdenar('deltapct')" title="Ordenar por variação %">Var % <span id="evol-arrow-deltapct"></span></th>
                 <th style="padding:9px 12px;text-align:center">Tendência</th>
-                <th style="padding:9px 12px;text-align:center">Histórico</th>
-                <th style="padding:9px 12px;text-align:center;border-radius:0 6px 0 0">Status</th>
+                <th style="padding:9px 12px;text-align:center" title="Gráfico de linha — evolução semana a semana">Histórico</th>
+                <th style="padding:9px 12px;text-align:center;border-radius:0 6px 0 0" onclick="evolOrdenar('status')" title="Ordenar por Status">Status <span id="evol-arrow-status"></span></th>
+              </tr>
+              <tr class="evol-filter-row" style="background:#0A1628">
+                <td style="padding:4px 6px"><input id="ef-lj" placeholder="LJ…" oninput="renderEvolucao()"></td>
+                <td style="padding:4px 6px"><input id="ef-loja" placeholder="Filial…" oninput="renderEvolucao()"></td>
+                <td style="padding:4px 6px"><input id="ef-regional" placeholder="Regional…" oninput="renderEvolucao()"></td>
+                <td colspan="4"></td>
+                <td></td>
+                <td></td>
+                <td style="padding:4px 6px">
+                  <select id="ef-status" onchange="renderEvolucao()" style="width:100%;background:#0A1628;border:1px solid #1E3A5F;border-radius:4px;color:#CBD5E1;font-size:10px;padding:3px">
+                    <option value="">Todos</option>
+                    <option value="zero-total">Nunca registrou</option>
+                    <option value="excel">Histórico mínimo</option>
+                    <option value="reducao">Em redução</option>
+                    <option value="estavel">Estável</option>
+                    <option value="crescimento">Em crescimento</option>
+                    <option value="sem-dados">Sem dados</option>
+                  </select>
+                </td>
               </tr>
             </thead>
             <tbody id="evol-tbody"></tbody>
@@ -554,6 +604,7 @@
 </div>
 
 <div id="toast"></div>
+<div id="evol-row-tooltip"></div>
 
 <div id="config-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center">
   <div style="background:#112240;border:1px solid #1E3A5F;border-radius:10px;padding:24px;min-width:340px;max-width:440px;color:#CBD5E1">
@@ -1737,37 +1788,44 @@ function toast(msg) {
 // ════════════════════════════════════════════════════════════════════
 // EVOLUÇÃO — análise anual por filial
 // ════════════════════════════════════════════════════════════════════
-const EVOL_EXCEL_THRESH = 30000; // filiais abaixo desse teto em TODAS as semanas = excelência
+const EVOL_EXCEL_THRESH = 10000; // máx histórico para "histórico mínimo"
+
+let evolSortState = { col: 'status', dir: 1 };
 
 function getValorInicioAno(lj) {
   const hist = D60_HIST[lj];
   if (!hist) return null;
-  const chaves = Object.keys(hist).filter(s => s.startsWith('2026-0')).sort();
+  const chaves = Object.keys(hist).sort();
   return chaves.length ? hist[chaves[0]] : null;
 }
 
 function calcEvolucao() {
   return BASE_REGIONAIS.map(base => {
-    const hist = D60_HIST[base.lj] || {};
-    const semanas = Object.keys(hist).sort();
+    const hist   = D60_HIST[base.lj];
+    const semanas = hist ? Object.keys(hist).sort() : [];
     const nSemanas = semanas.length;
+    const valores  = semanas.map(s => hist[s]);
+    const maxVal   = valores.length ? Math.max(...valores) : null;
     const valInicio = getValorInicioAno(base.lj);
     const valAtual  = getD60Atual(base.lj);
-    const valores   = semanas.map(s => hist[s]);
-    const maxVal    = valores.length ? Math.max(...valores) : null;
+    const ultimaSemana = semanas.length ? semanas[semanas.length - 1] : null;
+    const melhorVal = valores.length ? Math.min(...valores) : null;
+    const piorVal   = maxVal;
 
     let delta = null, deltaPct = null;
-    if (valInicio !== null && valAtual !== null && valInicio !== undefined) {
+    if (valInicio !== null && valAtual !== null) {
       delta    = valAtual - valInicio;
       deltaPct = valInicio > 0 ? (delta / valInicio) * 100 : (valAtual > 0 ? 100 : 0);
     }
 
     let status;
-    if (nSemanas >= 2 && maxVal !== null && maxVal <= EVOL_EXCEL_THRESH) {
+    if (!hist || nSemanas === 0) {
+      // Nunca teve nenhum registro — excelência máxima
+      status = 'zero-total';
+    } else if (maxVal !== null && maxVal <= EVOL_EXCEL_THRESH) {
+      // Teve registros, mas sempre muito abaixo do limiar
       status = 'excel';
-    } else if (nSemanas < 4) {
-      status = 'sem-dados';
-    } else if (deltaPct === null) {
+    } else if (nSemanas < 4 || deltaPct === null) {
       status = 'sem-dados';
     } else if (deltaPct <= -10) {
       status = 'reducao';
@@ -1777,13 +1835,16 @@ function calcEvolucao() {
       status = 'estavel';
     }
 
-    return { base, hist, semanas, valores, valInicio, valAtual, delta, deltaPct, status, maxVal, nSemanas };
+    return { base, hist: hist || {}, semanas, valores, valInicio, valAtual, delta, deltaPct, status, maxVal, melhorVal, piorVal, nSemanas, ultimaSemana };
   });
 }
 
 function sparklineSVG(valores, status) {
   const W = 100, H = 28, pad = 2;
-  if (!valores || valores.length < 2) return '<svg width="' + W + '" height="' + H + '"><text x="4" y="18" font-size="9" fill="#6B7280">—</text></svg>';
+  if (!valores || valores.length < 2) {
+    const txt = valores && valores.length === 1 ? '• ' + formatMoeda(valores[0]) : '—';
+    return '<svg width="' + W + '" height="' + H + '"><text x="4" y="18" font-size="9" fill="#6B7280">' + txt + '</text></svg>';
+  }
   const min = Math.min(...valores), max = Math.max(...valores);
   const range = max - min || 1;
   const n = valores.length;
@@ -1792,84 +1853,201 @@ function sparklineSVG(valores, status) {
     const y = pad + ((max - v) / range) * (H - pad * 2);
     return x.toFixed(1) + ',' + y.toFixed(1);
   }).join(' ');
-  const cor = status === 'reducao' ? '#22C55E' : status === 'crescimento' ? '#EF4444' : status === 'excel' ? '#60A5FA' : '#EAB308';
+  const corMap = { reducao:'#22C55E', crescimento:'#EF4444', 'zero-total':'#A78BFA', excel:'#60A5FA', estavel:'#EAB308' };
+  const cor = corMap[status] || '#EAB308';
   return '<svg class="evol-spark" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
     '<polyline points="' + pts + '" fill="none" stroke="' + cor + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>' +
     '</svg>';
 }
 
+function evolOrdenar(col) {
+  if (evolSortState.col === col) {
+    evolSortState.dir = -evolSortState.dir;
+  } else {
+    evolSortState.col = col;
+    evolSortState.dir = 1;
+  }
+  renderEvolucao();
+}
+
 function renderKpisEvolucao() {
   const ev = calcEvolucao();
-  const comDados = ev.filter(e => e.nSemanas >= 4 && e.delta !== null);
-  const reducao  = comDados.filter(e => e.status === 'reducao' || (e.delta !== null && e.delta < 0));
-  const crescimento = comDados.filter(e => e.delta !== null && e.delta > 0);
-  const excel    = ev.filter(e => e.status === 'excel');
+  const comDados    = ev.filter(e => e.nSemanas >= 2 && e.delta !== null);
+  const reducao     = comDados.filter(e => e.delta < 0);
+  const crescimento = comDados.filter(e => e.delta > 0);
+  const excelTotal  = ev.filter(e => e.status === 'zero-total' || e.status === 'excel');
 
-  document.getElementById('kpi-pont').textContent = reducao.length + ' filiais';
+  document.getElementById('kpi-pont').textContent    = reducao.length + ' filiais';
   const totRed = reducao.reduce((s, e) => s + (e.delta || 0), 0);
   document.getElementById('kpi-pont-sub').textContent = 'Redução acum: ' + formatMoeda(Math.abs(totRed));
 
-  document.getElementById('kpi-npont').textContent = crescimento.length + ' filiais';
+  document.getElementById('kpi-npont').textContent   = crescimento.length + ' filiais';
   const totCres = crescimento.reduce((s, e) => s + (e.delta || 0), 0);
   document.getElementById('kpi-npont-sub').textContent = 'Crescimento acum: ' + formatMoeda(totCres);
 
-  document.getElementById('kpi-excel').textContent = excel.length + ' filiais';
-  document.getElementById('kpi-excel-sub').textContent = excel.map(e => e.base.loja).join(', ') || 'Nenhuma identificada';
+  document.getElementById('kpi-excel').textContent   = excelTotal.length + ' filiais';
+  document.getElementById('kpi-excel-sub').textContent = excelTotal.map(e => e.base.loja).join(' · ') || 'Nenhuma identificada';
 
-  const piorCrescimento = comDados.filter(e => e.deltaPct > 0).sort((a, b) => b.deltaPct - a.deltaPct)[0];
-  if (piorCrescimento) {
-    document.getElementById('kpi-alerta-val').textContent = piorCrescimento.base.loja;
-    document.getElementById('kpi-alerta-sub').textContent = '+' + piorCrescimento.deltaPct.toFixed(1) + '% vs jan/2026';
+  const pior = comDados.filter(e => e.deltaPct !== null && e.deltaPct > 0).sort((a, b) => b.deltaPct - a.deltaPct)[0];
+  if (pior) {
+    document.getElementById('kpi-alerta-val').textContent = pior.base.loja;
+    document.getElementById('kpi-alerta-sub').textContent = '+' + pior.deltaPct.toFixed(1) + '% vs início · ' + formatMoeda(pior.delta);
   } else {
     document.getElementById('kpi-alerta-val').textContent = '—';
     document.getElementById('kpi-alerta-sub').textContent = 'Sem crescimentos no período';
   }
 }
 
+function abrirCardDetalhe(tipo) {
+  const ev = calcEvolucao();
+  const panel = document.getElementById('kpi-detalhe-panel');
+  const titulo = document.getElementById('kpi-detalhe-titulo');
+  const corpo  = document.getElementById('kpi-detalhe-corpo');
+
+  const card = (loja, regional, val, sub, cor) =>
+    '<div style="background:#112240;border-radius:8px;padding:10px 14px;border-left:3px solid ' + cor + '">' +
+    '<div style="font-weight:700;font-size:12px;color:#CBD5E1">' + loja + '</div>' +
+    '<div style="font-size:10px;color:#B7C6E0;margin-top:1px">' + regional + '</div>' +
+    '<div style="font-size:13px;font-weight:700;color:' + cor + ';margin-top:4px">' + val + '</div>' +
+    '<div style="font-size:10px;color:#93C5FD;margin-top:1px">' + sub + '</div></div>';
+
+  let tit = '', html = '';
+  const comDados = ev.filter(e => e.nSemanas >= 2 && e.delta !== null);
+
+  if (tipo === 'total') {
+    tit = '📊 Total D60 por Regional';
+    const porReg = {};
+    BASE_REGIONAIS.forEach(b => {
+      const v = getD60Atual(b.lj) || 0;
+      porReg[b.regional] = (porReg[b.regional] || 0) + v;
+    });
+    html = Object.entries(porReg).sort((a,b) => b[1]-a[1])
+      .map(([reg, v]) => card(reg, '', formatMoeda(v), 'Total regional atual', '#2563EB')).join('');
+  } else if (tipo === 'reducao') {
+    tit = '🟢 Filiais Em Redução vs Início do Ano';
+    html = comDados.filter(e => e.delta < 0).sort((a,b) => a.deltaPct - b.deltaPct)
+      .map(e => card(e.base.loja, e.base.regional, formatMoeda(Math.abs(e.delta)) + ' reduzido', e.deltaPct.toFixed(1) + '% desde jan/2026', '#22C55E')).join('');
+  } else if (tipo === 'crescimento') {
+    tit = '🔴 Filiais Em Crescimento vs Início do Ano';
+    html = comDados.filter(e => e.delta > 0).sort((a,b) => b.deltaPct - a.deltaPct)
+      .map(e => card(e.base.loja, e.base.regional, '+' + formatMoeda(e.delta) + ' a mais', '+' + e.deltaPct.toFixed(1) + '% desde jan/2026', '#EF4444')).join('');
+  } else if (tipo === 'excel') {
+    tit = '⭐ Filiais de Excelência em Crédito';
+    const zero = ev.filter(e => e.status === 'zero-total');
+    const min  = ev.filter(e => e.status === 'excel');
+    html = zero.map(e => card(e.base.loja, e.base.regional, 'Sem registro D60', 'Nunca registrou título vencido ≥60 dias', '#A78BFA')).join('') +
+           min.map(e => card(e.base.loja, e.base.regional, 'Máx histórico: ' + formatMoeda(e.maxVal), 'Nunca ultrapassou R$10.000', '#60A5FA')).join('');
+  } else if (tipo === 'alerta') {
+    tit = '⚠️ Top Alertas — Maior Crescimento % no Ano';
+    html = comDados.filter(e => e.deltaPct > 0).sort((a,b) => b.deltaPct - a.deltaPct).slice(0, 5)
+      .map(e => card(e.base.loja, e.base.regional, '+' + e.deltaPct.toFixed(1) + '%', 'Jan: ' + formatMoeda(e.valInicio) + ' → Atual: ' + formatMoeda(e.valAtual), '#EF4444')).join('');
+  }
+
+  if (!html) html = '<div style="font-size:12px;color:#6B7280;padding:8px">Sem dados para exibir.</div>';
+  titulo.textContent = tit;
+  corpo.innerHTML = html;
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function fecharCardDetalhe() {
+  document.getElementById('kpi-detalhe-panel').style.display = 'none';
+}
+
 function renderEvolucao() {
   const ev = calcEvolucao();
-
-  // Top 3 reduções e crescimentos
   const comDados = ev.filter(e => e.delta !== null && e.nSemanas >= 2);
-  const topRed = comDados.filter(e => e.delta < 0).sort((a, b) => a.deltaPct - b.deltaPct).slice(0, 3);
-  const topCres = comDados.filter(e => e.delta > 0).sort((a, b) => b.deltaPct - a.deltaPct).slice(0, 3);
-  const excel = ev.filter(e => e.status === 'excel');
+  const topRed  = comDados.filter(e => e.delta < 0).sort((a,b) => a.deltaPct - b.deltaPct).slice(0,3);
+  const topCres = comDados.filter(e => e.delta > 0).sort((a,b) => b.deltaPct - a.deltaPct).slice(0,3);
+  const excel   = ev.filter(e => e.status === 'zero-total' || e.status === 'excel');
 
   document.getElementById('evol-top-reducao').innerHTML = topRed.length
-    ? topRed.map(e => '<span style="color:#22C55E;font-weight:700">' + e.base.loja + '</span> &nbsp;↘ ' + e.deltaPct.toFixed(1) + '% &nbsp;<span style="opacity:.7">(' + formatMoeda(Math.abs(e.delta)) + ')</span>').join('<br>')
+    ? topRed.map(e => '<span style="color:#22C55E;font-weight:700">' + e.base.loja + '</span> ↘ ' + e.deltaPct.toFixed(1) + '% <span style="opacity:.7">(' + formatMoeda(Math.abs(e.delta)) + ')</span>').join('<br>')
     : '<span style="opacity:.6">Sem dados suficientes</span>';
 
   document.getElementById('evol-top-crescimento').innerHTML = topCres.length
-    ? topCres.map(e => '<span style="color:#EF4444;font-weight:700">' + e.base.loja + '</span> &nbsp;↗ +' + e.deltaPct.toFixed(1) + '% &nbsp;<span style="opacity:.7">(' + formatMoeda(e.delta) + ')</span>').join('<br>')
+    ? topCres.map(e => '<span style="color:#EF4444;font-weight:700">' + e.base.loja + '</span> ↗ +' + e.deltaPct.toFixed(1) + '% <span style="opacity:.7">(' + formatMoeda(e.delta) + ')</span>').join('<br>')
     : '<span style="opacity:.6">Nenhuma filial em crescimento</span>';
 
   document.getElementById('evol-excelencia').innerHTML = excel.length
-    ? excel.map(e => '<span style="color:#60A5FA;font-weight:700">⭐ ' + e.base.loja + '</span>').join('<br>')
-    : '<span style="opacity:.6">Nenhuma identificada ainda</span>';
+    ? excel.map(e => {
+        const ic = e.status === 'zero-total' ? '🌟' : '⭐';
+        const desc = e.status === 'zero-total' ? '<span style="opacity:.6;font-size:10px"> — nunca registrou</span>' : '<span style="opacity:.6;font-size:10px"> — histórico mínimo</span>';
+        return '<span style="color:' + (e.status === 'zero-total' ? '#A78BFA' : '#60A5FA') + ';font-weight:700">' + ic + ' ' + e.base.loja + '</span>' + desc;
+      }).join('<br>')
+    : '<span style="opacity:.6">Nenhuma identificada</span>';
 
-  // Gráfico de linha — total consolidado por semana
+  // Gráfico linha
   const todasSemanas = [...new Set(Object.values(D60_HIST).flatMap(h => Object.keys(h)))].sort();
   const totaisPorSemana = todasSemanas.map(s =>
-    BASE_REGIONAIS.reduce((sum, b) => sum + (D60_HIST[b.lj] && D60_HIST[b.lj][s] !== undefined ? D60_HIST[b.lj][s] : 0), 0)
+    BASE_REGIONAIS.reduce((sum, b) => sum + ((D60_HIST[b.lj] && D60_HIST[b.lj][s] !== undefined) ? D60_HIST[b.lj][s] : 0), 0)
   );
   renderGraficoLinha(todasSemanas, totaisPorSemana);
 
-  // Tabela por filial
-  const statusLabel = { excel:'⭐ Excelência', reducao:'🟢 Redução', estavel:'🟡 Estável', crescimento:'🔴 Crescimento', 'sem-dados':'⚫ Sem dados' };
-  const statusClass = { excel:'evol-status-excel', reducao:'evol-status-green', estavel:'evol-status-yellow', crescimento:'evol-status-red', 'sem-dados':'evol-status-gray' };
-  const statusOrder = { excel: 0, reducao: 1, estavel: 2, crescimento: 3, 'sem-dados': 4 };
-  const linhas = ev.slice().sort((a, b) => statusOrder[a.status] - statusOrder[b.status] || (b.deltaPct || 0) - (a.deltaPct || 0));
+  // Filtros
+  const fLj      = (document.getElementById('ef-lj')      || {value:''}).value.trim().toLowerCase();
+  const fLoja    = (document.getElementById('ef-loja')    || {value:''}).value.trim().toLowerCase();
+  const fReg     = (document.getElementById('ef-regional')|| {value:''}).value.trim().toLowerCase();
+  const fStatus  = (document.getElementById('ef-status')  || {value:''}).value;
+
+  let linhas = ev.filter(e => {
+    if (fLj     && !String(e.base.lj).includes(fLj))          return false;
+    if (fLoja   && !e.base.loja.toLowerCase().includes(fLoja)) return false;
+    if (fReg    && !e.base.regional.toLowerCase().includes(fReg)) return false;
+    if (fStatus && e.status !== fStatus)                       return false;
+    return true;
+  });
+
+  // Ordenação
+  const { col, dir } = evolSortState;
+  linhas = linhas.slice().sort((a, b) => {
+    let va, vb;
+    switch (col) {
+      case 'lj':       va = a.base.lj;       vb = b.base.lj;       break;
+      case 'loja':     va = a.base.loja;     vb = b.base.loja;     break;
+      case 'regional': va = a.base.regional; vb = b.base.regional; break;
+      case 'inicio':   va = a.valInicio||0;  vb = b.valInicio||0;  break;
+      case 'atual':    va = a.valAtual||0;   vb = b.valAtual||0;   break;
+      case 'delta':    va = a.delta||0;      vb = b.delta||0;      break;
+      case 'deltapct': va = a.deltaPct||0;   vb = b.deltaPct||0;   break;
+      case 'status': {
+        const ord = {'zero-total':0,'excel':1,'reducao':2,'estavel':3,'crescimento':4,'sem-dados':5};
+        va = ord[a.status]||9; vb = ord[b.status]||9; break;
+      }
+      default: va = 0; vb = 0;
+    }
+    if (typeof va === 'string') return va.localeCompare(vb) * dir;
+    return (va - vb) * dir;
+  });
+
+  // Atualiza setas
+  ['lj','loja','regional','inicio','atual','delta','deltapct','status'].forEach(c => {
+    const el = document.getElementById('evol-arrow-' + c);
+    if (el) el.textContent = evolSortState.col === c ? (evolSortState.dir === 1 ? '▲' : '▼') : '';
+  });
+
+  const statusLabel = { 'zero-total':'🌟 Nunca registrou','excel':'⭐ Hist. mínimo','reducao':'🟢 Redução','estavel':'🟡 Estável','crescimento':'🔴 Crescimento','sem-dados':'⚫ Sem dados' };
+  const statusClass = { 'zero-total':'evol-status-zero','excel':'evol-status-excel','reducao':'evol-status-green','estavel':'evol-status-yellow','crescimento':'evol-status-red','sem-dados':'evol-status-gray' };
 
   const tbody = document.getElementById('evol-tbody');
   tbody.innerHTML = linhas.map(e => {
-    const ini = e.valInicio !== null ? formatMoeda(e.valInicio) : '—';
-    const atu = e.valAtual !== null ? formatMoeda(e.valAtual) : '—';
-    const dR  = e.delta !== null ? (e.delta > 0 ? '+' : '') + formatMoeda(e.delta) : '—';
-    const dP  = e.deltaPct !== null ? (e.deltaPct > 0 ? '+' : '') + e.deltaPct.toFixed(1) + '%' : '—';
+    const ini  = e.valInicio !== null ? formatMoeda(e.valInicio) : '—';
+    const atu  = e.valAtual  !== null ? formatMoeda(e.valAtual)  : '—';
+    const dR   = e.delta !== null ? (e.delta > 0 ? '+' : '') + formatMoeda(e.delta) : '—';
+    const dP   = e.deltaPct !== null ? (e.deltaPct > 0 ? '+' : '') + e.deltaPct.toFixed(1) + '%' : '—';
     const dCor = e.delta === null ? '#CBD5E1' : e.delta < 0 ? '#22C55E' : e.delta > 0 ? '#EF4444' : '#EAB308';
     const tend = e.delta === null ? '—' : e.delta < -0.01 ? '↘' : e.delta > 0.01 ? '↗' : '→';
-    const tendCor = e.delta === null ? '#9CA3AF' : e.delta < 0 ? '#22C55E' : e.delta > 0 ? '#EF4444' : '#EAB308';
-    return '<tr>' +
+    const tCor = e.delta === null ? '#9CA3AF' : e.delta < 0 ? '#22C55E' : e.delta > 0 ? '#EF4444' : '#EAB308';
+
+    const ttData = JSON.stringify({
+      lj: e.base.lj, loja: e.base.loja, regional: e.base.regional,
+      gerente: e.base.gerente, auditor: e.base.auditor,
+      nSemanas: e.nSemanas, maxVal: e.piorVal, minVal: e.melhorVal,
+      ultimaSemana: e.ultimaSemana, delta: e.delta, deltaPct: e.deltaPct,
+      status: e.status, valAtual: e.valAtual, valInicio: e.valInicio
+    }).replace(/"/g, '&quot;');
+
+    return '<tr onmouseenter="mostrarTooltipLinha(event,\'' + ttData + '\')" onmouseleave="ocultarTooltipLinha()">' +
       '<td style="padding:8px 12px;font-weight:700;color:#93C5FD">' + e.base.lj + '</td>' +
       '<td style="padding:8px 12px;font-weight:600;color:#CBD5E1">' + e.base.loja + '</td>' +
       '<td style="padding:8px 12px;font-size:11px;color:#B7C6E0">' + e.base.regional + '</td>' +
@@ -1877,12 +2055,59 @@ function renderEvolucao() {
       '<td style="padding:8px 12px;text-align:right;font-weight:600;color:#CBD5E1">' + atu + '</td>' +
       '<td style="padding:8px 12px;text-align:right;font-weight:700;color:' + dCor + '">' + dR + '</td>' +
       '<td style="padding:8px 12px;text-align:right;font-weight:700;color:' + dCor + '">' + dP + '</td>' +
-      '<td style="padding:8px 12px;text-align:center;font-size:18px;color:' + tendCor + '">' + tend + '</td>' +
+      '<td style="padding:8px 12px;text-align:center;font-size:18px;color:' + tCor + '">' + tend + '</td>' +
       '<td style="padding:8px 12px;text-align:center">' + sparklineSVG(e.valores, e.status) + '</td>' +
       '<td style="padding:8px 12px;text-align:center"><span class="evol-status-badge ' + statusClass[e.status] + '">' + statusLabel[e.status] + '</span></td>' +
       '</tr>';
   }).join('');
 }
+
+function mostrarTooltipLinha(evt, dataStr) {
+  const d  = JSON.parse(dataStr.replace(/&quot;/g, '"'));
+  const tt = document.getElementById('evol-row-tooltip');
+  const statusDesc = {
+    'zero-total': '🌟 Nunca registrou D60 — excelência absoluta',
+    'excel':      '⭐ Histórico mínimo — nunca ultrapassou R$10.000',
+    'reducao':    '🟢 Em redução vs início do ano',
+    'estavel':    '🟡 Variação dentro de ±10% no período',
+    'crescimento':'🔴 Em crescimento vs início do ano',
+    'sem-dados':  '⚫ Dados insuficientes para análise'
+  };
+  let html = '<div style="font-weight:700;color:#93C5FD;margin-bottom:6px">LJ ' + d.lj + ' — ' + d.loja + '</div>';
+  html += '<div style="color:#B7C6E0;margin-bottom:2px">📍 ' + d.regional + '</div>';
+  html += '<div style="color:#B7C6E0;margin-bottom:2px">👤 Gerente: ' + d.gerente + '</div>';
+  html += '<div style="color:#B7C6E0;margin-bottom:6px">🔍 Auditor: ' + d.auditor + '</div>';
+  if (d.nSemanas > 0) {
+    html += '<div style="border-top:1px solid #1E3A5F;padding-top:6px;margin-top:2px">';
+    html += '<div>Semanas registradas: <b>' + d.nSemanas + '</b></div>';
+    if (d.maxVal !== null) html += '<div>Pior valor (máx): <b style="color:#EF4444">' + formatMoeda(d.maxVal) + '</b></div>';
+    if (d.minVal !== null) html += '<div>Melhor valor (mín): <b style="color:#22C55E">' + formatMoeda(d.minVal) + '</b></div>';
+    if (d.ultimaSemana) html += '<div>Última semana: <b>' + formatarData(d.ultimaSemana) + '</b></div>';
+    html += '</div>';
+  }
+  html += '<div style="border-top:1px solid #1E3A5F;padding-top:6px;margin-top:6px;font-size:10px;color:#9CA3AF">' + (statusDesc[d.status] || '') + '</div>';
+  tt.innerHTML = html;
+  tt.style.display = 'block';
+  moverTooltipLinha(evt);
+}
+
+function moverTooltipLinha(evt) {
+  const tt = document.getElementById('evol-row-tooltip');
+  if (tt.style.display === 'none') return;
+  const x = evt.clientX + 16, y = evt.clientY - 10;
+  const W = window.innerWidth, H = window.innerHeight;
+  tt.style.left  = (x + 300 > W ? x - 320 : x) + 'px';
+  tt.style.top   = (y + 200 > H ? y - 220 : y) + 'px';
+}
+
+function ocultarTooltipLinha() {
+  document.getElementById('evol-row-tooltip').style.display = 'none';
+}
+
+document.addEventListener('mousemove', e => {
+  const tt = document.getElementById('evol-row-tooltip');
+  if (tt && tt.style.display !== 'none') moverTooltipLinha(e);
+});
 
 function renderGraficoLinha(semanas, totais) {
   const svg = document.getElementById('evol-chart');
