@@ -1807,12 +1807,16 @@ function calcEvolucao() {
       deltaPct = valInicio > 0 ? (delta / valInicio) * 100 : (valAtual > 0 ? 100 : 0);
     }
 
+    // valores significativos (descarta zeros de imports bugados)
+    const valoresSig = valores.filter(v => v > 0);
+    const maxValSig  = valoresSig.length ? Math.max(...valoresSig) : 0;
+
     let status;
-    if (!hist || nSemanas === 0) {
-      // Nunca teve nenhum registro — excelência máxima
+    if (!hist || nSemanas === 0 || valoresSig.length === 0) {
+      // Sem nenhum registro real (zeros de import bugado contam como ausência)
       status = 'zero-total';
-    } else if (maxVal !== null && maxVal <= EVOL_EXCEL_THRESH) {
-      // Teve registros, mas sempre muito abaixo do limiar
+    } else if (maxValSig <= EVOL_EXCEL_THRESH) {
+      // Todos os valores reais sempre abaixo do limiar
       status = 'excel';
     } else if (nSemanas < 4 || deltaPct === null) {
       status = 'sem-dados';
