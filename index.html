@@ -9,42 +9,81 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <style>
   :root {
-    --azul:     #1E3A8A;
-    --azul-med: #2563EB;
-    --azul-cl:  #3B82F6;
-    --azul-bg:  #1E3A5F;
-    --azul-xc:  #172B4D;
-    --branco:   #E2E8F0;
-    --cinza-cl: #112240;
-    --cinza-bd: #1E3A5F;
-    --texto:    #CBD5E1;
-    --verde:    #22C55E;
-    --verde-bg: #052E16;
-    --verm:     #EF4444;
-    --verm-bg:  #450A0A;
-    --amar:     #F59E0B;
-    --amar-bg:  #451A03;
-    --sombra:   0 2px 12px rgba(0,0,0,.4);
+    --azul:         #1E3A8A;
+    --azul-med:     #2563EB;
+    --azul-cl:      #3B82F6;
+    --azul-bg:      #1E3A5F;
+    --azul-xc:      #172B4D;
+    --branco:       #E2E8F0;
+    --cinza-cl:     #112240;
+    --cinza-bd:     #1E3A5F;
+    --texto:        #CBD5E1;
+    --texto-sec:    #B7C6E0;
+    --texto-ter:    #C3D2EA;
+    --texto-mut:    #A9BBD9;
+    --verde:        #22C55E;
+    --verde-bg:     #052E16;
+    --verm:         #EF4444;
+    --verm-bg:      #450A0A;
+    --amar:         #F59E0B;
+    --amar-bg:      #451A03;
+    --sombra:       0 2px 12px rgba(0,0,0,.4);
+    /* ── layout tokens (theme-aware) ──────────── */
+    --bg-body:      #0A1628;
+    --bg-panel:     #0D1F35;
+    --bg-card:      #112240;
+    --bg-input:     #0A1628;
+    --amar-bg-aud:  #1A1200;
+    --accent-text:  #93C5FD;
+    --hover-row:    #1E3A8A55;
+    --login-bg:     linear-gradient(135deg,#060E1F 0%,#0A1628 50%,#0D2040 100%);
+  }
+
+  /* ── TEMA CLARO ───────────────────────────────────────────── */
+  [data-theme="light"] {
+    --azul-bg:      #DBEAFE;
+    --azul-xc:      #EFF6FF;
+    --cinza-cl:     #F1F5F9;
+    --cinza-bd:     #CBD5E1;
+    --texto:        #1E293B;
+    --texto-sec:    #475569;
+    --texto-ter:    #64748B;
+    --texto-mut:    #94A3B8;
+    --verde:        #16A34A;
+    --verde-bg:     #DCFCE7;
+    --verm:         #DC2626;
+    --verm-bg:      #FEE2E2;
+    --amar:         #D97706;
+    --amar-bg:      #FEF3C7;
+    --sombra:       0 2px 12px rgba(0,0,0,.12);
+    --bg-body:      #EEF2FF;
+    --bg-panel:     #F8FAFC;
+    --bg-card:      #FFFFFF;
+    --bg-input:     #F8FAFC;
+    --amar-bg-aud:  #FFFBEB;
+    --accent-text:  #1D4ED8;
+    --hover-row:    rgba(37,99,235,.10);
+    --login-bg:     linear-gradient(135deg,#DBEAFE 0%,#EEF2FF 50%,#E0EAFF 100%);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Calibri', 'Segoe UI', sans-serif; background: #0A1628; color: var(--texto); min-height: 100vh; }
+  body { font-family: 'Calibri', 'Segoe UI', sans-serif; background: var(--bg-body); color: var(--texto); min-height: 100vh; transition: background .3s, color .3s; }
 
   /* ── LOGIN ─────────────────────────────────────────────────────── */
   #login-screen {
     display: flex; align-items: center; justify-content: center;
-    min-height: 100vh; background: linear-gradient(135deg, #060E1F 0%, #0A1628 50%, #0D2040 100%);
+    min-height: 100vh; background: var(--login-bg);
   }
   .login-card {
-    background: #112240; border-radius: 16px; padding: 48px 40px;
+    background: var(--bg-card); border-radius: 16px; padding: 48px 40px;
     box-shadow: 0 20px 60px rgba(0,0,0,.25); width: 380px; text-align: center;
   }
   .login-logo { font-size: 13px; letter-spacing: 3px; color: var(--azul-cl); font-weight: 700; margin-bottom: 6px; }
-  .login-title { font-size: 22px; font-weight: 700; color: #93C5FD; margin-bottom: 4px; }
-  .login-sub { font-size: 13px; color: #A9BBD9; margin-bottom: 32px; }
+  .login-title { font-size: 22px; font-weight: 700; color: var(--accent-text); margin-bottom: 4px; }
+  .login-sub { font-size: 13px; color: var(--texto-mut); margin-bottom: 32px; }
   .login-card input, .login-card select {
     width: 100%; padding: 12px 16px; border: 1.5px solid var(--cinza-bd);
     border-radius: 8px; font-size: 14px; color: var(--texto); margin-bottom: 14px;
-    outline: none; transition: border .2s; background: #0A1628;
+    outline: none; transition: border .2s; background: var(--bg-input);
   }
   .login-card input:focus, .login-card select:focus { border-color: var(--azul-cl); }
   .login-err { color: var(--verm); font-size: 13px; margin-bottom: 10px; display: none; }
@@ -54,7 +93,7 @@
     cursor: pointer; transition: background .2s; margin-bottom: 10px;
   }
   .btn-login:hover { background: var(--azul-med); }
-  .modo-hint { font-size: 12px; color: #CBD5E1; margin-top: 8px; }
+  .modo-hint { font-size: 12px; color: var(--texto-sec); margin-top: 8px; }
 
   /* ── MODO BADGE ─────────────────────────────────────────────────── */
   .modo-badge {
@@ -100,18 +139,18 @@
 
   /* ── FILTROS ─────────────────────────────────────────────────────── */
   .filtros-bar {
-    background: #0A1628; border-bottom: 1px solid var(--cinza-bd);
+    background: var(--bg-body); border-bottom: 1px solid var(--cinza-bd);
     padding: 10px 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   }
   .filtro-label { font-size: 12px; font-weight: 700; color: var(--azul); text-transform: uppercase; letter-spacing: .5px; }
   .filtros-bar select {
     padding: 7px 12px; border: 1.5px solid var(--cinza-bd); border-radius: 6px;
-    font-size: 13px; color: var(--texto); background: #112240; outline: none;
+    font-size: 13px; color: var(--texto); background: var(--bg-card); outline: none;
     cursor: pointer; min-width: 160px;
   }
   .filtros-bar select:focus { border-color: var(--azul-cl); }
   .btn-limpar {
-    background: transparent; border: 1.5px solid var(--cinza-bd); color: #B7C6E0;
+    background: transparent; border: 1.5px solid var(--cinza-bd); color: var(--texto-sec);
     padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer;
     transition: all .2s;
   }
@@ -120,7 +159,7 @@
   /* ── KPI STRIP ──────────────────────────────────────────────────── */
   .kpi-strip {
     display: grid; grid-template-columns: repeat(5, 1fr);
-    gap: 12px; padding: 16px 28px; background: #0D1F35;
+    gap: 12px; padding: 16px 28px; background: var(--bg-panel);
     border-bottom: 1px solid var(--cinza-bd);
   }
   .evol-spark { display:block; }
@@ -134,49 +173,49 @@
   .evol-status-green  { background:rgba(34,197,94,.15);   color:#22C55E; }
   .evol-status-yellow { background:rgba(234,179,8,.15);   color:#EAB308; }
   .evol-status-gray   { background:rgba(107,114,128,.15); color:#9CA3AF; }
-  #evol-table tbody tr { border-bottom:1px solid #1E3A5F; transition:background .12s; cursor:default; }
-  #evol-table tbody tr:nth-child(even) { background:#0D1F35; }
-  #evol-table tbody tr:hover { background:#1E3A8A55; }
+  #evol-table tbody tr { border-bottom:1px solid var(--cinza-bd); transition:background .12s; cursor:default; }
+  #evol-table tbody tr:nth-child(even) { background:var(--bg-panel); }
+  #evol-table tbody tr:hover { background:var(--hover-row); }
   #evol-table thead th { cursor:pointer; user-select:none; }
   #evol-table thead th:hover { background:#2563EB88; }
   .evol-filter-row input {
     width:100%; box-sizing:border-box; padding:4px 6px; font-size:10px;
-    background:#0A1628; border:1px solid #1E3A5F; border-radius:4px;
-    color:#CBD5E1; outline:none;
+    background:var(--bg-input); border:1px solid var(--cinza-bd); border-radius:4px;
+    color:var(--texto); outline:none;
   }
   .evol-filter-row input:focus { border-color:#2563EB; }
   .kpi-card { cursor:pointer; transition:box-shadow .15s, transform .1s; }
   .kpi-card:hover { box-shadow:0 0 0 2px #2563EB66; transform:translateY(-1px); }
   #kpi-detalhe-panel {
-    display:none; background:#0D1F35; border-bottom:1px solid #1E3A5F;
+    display:none; background:var(--bg-panel); border-bottom:1px solid var(--cinza-bd);
     padding:14px 28px; animation: slideDown .2s ease;
   }
   @keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
   #evol-row-tooltip {
     display:none; position:fixed; z-index:9000; pointer-events:none;
-    background:#0A1628; border:1px solid #1E3A5F; border-radius:8px;
-    padding:10px 14px; font-size:11px; color:#CBD5E1; max-width:280px;
+    background:var(--bg-body); border:1px solid var(--cinza-bd); border-radius:8px;
+    padding:10px 14px; font-size:11px; color:var(--texto); max-width:280px;
     box-shadow:0 4px 20px rgba(0,0,0,.5);
   }
   .kpi-card {
-    background: #112240; border-radius: 10px; padding: 14px 16px;
+    background: var(--bg-card); border-radius: 10px; padding: 14px 16px;
     border-left: 4px solid var(--azul-med);
   }
   .kpi-card.verde  { border-left-color: var(--verde); background: var(--verde-bg); }
   .kpi-card.verm   { border-left-color: var(--verm); background: var(--verm-bg); }
   .kpi-card.amar   { border-left-color: var(--amar); background: var(--amar-bg); }
-  .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #C3D2EA; margin-bottom: 4px; }
+  .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--texto-ter); margin-bottom: 4px; }
   .kpi-val   { font-size: 20px; font-weight: 700; color: var(--azul); }
   .kpi-val.verde { color: var(--verde); }
   .kpi-val.verm  { color: var(--verm); }
   .kpi-val.amar  { color: var(--amar); }
-  .kpi-sub   { font-size: 11px; color: #CBD5E1; font-weight: 500; margin-top: 2px; }
+  .kpi-sub   { font-size: 11px; color: var(--texto); font-weight: 500; margin-top: 2px; }
 
   /* ── MAIN GRID ──────────────────────────────────────────────────── */
   .main { display: grid; grid-template-columns: 1fr 380px; gap: 0; min-height: calc(100vh - 220px); }
   .panel-left { padding: 20px 28px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .panel-right {
-    background: #0D1F35; border-left: 1.5px solid var(--cinza-bd);
+    background: var(--bg-panel); border-left: 1.5px solid var(--cinza-bd);
     padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
 
@@ -199,12 +238,12 @@
   .th-sort:hover { background: var(--azul-med); }
   .sort-arrow { display: inline-block; width: 12px; margin-left: 3px; opacity: .8; }
   #tabela-filiais tbody tr { cursor: pointer; transition: background .15s; border-bottom: 1px solid var(--cinza-bd); }
-  #tabela-filiais tbody tr:nth-child(even) { background: #0D1F35; }
-  #tabela-filiais tbody tr:hover { background: var(--azul-bg) !important; }
+  #tabela-filiais tbody tr:nth-child(even) { background: var(--bg-panel); }
+  #tabela-filiais tbody tr:hover { background: var(--hover-row) !important; }
   #tabela-filiais tbody tr.selected { background: #1E3A8A !important; }
   #tabela-filiais tbody td { padding: 9px 12px; }
   .td-loja { font-weight: 700; color: var(--azul); }
-  .td-reg  { font-size: 11px; color: #B7C6E0; font-weight: 600; }
+  .td-reg  { font-size: 11px; color: var(--texto-sec); font-weight: 600; }
 
   .badge {
     display: inline-block; padding: 2px 10px; border-radius: 10px;
@@ -212,21 +251,21 @@
   }
   .badge-green { background: var(--verde-bg); color: var(--verde); }
   .badge-red   { background: var(--verm-bg);  color: var(--verm);  }
-  .badge-gray  { background: var(--cinza-cl); color: #C3D2EA; font-weight: 700; }
+  .badge-gray  { background: var(--cinza-cl); color: var(--texto-ter); font-weight: 700; }
   .badge-blue  { background: var(--azul-bg);  color: var(--azul);  }
 
   /* ── PAINEL DIREITO ─────────────────────────────────────────────── */
-  .right-empty { text-align: center; color: #CBD5E1; padding: 60px 20px; }
+  .right-empty { text-align: center; color: var(--texto); padding: 60px 20px; }
   .right-empty .icon { font-size: 40px; margin-bottom: 12px; }
   .right-empty p { font-size: 13px; line-height: 1.6; }
 
   .right-header { margin-bottom: 16px; }
   .right-loja { font-size: 18px; font-weight: 700; color: var(--azul); }
-  .right-meta { font-size: 12px; color: #B7C6E0; margin-top: 2px; }
+  .right-meta { font-size: 12px; color: var(--texto-sec); margin-top: 2px; }
 
   .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
-  .info-box { background: #112240; border-radius: 8px; padding: 10px 12px; }
-  .info-box-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #CBD5E1; margin-bottom: 3px; }
+  .info-box { background: var(--bg-card); border-radius: 8px; padding: 10px 12px; border: 1px solid var(--cinza-bd); }
+  .info-box-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--texto-sec); margin-bottom: 3px; }
   .info-box-val { font-size: 14px; font-weight: 700; color: var(--azul); }
   .info-box-val.verde { color: var(--verde); }
   .info-box-val.verm  { color: var(--verm);  }
@@ -236,32 +275,32 @@
   .hist-title { font-size: 11px; font-weight: 700; color: var(--azul); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
   .hist-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--cinza-bd); font-size: 12px; }
   .hist-row:last-child { border-bottom: none; }
-  .hist-row-date { color: #B7C6E0; }
+  .hist-row-date { color: var(--texto-sec); }
   .hist-row-val  { font-weight: 600; color: var(--texto); }
-  .hist-row.current { background: #1E3A5F; margin: 0 -4px; padding: 5px 4px; border-radius: 4px; }
+  .hist-row.current { background: var(--azul-bg); margin: 0 -4px; padding: 5px 4px; border-radius: 4px; }
   .hist-row.current .hist-row-date { color: var(--azul); font-weight: 700; }
 
   /* Títulos drill-down */
   .titulos-section { margin-top: 16px; }
   .titulos-title { font-size: 11px; font-weight: 700; color: var(--azul); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
   .titulo-item {
-    background: #112240; border-radius: 6px; padding: 8px 10px;
+    background: var(--bg-card); border-radius: 6px; padding: 8px 10px;
     margin-bottom: 6px; border-left: 3px solid var(--azul-med);
   }
   .titulo-cliente { font-size: 12px; font-weight: 700; color: var(--texto); }
-  .titulo-meta { font-size: 11px; color: #B7C6E0; margin-top: 2px; }
+  .titulo-meta { font-size: 11px; color: var(--texto-sec); margin-top: 2px; }
   .titulo-valor { font-size: 13px; font-weight: 700; color: var(--azul); margin-top: 4px; }
 
   /* ── AUDITORIA PANEL ────────────────────────────────────────────── */
   .audit-panel {
-    background: #1A1200; border: 1.5px solid var(--amar);
+    background: var(--amar-bg-aud); border: 1.5px solid var(--amar);
     border-radius: 10px; padding: 14px; margin-bottom: 16px;
   }
   .audit-panel-title { font-size: 12px; font-weight: 700; color: #F59E0B; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .5px; }
   .audit-panel input[type="date"] {
     width: 100%; padding: 8px 10px; border: 1.5px solid #E0C060;
     border-radius: 6px; font-size: 13px; margin-bottom: 8px; outline: none;
-    background: #0A1628; color: var(--texto);
+    background: var(--bg-input); color: var(--texto);
   }
   .btn-registrar {
     width: 100%; padding: 10px; background: var(--azul); color: var(--branco);
@@ -278,15 +317,15 @@
   }
   .audit-hist-item:last-child { border-bottom: none; }
   .audit-aud { font-weight: 600; color: var(--texto); }
-  .audit-date { color: #B7C6E0; font-size: 11px; }
+  .audit-date { color: var(--texto-sec); font-size: 11px; }
 
   /* ── ABAS ───────────────────────────────────────────────────────── */
   .tabs-bar {
-    background: #0A1628; border-bottom: 1px solid var(--cinza-bd);
+    background: var(--bg-body); border-bottom: 1px solid var(--cinza-bd);
     padding: 0 28px; display: flex; gap: 4px;
   }
   .tab-btn {
-    background: transparent; border: none; color: #B7C6E0;
+    background: transparent; border: none; color: var(--texto-sec);
     padding: 12px 18px; font-size: 13px; font-weight: 700; cursor: pointer;
     border-bottom: 3px solid transparent; transition: all .2s;
   }
@@ -298,10 +337,10 @@
   /* ── RELATÓRIO GERAL (export branco/neutro) ───────────────────────── */
   .relatorio-bar {
     padding: 16px 28px; display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; flex-wrap: wrap; background: #0D1F35; border-bottom: 1px solid var(--cinza-bd);
+    gap: 12px; flex-wrap: wrap; background: var(--bg-panel); border-bottom: 1px solid var(--cinza-bd);
   }
   .relatorio-bar .btn-rel {
-    background: #1E3A8A; color: #93C5FD; border: none; border-radius: 6px;
+    background: var(--azul); color: var(--accent-text); border: none; border-radius: 6px;
     padding: 8px 16px; font-size: 12px; font-weight: 700; cursor: pointer;
     display: flex; align-items: center; gap: 6px; transition: background .2s;
   }
@@ -328,7 +367,7 @@
   @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
   /* ── LOADING ────────────────────────────────────────────────────── */
-  .loading { text-align: center; padding: 40px; color: #B7C6E0; }
+  .loading { text-align: center; padding: 40px; color: var(--texto-sec); }
 
   @media (max-width: 900px) {
     .main { grid-template-columns: 1fr; }
@@ -358,6 +397,113 @@
     #tabela-filiais { display: block; overflow-x: auto; white-space: nowrap; }
     .info-grid { grid-template-columns: 1fr; }
   }
+
+  /* ── BOTÃO TEMA ───────────────────────────────────────────── */
+  .btn-tema {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,.13); color: var(--branco); border: none;
+    padding: 6px 11px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: background .2s; white-space: nowrap;
+  }
+  .btn-tema:hover { background: rgba(255,255,255,.24); }
+  .btn-tema-icon { font-size: 14px; line-height: 1; }
+  .btn-tema-label { font-size: 11px; opacity: .85; }
+
+  /* ── BOTÃO SAIR (com ícone) ───────────────────────────────── */
+  .btn-sair {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.12); color: var(--branco); border: none;
+    padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer;
+    transition: background .2s;
+  }
+  .btn-sair svg { flex-shrink: 0; }
+
+  /* ── OVERRIDES LIGHT THEME para elementos gerados por JS ─── */
+  [data-theme="light"] #panel-right { box-shadow: -2px 0 8px rgba(0,0,0,.06); }
+  [data-theme="light"] .kpi-card.verde { border-left-color: var(--verde); background: var(--verde-bg); }
+  [data-theme="light"] .kpi-card.verm  { border-left-color: var(--verm);  background: var(--verm-bg);  }
+  [data-theme="light"] .kpi-card.amar  { border-left-color: var(--amar);  background: var(--amar-bg);  }
+  [data-theme="light"] .badge-green { background: var(--verde-bg); color: var(--verde); }
+  [data-theme="light"] .badge-red   { background: var(--verm-bg);  color: var(--verm);  }
+  [data-theme="light"] .badge-blue  { background: var(--azul-bg);  color: var(--azul);  }
+  [data-theme="light"] #tabela-filiais tbody tr { color: var(--texto); }
+  [data-theme="light"] #tabela-filiais tbody tr.selected { background: var(--azul-bg) !important; }
+  [data-theme="light"] .evol-status-zero   { background:rgba(167,139,250,.12); color:#7C3AED; }
+  [data-theme="light"] .evol-status-excel  { background:rgba(37,99,235,.10);   color:#1D4ED8; }
+  [data-theme="light"] .evol-status-red    { background:rgba(220,38,38,.10);   color:#B91C1C; }
+  [data-theme="light"] .evol-status-green  { background:rgba(22,163,74,.10);   color:#15803D; }
+  [data-theme="light"] .evol-status-yellow { background:rgba(217,119,6,.12);   color:#B45309; }
+  [data-theme="light"] .evol-status-gray   { background:rgba(107,114,128,.10); color:#4B5563; }
+
+  /* Overrides for JS-generated inline-style containers in light theme */
+  [data-theme="light"] #tab-evolucao [style*="background:#112240"],
+  [data-theme="light"] #tab-evolucao [style*="background: #112240"] {
+    background: var(--bg-card) !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+  [data-theme="light"] #tab-evolucao [style*="color:#CBD5E1"],
+  [data-theme="light"] #tab-evolucao [style*="color: #CBD5E1"] { color: var(--texto) !important; }
+  [data-theme="light"] #tab-evolucao [style*="color:#93C5FD"],
+  [data-theme="light"] #tab-evolucao [style*="color: #93C5FD"] { color: var(--accent-text) !important; }
+  [data-theme="light"] #evol-table { background: var(--bg-card); }
+  [data-theme="light"] #evol-table thead tr { background: var(--azul) !important; }
+  [data-theme="light"] #evol-table .evol-filter-row { background: var(--bg-input) !important; }
+  [data-theme="light"] #evol-table .evol-filter-row select {
+    background: var(--bg-input) !important; border-color: var(--cinza-bd) !important;
+    color: var(--texto) !important;
+  }
+  [data-theme="light"] #evol-chart-tooltip {
+    background: var(--bg-card) !important; border-color: var(--cinza-bd) !important;
+    color: var(--texto) !important; box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  }
+  [data-theme="light"] #config-modal [style*="background:#112240"] {
+    background: var(--bg-card) !important; color: var(--texto) !important;
+  }
+  [data-theme="light"] #config-modal input,
+  [data-theme="light"] #config-modal button[style*="background:#1E3A5F"] {
+    background: var(--bg-input) !important; color: var(--texto) !important;
+    border-color: var(--cinza-bd) !important;
+  }
+  [data-theme="light"] #hist-modal [style*="background:#112240"] {
+    background: var(--bg-card) !important; color: var(--texto) !important;
+  }
+  [data-theme="light"] .kpi-detalhe-panel-item {
+    background: var(--bg-card); border: 1px solid var(--cinza-bd);
+  }
+  [data-theme="light"] #panel-right .titulo-item { background: var(--bg-card); }
+  [data-theme="light"] #panel-right .info-box    { background: var(--bg-card); }
+  [data-theme="light"] #panel-right .hist-section .hist-row { border-color: var(--cinza-bd); }
+  [data-theme="light"] #panel-right button[style*="background:#1E3A8A"] {
+    background: var(--azul) !important; color: var(--accent-text) !important;
+  }
+  [data-theme="light"] #kpi-detalhe-panel { background: var(--bg-panel); }
+  [data-theme="light"] #kpi-detalhe-panel > div > div:first-child { color: var(--accent-text) !important; }
+  [data-theme="light"] .audit-panel { border-color: var(--amar); }
+  [data-theme="light"] .audit-hist-item { border-color: var(--cinza-bd); }
+
+  /* Overrides para conteúdo gerado pelo JS na tabela de Evolução */
+  [data-theme="light"] #evol-table [style*="color:#CBD5E1"],
+  [data-theme="light"] #evol-table [style*="color:#B7C6E0"] { color: var(--texto) !important; }
+  [data-theme="light"] #evol-table [style*="color:#93C5FD"] { color: var(--accent-text) !important; }
+  [data-theme="light"] #evol-table td { color: var(--texto); }
+  [data-theme="light"] #evol-table tbody tr:nth-child(odd) { background: var(--bg-card); }
+
+  /* Overrides para conteúdo gerado por JS no painel de relatório */
+  [data-theme="light"] #relatorio-area-wrap { background: var(--bg-panel); }
+
+  /* Overrides para conteúdo gerado por JS no painel direito (renderDetalhe) */
+  [data-theme="light"] #panel-right [style*="color:#CBD5E1"] { color: var(--texto) !important; }
+  [data-theme="light"] #panel-right [style*="color:#B7C6E0"] { color: var(--texto-sec) !important; }
+  [data-theme="light"] #panel-right [style*="color:#93C5FD"] { color: var(--accent-text) !important; }
+  [data-theme="light"] #panel-right [style*="background:#0A1628"],
+  [data-theme="light"] #panel-right [style*="background: #0A1628"] { background: var(--bg-input) !important; border-color: var(--cinza-bd) !important; }
+  [data-theme="light"] #panel-right [style*="background:#1E3A5F"] { background: var(--azul-bg) !important; }
+
+  /* Destaques no topo da aba Evolução — labels e texto */
+  [data-theme="light"] #tab-evolucao #evol-top-reducao,
+  [data-theme="light"] #tab-evolucao #evol-top-crescimento,
+  [data-theme="light"] #tab-evolucao #evol-excelencia { color: var(--texto-sec) !important; }
+
 </style>
 </head>
 <body>
@@ -415,7 +561,14 @@
       <button class="btn-import-icon" title="Importar Vencidos (.xls/.xlsx)" onclick="document.getElementById('file-input').click()">📂</button>
       <input type="file" id="file-input" accept=".xls,.xlsx" onchange="importarVencidos(this)">
       <div id="header-auditor" style="font-size:13px;opacity:.8"></div>
-      <button class="btn-sair" onclick="sair()">Sair</button>
+      <button class="btn-tema" id="btn-tema" onclick="toggleTema()" title="Alternar tema claro/escuro">
+        <span class="btn-tema-icon" id="tema-icon">🌙</span>
+        <span class="btn-tema-label" id="tema-label">Escuro</span>
+      </button>
+      <button class="btn-sair" onclick="sair()" title="Encerrar sessão">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sair
+      </button>
     </div>
   </div>
 
@@ -476,8 +629,8 @@
   <!-- PAINEL DETALHE DO CARD -->
   <div id="kpi-detalhe-panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div id="kpi-detalhe-titulo" style="font-size:12px;font-weight:700;color:#93C5FD;text-transform:uppercase;letter-spacing:.6px"></div>
-      <button onclick="fecharCardDetalhe()" style="background:transparent;border:none;color:#CBD5E1;font-size:15px;cursor:pointer;opacity:.7">✕</button>
+      <div id="kpi-detalhe-titulo" style="font-size:12px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.6px"></div>
+      <button onclick="fecharCardDetalhe()" style="background:transparent;border:none;color:var(--texto-sec);font-size:15px;cursor:pointer;opacity:.7">✕</button>
     </div>
     <div id="kpi-detalhe-corpo" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px"></div>
   </div>
@@ -516,7 +669,7 @@
   <!-- ABA: RELATÓRIO GERAL -->
   <div class="tab-page" id="tab-relatorio">
     <div class="relatorio-bar">
-      <div style="font-size:13px;color:#B7C6E0">Relatório completo de todas as filiais — D60 semana anterior x D60 semana atual, pronto para enviar.</div>
+      <div style="font-size:13px;color:var(--texto-sec)">Relatório completo de todas as filiais — D60 semana anterior x D60 semana atual, pronto para enviar.</div>
       <div style="display:flex;gap:8px">
         <button class="btn-rel" onclick="exportarRelatorioXLSX()">📊 Exportar XLSX</button>
         <button class="btn-rel" onclick="exportarRelatorioPNG()">🖼 Exportar PNG</button>
@@ -533,27 +686,27 @@
 
       <!-- Destaques -->
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px">
-        <div style="background:#112240;border-radius:10px;padding:16px;border-top:3px solid #22C55E">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#C3D2EA;margin-bottom:8px">🏆 Top 3 Maiores Reduções</div>
-          <div id="evol-top-reducao" style="font-size:12px;color:#CBD5E1;line-height:1.9"></div>
+        <div style="background:var(--bg-card);border-radius:10px;padding:16px;border-top:3px solid var(--verde)">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--texto-ter);margin-bottom:8px">🏆 Top 3 Maiores Reduções</div>
+          <div id="evol-top-reducao" style="font-size:12px;color:var(--texto-sec);line-height:1.9"></div>
         </div>
-        <div style="background:#112240;border-radius:10px;padding:16px;border-top:3px solid #EF4444">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#C3D2EA;margin-bottom:8px">⚠️ Top 3 Maiores Crescimentos</div>
-          <div id="evol-top-crescimento" style="font-size:12px;color:#CBD5E1;line-height:1.9"></div>
+        <div style="background:var(--bg-card);border-radius:10px;padding:16px;border-top:3px solid var(--verm)">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--texto-ter);margin-bottom:8px">⚠️ Top 3 Maiores Crescimentos</div>
+          <div id="evol-top-crescimento" style="font-size:12px;color:var(--texto-sec);line-height:1.9"></div>
         </div>
-        <div style="background:#112240;border-radius:10px;padding:16px;border-top:3px solid #60A5FA">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#C3D2EA;margin-bottom:8px">⭐ Excelência em Crédito</div>
-          <div id="evol-excelencia" style="font-size:12px;color:#CBD5E1;line-height:1.9"></div>
+        <div style="background:var(--bg-card);border-radius:10px;padding:16px;border-top:3px solid #60A5FA">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--texto-ter);margin-bottom:8px">⭐ Excelência em Crédito</div>
+          <div id="evol-excelencia" style="font-size:12px;color:var(--texto-sec);line-height:1.9"></div>
         </div>
       </div>
 
       <!-- Gráfico de linha -->
-      <div style="background:#112240;border-radius:10px;padding:20px;margin-bottom:24px">
-        <div style="font-size:12px;font-weight:700;color:#93C5FD;margin-bottom:16px;text-transform:uppercase;letter-spacing:.6px">Evolução do Total Consolidado D60 — Semana a Semana</div>
+      <div style="background:var(--bg-card);border-radius:10px;padding:20px;margin-bottom:24px;box-shadow:var(--sombra)">
+        <div style="font-size:12px;font-weight:700;color:var(--accent-text);margin-bottom:16px;text-transform:uppercase;letter-spacing:.6px">Evolução do Total Consolidado D60 — Semana a Semana</div>
         <div id="evol-chart-wrap" style="position:relative;width:100%;overflow-x:auto">
           <svg id="evol-chart" style="display:block;min-width:600px;width:100%" height="220"></svg>
         </div>
-        <div id="evol-chart-tooltip" style="display:none;position:absolute;background:#0A1628;border:1px solid #1E3A5F;border-radius:6px;padding:6px 10px;font-size:11px;color:#CBD5E1;pointer-events:none;z-index:100"></div>
+        <div id="evol-chart-tooltip" style="display:none;position:absolute;background:var(--bg-body);border:1px solid var(--cinza-bd);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--texto);pointer-events:none;z-index:100"></div>
       </div>
 
       <!-- datalists para autocomplete -->
@@ -562,9 +715,9 @@
       <datalist id="dl-ljs"></datalist>
 
       <!-- Tabela por filial -->
-      <div style="background:#112240;border-radius:10px;padding:20px">
+      <div style="background:var(--bg-card);border-radius:10px;padding:20px;box-shadow:var(--sombra)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-          <div style="font-size:12px;font-weight:700;color:#93C5FD;text-transform:uppercase;letter-spacing:.6px">Evolução por Filial — Início do Ano vs Atual</div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.6px">Evolução por Filial — Início do Ano vs Atual</div>
           <button onclick="exportarSlideRegional()" title="Exportar slide PNG do regional filtrado" style="background:linear-gradient(135deg,#1E3A8A,#2563EB);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;letter-spacing:.3px;transition:opacity .2s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
             🖼 Exportar Slide do Regional
           </button>
@@ -572,7 +725,7 @@
         <div style="overflow-x:auto">
           <table id="evol-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
             <thead>
-              <tr style="background:#1E3A5F;color:#93C5FD;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">
+              <tr style="background:var(--azul);color:var(--branco);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">
                 <th style="padding:9px 12px;text-align:left;border-radius:6px 0 0 0" onclick="evolOrdenar('lj')" title="Ordenar por LJ">LJ <span id="evol-arrow-lj"></span></th>
                 <th style="padding:9px 12px;text-align:left" onclick="evolOrdenar('loja')" title="Ordenar por Filial">Filial <span id="evol-arrow-loja"></span></th>
                 <th style="padding:9px 12px;text-align:left" onclick="evolOrdenar('regional')" title="Ordenar por Regional">Regional <span id="evol-arrow-regional"></span></th>
@@ -584,7 +737,7 @@
                 <th style="padding:9px 12px;text-align:center" title="Gráfico de linha — evolução semana a semana">Histórico</th>
                 <th style="padding:9px 12px;text-align:center;border-radius:0 6px 0 0" onclick="evolOrdenar('status')" title="Ordenar por Status">Status <span id="evol-arrow-status"></span></th>
               </tr>
-              <tr class="evol-filter-row" style="background:#0A1628">
+              <tr class="evol-filter-row" style="background:var(--bg-input)">
                 <td style="padding:4px 6px"><input id="ef-lj" list="dl-ljs" placeholder="LJ…" oninput="renderEvolucao()"></td>
                 <td style="padding:4px 6px"><input id="ef-loja" list="dl-filiais" placeholder="Filial…" oninput="renderEvolucao()"></td>
                 <td style="padding:4px 6px"><input id="ef-regional" list="dl-regionais" placeholder="Regional…" oninput="renderEvolucao()"></td>
@@ -592,7 +745,7 @@
                 <td></td>
                 <td></td>
                 <td style="padding:4px 6px">
-                  <select id="ef-status" onchange="renderEvolucao()" style="width:100%;background:#0A1628;border:1px solid #1E3A5F;border-radius:4px;color:#CBD5E1;font-size:10px;padding:3px">
+                  <select id="ef-status" onchange="renderEvolucao()" style="width:100%;background:var(--bg-input);border:1px solid var(--cinza-bd);border-radius:4px;color:var(--texto);font-size:10px;padding:3px">
                     <option value="">Todos</option>
                     <option value="zero-total">Nunca registrou</option>
                     <option value="excel">Histórico mínimo</option>
@@ -617,18 +770,18 @@
 <div id="evol-row-tooltip"></div>
 
 <div id="config-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center">
-  <div style="background:#112240;border:1px solid #1E3A5F;border-radius:10px;padding:24px;min-width:340px;max-width:440px;color:#CBD5E1">
-    <div style="font-weight:700;font-size:15px;margin-bottom:16px;color:#93C5FD">⚙️ Configurações</div>
+  <div style="background:var(--bg-card);border:1px solid var(--cinza-bd);border-radius:10px;padding:24px;min-width:340px;max-width:440px;color:var(--texto)">
+    <div style="font-weight:700;font-size:15px;margin-bottom:16px;color:var(--accent-text)">⚙️ Configurações</div>
     <label style="font-size:12px;color:#C3D2EA;display:block;margin-bottom:4px">Auto-atualização da nuvem (min, 0 = off):</label>
-    <input id="cfg-intervalo" type="number" min="0" max="60" value="0" style="width:100%;padding:8px;border:1px solid #1E3A5F;border-radius:6px;font-size:13px;margin-bottom:14px;background:#0A1628;color:#CBD5E1">
+    <input id="cfg-intervalo" type="number" min="0" max="60" value="0" style="width:100%;padding:8px;border:1px solid var(--cinza-bd);border-radius:6px;font-size:13px;margin-bottom:14px;background:var(--bg-input);color:var(--texto)">
     <label style="font-size:12px;color:#C3D2EA;display:block;margin-bottom:4px">JSONbin ID (Vencidos compartilhado):</label>
-    <input id="cfg-ven-id" type="text" placeholder="ID do bin de vencidos" style="width:100%;padding:8px;border:1px solid #1E3A5F;border-radius:6px;font-size:13px;margin-bottom:14px;background:#0A1628;color:#CBD5E1">
-    <button onclick="criarBinVencidos()" style="width:100%;padding:7px;background:#1E3A5F;color:#93C5FD;border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:14px">⚡ Criar bin automaticamente (usa a Master Key abaixo)</button>
+    <input id="cfg-ven-id" type="text" placeholder="ID do bin de vencidos" style="width:100%;padding:8px;border:1px solid var(--cinza-bd);border-radius:6px;font-size:13px;margin-bottom:14px;background:var(--bg-input);color:var(--texto)">
+    <button onclick="criarBinVencidos()" style="width:100%;padding:7px;background:var(--azul-bg);color:var(--accent-text);border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:14px">⚡ Criar bin automaticamente (usa a Master Key abaixo)</button>
     <label style="font-size:12px;color:#C3D2EA;display:block;margin-bottom:4px">JSONbin Master Key (Vencidos):</label>
-    <input id="cfg-ven-key" type="password" placeholder="Master key" style="width:100%;padding:8px;border:1px solid #1E3A5F;border-radius:6px;font-size:13px;margin-bottom:14px;background:#0A1628;color:#CBD5E1">
-    <button onclick="abrirHistorico()" style="width:100%;padding:7px;background:#1E3A5F;color:#93C5FD;border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:16px">🗂️ Histórico de Importações (editar/excluir semanas)</button>
+    <input id="cfg-ven-key" type="password" placeholder="Master key" style="width:100%;padding:8px;border:1px solid var(--cinza-bd);border-radius:6px;font-size:13px;margin-bottom:14px;background:var(--bg-input);color:var(--texto)">
+    <button onclick="abrirHistorico()" style="width:100%;padding:7px;background:var(--azul-bg);color:var(--accent-text);border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:16px">🗂️ Histórico de Importações (editar/excluir semanas)</button>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button onclick="fecharConfig()" style="padding:8px 16px;border:1px solid #1E3A5F;background:#0A1628;color:#CBD5E1;border-radius:6px;cursor:pointer">Cancelar</button>
+      <button onclick="fecharConfig()" style="padding:8px 16px;border:1px solid var(--cinza-bd);background:var(--bg-input);color:var(--texto);border-radius:6px;cursor:pointer">Cancelar</button>
       <button onclick="salvarConfig()" style="padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700">Salvar</button>
     </div>
   </div>
@@ -636,13 +789,13 @@
 
 <!-- MODAL: HISTÓRICO DE IMPORTAÇÕES (oculto) -->
 <div id="hist-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);z-index:10000;align-items:center;justify-content:center">
-  <div style="background:#112240;border:1px solid #1E3A5F;border-radius:10px;padding:20px;width:94%;max-width:1100px;max-height:88vh;display:flex;flex-direction:column;color:#CBD5E1">
+  <div style="background:var(--bg-card);border:1px solid var(--cinza-bd);border-radius:10px;padding:20px;width:94%;max-width:1100px;max-height:88vh;display:flex;flex-direction:column;color:var(--texto)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-weight:700;font-size:15px;color:#93C5FD">🗂️ Histórico de Importações por Semana</div>
-      <button onclick="fecharHistorico()" style="background:transparent;border:none;color:#CBD5E1;font-size:18px;cursor:pointer">✕</button>
+      <div style="font-weight:700;font-size:15px;color:var(--accent-text)">🗂️ Histórico de Importações por Semana</div>
+      <button onclick="fecharHistorico()" style="background:transparent;border:none;color:var(--texto-sec);font-size:18px;cursor:pointer">✕</button>
     </div>
     <div style="font-size:11.5px;opacity:.75;margin-bottom:10px">Clique num valor para editar. Use ✕ no cabeçalho da coluna para excluir aquela semana de todas as filiais. Alterações são salvas na nuvem.</div>
-    <div style="overflow:auto;border:1px solid #1E3A5F;border-radius:8px;flex:1">
+    <div style="overflow:auto;border:1px solid var(--cinza-bd);border-radius:8px;flex:1">
       <table id="hist-table" style="border-collapse:collapse;font-size:11.5px;white-space:nowrap">
         <thead></thead>
         <tbody></tbody>
@@ -652,6 +805,9 @@
 </div>
 
 <script>
+  // Inicializar tema assim que o script carrega
+  (function(){ const s = localStorage.getItem('d60-tema'); const d = window.matchMedia('(prefers-color-scheme: dark)').matches; document.documentElement.setAttribute('data-theme', s || (d ? 'dark' : 'light')); })();
+
 // ════════════════════════════════════════════════════════════════════
 // DADOS EMBARCADOS
 // ════════════════════════════════════════════════════════════════════
@@ -751,6 +907,9 @@ function fazerLogin() {
 
   popularFiltroRegional();
   carregarNuvem();
+  // Atualizar botão de tema após o app se tornar visível
+  const _t = document.documentElement.getAttribute('data-theme') || 'dark';
+  _aplicarTema(_t);
 }
 
 function sair() {
@@ -2671,6 +2830,41 @@ function excluirSemanaHist(semana) {
   salvarVencidosNuvem();
   toast('Semana excluída do histórico.');
 }
+
+  // ══════════════════════════════════════════════════════════
+  // SISTEMA DE TEMA CLARO / ESCURO
+  // ══════════════════════════════════════════════════════════
+  function initTema() {
+    const saved = localStorage.getItem('d60-tema');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const tema = saved || (prefersDark ? 'dark' : 'light');
+    _aplicarTema(tema);
+
+    // Monitorar mudança do sistema operacional (só quando sem preferência manual)
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+      if (!localStorage.getItem('d60-tema')) {
+        _aplicarTema(e.matches ? 'dark' : 'light');
+      }
+    });
+  }
+
+  function _aplicarTema(tema) {
+    document.documentElement.setAttribute('data-theme', tema);
+    const icon  = document.getElementById('tema-icon');
+    const label = document.getElementById('tema-label');
+    if (icon && label) {
+      icon.textContent  = tema === 'dark' ? '🌙' : '☀️';
+      label.textContent = tema === 'dark' ? 'Escuro' : 'Claro';
+    }
+  }
+
+  function toggleTema() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('d60-tema', next);
+    _aplicarTema(next);
+  }
+
 </script>
 </body>
 </html>
