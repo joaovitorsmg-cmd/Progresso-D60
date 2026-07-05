@@ -151,10 +151,11 @@
   .filtros-bar select:focus { border-color: var(--azul-cl); }
   .btn-limpar {
     background: transparent; border: 1.5px solid var(--cinza-bd); color: var(--texto-sec);
-    padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer;
-    transition: all .2s;
+    padding: 5px 8px; border-radius: 6px; font-size: 13px; cursor: pointer;
+    transition: all .2s; display: inline-flex; align-items: center; justify-content: center;
+    min-width: 30px; height: 30px;
   }
-  .btn-limpar:hover { border-color: var(--azul-cl); color: var(--azul); }
+  .btn-limpar:hover { border-color: var(--azul-cl); color: var(--azul-med); background: var(--azul-bg); }
 
   /* ── KPI STRIP ──────────────────────────────────────────────────── */
   .kpi-strip {
@@ -341,8 +342,9 @@
   }
   .relatorio-bar .btn-rel {
     background: var(--azul); color: var(--accent-text); border: none; border-radius: 6px;
-    padding: 8px 16px; font-size: 12px; font-weight: 700; cursor: pointer;
-    display: flex; align-items: center; gap: 6px; transition: background .2s;
+    padding: 6px 11px; font-size: 13px; font-weight: 700; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 34px; transition: background .2s;
   }
   .relatorio-bar .btn-rel:hover { background: var(--azul-med); }
   #relatorio-area-wrap { padding: 20px 28px; overflow-x: auto; }
@@ -504,6 +506,50 @@
   [data-theme="light"] #tab-evolucao #evol-top-crescimento,
   [data-theme="light"] #tab-evolucao #evol-excelencia { color: var(--texto-sec) !important; }
 
+
+  /* ── TOOLTIP CSS ─────────────────────────────────────────── */
+  [data-tip] { position: relative; }
+  [data-tip]::after {
+    content: attr(data-tip); position: absolute; z-index: 9999;
+    top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    background: #0F172A; color: #F1F5F9;
+    padding: 5px 10px; border-radius: 5px; font-size: 11px; font-weight: 600;
+    white-space: nowrap; pointer-events: none;
+    opacity: 0; transition: opacity .15s .07s;
+    box-shadow: 0 3px 10px rgba(0,0,0,.35);
+  }
+  [data-tip]:hover::after { opacity: 1; }
+
+  /* Botão Exportar Slide (Evolução) — ícone compacto */
+  .btn-slide-export {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--azul), var(--azul-med));
+    color: #fff; border: none; border-radius: 8px;
+    width: 36px; height: 34px; font-size: 17px; cursor: pointer;
+    transition: opacity .2s, transform .15s;
+  }
+  .btn-slide-export:hover { opacity: .83; transform: translateY(-1px); }
+
+  /* Pequenos botões de exportação por filial (painel direito) */
+  .btn-export-sm {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--azul); color: var(--accent-text); border: none;
+    width: 30px; height: 28px; border-radius: 6px; font-size: 14px;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-export-sm:hover { background: var(--azul-med); }
+
+  /* btn-reverter estilizado (no header) */
+  #btn-reverter {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 6px;
+    background: rgba(239,68,68,.15) !important;
+    color: #EF4444 !important; font-size: 15px !important;
+    padding: 0 !important; opacity: 1 !important;
+    transition: background .2s !important;
+  }
+  #btn-reverter:hover { background: rgba(239,68,68,.28) !important; }
+
 </style>
 </head>
 <body>
@@ -557,8 +603,8 @@
     <div class="header-right">
       <div id="import-status"></div>
       <div id="import-date-info" class="import-date-info"></div>
-      <button id="btn-reverter" onclick="reverterVencidos()" title="Reverter upload" style="display:none;background:transparent;border:none;color:#EF4444;padding:4px;font-size:14px;cursor:pointer;opacity:.6">↩</button>
-      <button class="btn-import-icon" title="Importar Vencidos (.xls/.xlsx)" onclick="document.getElementById('file-input').click()">📂</button>
+      <button id="btn-reverter" onclick="reverterVencidos()" data-tip="Reverter importação" title="Reverter importação" style="display:none;background:transparent;border:none;cursor:pointer">↩</button>
+      <button class="btn-import-icon" data-tip="Importar arquivo de vencidos" title="Importar Vencidos (.xls/.xlsx)" onclick="document.getElementById('file-input').click()">📂</button>
       <input type="file" id="file-input" accept=".xls,.xlsx" onchange="importarVencidos(this)">
       <div id="header-auditor" style="font-size:13px;opacity:.8"></div>
       <button class="btn-tema" id="btn-tema" onclick="toggleTema()" title="Alternar tema claro/escuro">
@@ -594,7 +640,7 @@
     <select id="f-auditor" onchange="aplicarFiltros()">
       <option value="">Todos os Auditores</option>
     </select>
-    <button class="btn-limpar" onclick="limparFiltros()">✕ Limpar</button>
+    <button class="btn-limpar" data-tip="Limpar filtros" onclick="limparFiltros()" title="Limpar filtros"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
 
   <!-- KPIs -->
@@ -671,8 +717,8 @@
     <div class="relatorio-bar">
       <div style="font-size:13px;color:var(--texto-sec)">Relatório completo de todas as filiais — D60 semana anterior x D60 semana atual, pronto para enviar.</div>
       <div style="display:flex;gap:8px">
-        <button class="btn-rel" onclick="exportarRelatorioXLSX()">📊 Exportar XLSX</button>
-        <button class="btn-rel" onclick="exportarRelatorioPNG()">🖼 Exportar PNG</button>
+        <button class="btn-rel" data-tip="Exportar relatório em XLSX" onclick="exportarRelatorioXLSX()" title="Exportar XLSX">📊</button>
+        <button class="btn-rel" data-tip="Exportar relatório em PNG" onclick="exportarRelatorioPNG()" title="Exportar PNG">🖼</button>
       </div>
     </div>
     <div id="relatorio-area-wrap">
@@ -718,9 +764,7 @@
       <div style="background:var(--bg-card);border-radius:10px;padding:20px;box-shadow:var(--sombra)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
           <div style="font-size:12px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.6px">Evolução por Filial — Início do Ano vs Atual</div>
-          <button onclick="exportarSlideRegional()" title="Exportar slide PNG do regional filtrado" style="background:linear-gradient(135deg,#1E3A8A,#2563EB);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;letter-spacing:.3px;transition:opacity .2s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-            🖼 Exportar Slide do Regional
-          </button>
+          <button class="btn-slide-export" data-tip="Exportar slide PNG — selecione um Regional no filtro primeiro" onclick="exportarSlideRegional()" title="Exportar Slide do Regional"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M9 10l2 2 4-4"/></svg></button>
         </div>
         <div style="overflow-x:auto">
           <table id="evol-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
@@ -1504,8 +1548,8 @@ function renderDetalhe(lj) {
   let html = '';
 
   html += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">';
-  html += '<button onclick="exportarXLSX(' + lj + ')" title="Exportar XLSX" style="background:#1E3A8A;color:#93C5FD;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px">📊 XLSX</button>';
-  html += '<button onclick="exportarPNG(' + lj + ')" title="Exportar PNG" style="background:#1E3A8A;color:#93C5FD;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px">🖼 PNG</button>';
+  html += '<button onclick="exportarXLSX(' + lj + ')" class="btn-export-sm" data-tip="Exportar XLSX" title="Exportar XLSX">📊</button>';
+  html += '<button onclick="exportarPNG(' + lj + ')" class="btn-export-sm" data-tip="Exportar PNG" title="Exportar PNG">🖼</button>';
   html += '</div>';
 
   // Header
@@ -2373,20 +2417,25 @@ function preencherDatalistsEvolucao() {
 
 // ── EXPORTAR SLIDE REGIONAL ───────────────────────────────────────────
 async function exportarSlideRegional() {
-  const ev  = calcEvolucao();
+  // Exige seleção de um regional — evita gerar múltiplos arquivos
   const fReg = (document.getElementById('ef-regional') || {value:''}).value.trim();
+  if (!fReg) {
+    toast('⚠️ Selecione um Regional no filtro acima para exportar o slide.');
+    return;
+  }
+  const ev  = calcEvolucao();
 
-  // Agrupar por regional
+  // Filtrar apenas o regional selecionado
   const regMap = {};
   ev.forEach(e => {
     const reg = e.base.regional;
-    if (fReg && reg.toLowerCase() !== fReg.toLowerCase()) return;
+    if (reg.toLowerCase() !== fReg.toLowerCase()) return;
     if (!regMap[reg]) regMap[reg] = [];
     regMap[reg].push(e);
   });
 
-  const regsAExportar = Object.keys(regMap).sort();
-  if (!regsAExportar.length) { toast('Nenhum regional para exportar.'); return; }
+  const regsAExportar = Object.keys(regMap);
+  if (!regsAExportar.length) { toast('Nenhuma filial encontrada para o regional selecionado.'); return; }
 
   const totalGeral = BASE_REGIONAIS.reduce((s, b) => s + (getD60Atual(b.lj) || 0), 0);
   const semanaRef  = semanaAtual ? formatarData(semanaAtual) : 'última semana';
@@ -2668,7 +2717,7 @@ async function exportarSlideRegional() {
     link.href = canvas.toDataURL('image/png');
     link.click();
   }
-  toast('✅ Slide(s) exportado(s)!');
+  toast('✅ Slide exportado com sucesso!');
 }
 
 function clipText(ctx, text, maxW) {
