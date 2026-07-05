@@ -550,6 +550,36 @@
   }
   #btn-reverter:hover { background: rgba(239,68,68,.28) !important; }
 
+
+  /* ── FILTRO DINÂMICO — chip resultado + btn ativo ─────────────── */
+  .filtro-chip-resultado {
+    font-size: 11px; font-weight: 600;
+    background: var(--azul-bg); color: var(--accent-text);
+    padding: 3px 10px; border-radius: 20px;
+    border: 1px solid var(--azul-cl);
+    white-space: nowrap; margin-left: 4px;
+  }
+  .btn-limpar-ativo {
+    border-color: var(--azul-cl) !important;
+    color: var(--azul-med) !important;
+    background: var(--azul-bg) !important;
+  }
+
+  /* ── BARRA FILTROS EVOLUÇÃO ────────────────────────────────────── */
+  .filtros-bar-evol {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 10px 0 14px; border-bottom: 1px solid var(--cinza-bd);
+    margin-bottom: 12px;
+  }
+  .filtros-bar-evol input,
+  .filtros-bar-evol select {
+    padding: 6px 10px; border: 1.5px solid var(--cinza-bd); border-radius: 6px;
+    font-size: 12px; color: var(--texto); background: var(--bg-input); outline: none;
+    min-width: 110px; flex: 1 1 auto;
+  }
+  .filtros-bar-evol input:focus,
+  .filtros-bar-evol select:focus { border-color: var(--azul-cl); }
+
 </style>
 </head>
 <body>
@@ -631,16 +661,17 @@
   <!-- FILTROS -->
   <div class="filtros-bar">
     <div class="filtro-label">Filtros:</div>
-    <select id="f-regional" onchange="aplicarFiltros()">
+    <select id="f-regional" onchange="onFiltroRegionalChange()">
       <option value="">Todos os Regionais</option>
     </select>
-    <select id="f-filial" onchange="aplicarFiltros()">
+    <select id="f-filial" onchange="onFiltroFilialChange()">
       <option value="">Todas as Filiais</option>
     </select>
     <select id="f-auditor" onchange="aplicarFiltros()">
       <option value="">Todos os Auditores</option>
     </select>
-    <button class="btn-limpar" data-tip="Limpar filtros" onclick="limparFiltros()" title="Limpar filtros"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <button class="btn-limpar" id="btn-limpar-painel" data-tip="Limpar filtros" onclick="limparFiltros()" title="Limpar filtros"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <span id="filtro-resultado" class="filtro-chip-resultado" style="display:none"></span>
   </div>
 
   <!-- KPIs -->
@@ -766,6 +797,23 @@
           <div style="font-size:12px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.6px">Evolução por Filial — Início do Ano vs Atual</div>
           <button class="btn-slide-export" data-tip="Exportar slide PNG — selecione um Regional no filtro primeiro" onclick="exportarSlideRegional()" title="Exportar Slide do Regional"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M9 10l2 2 4-4"/></svg></button>
         </div>
+        <div class="filtros-bar-evol">
+          <div class="filtro-label">Filtros:</div>
+          <input id="ef-lj" list="dl-ljs" placeholder="LJ…" oninput="_renderEvolucaoDebounced()">
+          <input id="ef-loja" list="dl-filiais" placeholder="Filial…" oninput="_renderEvolucaoDebounced()">
+          <input id="ef-regional" list="dl-regionais" placeholder="Regional…" oninput="_renderEvolucaoDebounced()">
+          <select id="ef-status" onchange="renderEvolucao()">
+            <option value="">Todos os Status</option>
+            <option value="zero-total">🌟 Nunca registrou</option>
+            <option value="excel">⭐ Histórico mínimo</option>
+            <option value="reducao">🟢 Em redução</option>
+            <option value="estavel">🟡 Estável</option>
+            <option value="crescimento">🔴 Em crescimento</option>
+            <option value="sem-dados">⚫ Sem dados</option>
+          </select>
+          <button class="btn-limpar" id="btn-limpar-evol" data-tip="Limpar filtros" onclick="limparFiltrosEvol()" title="Limpar filtros"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          <span id="evol-resultado" class="filtro-chip-resultado" style="display:none"></span>
+        </div>
         <div style="overflow-x:auto">
           <table id="evol-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
             <thead>
@@ -781,25 +829,7 @@
                 <th style="padding:9px 12px;text-align:center" title="Gráfico de linha — evolução semana a semana">Histórico</th>
                 <th style="padding:9px 12px;text-align:center;border-radius:0 6px 0 0" onclick="evolOrdenar('status')" title="Ordenar por Status">Status <span id="evol-arrow-status"></span></th>
               </tr>
-              <tr class="evol-filter-row" style="background:var(--bg-input)">
-                <td style="padding:4px 6px"><input id="ef-lj" list="dl-ljs" placeholder="LJ…" oninput="renderEvolucao()"></td>
-                <td style="padding:4px 6px"><input id="ef-loja" list="dl-filiais" placeholder="Filial…" oninput="renderEvolucao()"></td>
-                <td style="padding:4px 6px"><input id="ef-regional" list="dl-regionais" placeholder="Regional…" oninput="renderEvolucao()"></td>
-                <td colspan="4"></td>
-                <td></td>
-                <td></td>
-                <td style="padding:4px 6px">
-                  <select id="ef-status" onchange="renderEvolucao()" style="width:100%;background:var(--bg-input);border:1px solid var(--cinza-bd);border-radius:4px;color:var(--texto);font-size:10px;padding:3px">
-                    <option value="">Todos</option>
-                    <option value="zero-total">Nunca registrou</option>
-                    <option value="excel">Histórico mínimo</option>
-                    <option value="reducao">Em redução</option>
-                    <option value="estavel">Estável</option>
-                    <option value="crescimento">Em crescimento</option>
-                    <option value="sem-dados">Sem dados</option>
-                  </select>
-                </td>
-              </tr>
+
             </thead>
             <tbody id="evol-tbody"></tbody>
           </table>
@@ -1343,7 +1373,12 @@ function trocarAba(aba) {
     document.getElementById('tab-' + id).classList.toggle('active', aba === id);
     document.getElementById('tab-btn-' + id).classList.toggle('active', aba === id);
   });
-  if (aba === 'evolucao') renderEvolucao();
+  if (aba === 'evolucao') {
+    const fReg  = document.getElementById('f-regional');
+    const efReg = document.getElementById('ef-regional');
+    if (fReg && efReg && fReg.value && !efReg.value) efReg.value = fReg.value;
+    renderEvolucao();
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1919,29 +1954,97 @@ function excluirAuditoria(lj, idx) {
 // ════════════════════════════════════════════════════════════════════
 // FILTROS
 // ════════════════════════════════════════════════════════════════════
-function popularFiltroRegional() {
-  const regionais = [...new Set(BASE_REGIONAIS.map(b => b.regional))].sort();
-  const sel = document.getElementById('f-regional');
-  regionais.forEach(r => {
-    const opt = document.createElement('option');
-    opt.value = r; opt.textContent = r;
-    sel.appendChild(opt);
-  });
-
+// ── HELPERS CASCATA ─────────────────────────────────────────────
+function _popularFiliais(reg) {
   const selF = document.getElementById('f-filial');
-  BASE_REGIONAIS.forEach(b => {
+  const prev = selF.value;
+  selF.innerHTML = '<option value="">Todas as Filiais</option>';
+  const fonte = reg ? BASE_REGIONAIS.filter(b => b.regional === reg) : BASE_REGIONAIS;
+  fonte.slice().sort((a,b) => a.lj - b.lj).forEach(b => {
     const opt = document.createElement('option');
     opt.value = b.lj; opt.textContent = 'LJ ' + b.lj + ' — ' + b.loja;
     selF.appendChild(opt);
   });
+  if (prev && [...selF.options].some(o => o.value === prev)) selF.value = prev;
+}
 
+function _popularAuditores(reg, lj) {
   const selA = document.getElementById('f-auditor');
-  const auditores = [...new Set(BASE_REGIONAIS.map(b => b.auditor))].sort();
+  const prev = selA.value;
+  selA.innerHTML = '<option value="">Todos os Auditores</option>';
+  let fonte = BASE_REGIONAIS;
+  if (reg) fonte = fonte.filter(b => b.regional === reg);
+  if (lj)  fonte = fonte.filter(b => String(b.lj) === String(lj));
+  const auditores = [...new Set(fonte.map(b => b.auditor))].sort();
   auditores.forEach(a => {
     const opt = document.createElement('option');
     opt.value = a; opt.textContent = a;
     selA.appendChild(opt);
   });
+  if (prev && [...selA.options].some(o => o.value === prev)) selA.value = prev;
+}
+
+function _atualizarResultadoPainel() {
+  const chip = document.getElementById('filtro-resultado');
+  const btn  = document.getElementById('btn-limpar-painel');
+  if (!chip) return;
+  const ativo = ['f-regional','f-filial','f-auditor'].some(id => {
+    const el = document.getElementById(id); return el && el.value;
+  });
+  chip.textContent = ativo ? (dadosTabela.length + ' de ' + BASE_REGIONAIS.length + ' filiais') : '';
+  chip.style.display = ativo ? '' : 'none';
+  if (btn) btn.classList.toggle('btn-limpar-ativo', ativo);
+}
+
+function onFiltroRegionalChange() {
+  const reg = document.getElementById('f-regional').value;
+  document.getElementById('f-filial').value  = '';
+  document.getElementById('f-auditor').value = '';
+  _popularFiliais(reg);
+  _popularAuditores(reg, '');
+  aplicarFiltros();
+}
+
+function onFiltroFilialChange() {
+  const reg = document.getElementById('f-regional').value;
+  const lj  = document.getElementById('f-filial').value;
+  _popularAuditores(reg, lj);
+  aplicarFiltros();
+}
+
+// ── FILTROS EVOLUÇÃO ─────────────────────────────────────────────
+const _renderEvolucaoDebounced = (function() {
+  let t; return function() { clearTimeout(t); t = setTimeout(renderEvolucao, 220); };
+})();
+
+function limparFiltrosEvol() {
+  ['ef-lj','ef-loja','ef-regional','ef-status'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  renderEvolucao();
+}
+
+function _atualizarResultadoEvol(total, vis) {
+  const chip = document.getElementById('evol-resultado');
+  const btn  = document.getElementById('btn-limpar-evol');
+  if (!chip) return;
+  const ativo = ['ef-lj','ef-loja','ef-regional','ef-status'].some(id => {
+    const el = document.getElementById(id); return el && el.value;
+  });
+  chip.textContent = ativo ? (vis + ' de ' + total + ' filiais') : '';
+  chip.style.display = ativo ? '' : 'none';
+  if (btn) btn.classList.toggle('btn-limpar-ativo', ativo);
+}
+
+function popularFiltroRegional() {
+  const regionais = [...new Set(BASE_REGIONAIS.map(b => b.regional))].sort();
+  const sel = document.getElementById('f-regional');
+  regionais.forEach(r => {
+    const opt = document.createElement('option'); opt.value = r; opt.textContent = r;
+    sel.appendChild(opt);
+  });
+  _popularFiliais('');
+  _popularAuditores('', '');
 }
 
 function reverterVencidos() {
@@ -1965,10 +2068,14 @@ function reverterVencidos() {
   toast('Vencidos revertidos com sucesso.');
 }
 
-function aplicarFiltros() { filialSel = null; renderTabela(); }
+function aplicarFiltros() { filialSel = null; renderTabela(); _atualizarResultadoPainel(); }
 function limparFiltros() {
-  ['f-regional','f-filial','f-auditor'].forEach(id => document.getElementById(id).value = '');
-  filialSel = null; renderTabela();
+  document.getElementById('f-regional').value = '';
+  document.getElementById('f-filial').value   = '';
+  document.getElementById('f-auditor').value  = '';
+  _popularFiliais('');
+  _popularAuditores('', '');
+  filialSel = null; renderTabela(); _atualizarResultadoPainel();
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -2215,6 +2322,7 @@ function renderEvolucao() {
     if (fStatus && e.status !== fStatus)                       return false;
     return true;
   });
+  _atualizarResultadoEvol(ev.length, linhas.length);
 
   // Ordenação
   const { col, dir } = evolSortState;
