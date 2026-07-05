@@ -179,12 +179,7 @@
   #evol-table tbody tr:hover { background:var(--hover-row); }
   #evol-table thead th { cursor:pointer; user-select:none; }
   #evol-table thead th:hover { background:#2563EB88; }
-  .evol-filter-row input {
-    width:100%; box-sizing:border-box; padding:4px 6px; font-size:10px;
-    background:var(--bg-input); border:1px solid var(--cinza-bd); border-radius:4px;
-    color:var(--texto); outline:none;
-  }
-  .evol-filter-row input:focus { border-color:#2563EB; }
+
   .kpi-card { cursor:pointer; transition:box-shadow .15s, transform .1s; }
   .kpi-card:hover { box-shadow:0 0 0 2px #2563EB66; transform:translateY(-1px); }
   #kpi-detalhe-panel {
@@ -449,11 +444,7 @@
   [data-theme="light"] #tab-evolucao [style*="color: #93C5FD"] { color: var(--accent-text) !important; }
   [data-theme="light"] #evol-table { background: var(--bg-card); }
   [data-theme="light"] #evol-table thead tr { background: var(--azul) !important; }
-  [data-theme="light"] #evol-table .evol-filter-row { background: var(--bg-input) !important; }
-  [data-theme="light"] #evol-table .evol-filter-row select {
-    background: var(--bg-input) !important; border-color: var(--cinza-bd) !important;
-    color: var(--texto) !important;
-  }
+
   [data-theme="light"] #evol-chart-tooltip {
     background: var(--bg-card) !important; border-color: var(--cinza-bd) !important;
     color: var(--texto) !important; box-shadow: 0 4px 12px rgba(0,0,0,.15);
@@ -565,20 +556,11 @@
     background: var(--azul-bg) !important;
   }
 
-  /* ── BARRA FILTROS EVOLUÇÃO ────────────────────────────────────── */
-  .filtros-bar-evol {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    padding: 10px 0 14px; border-bottom: 1px solid var(--cinza-bd);
-    margin-bottom: 12px;
-  }
-  .filtros-bar-evol input,
-  .filtros-bar-evol select {
-    padding: 6px 10px; border: 1.5px solid var(--cinza-bd); border-radius: 6px;
-    font-size: 12px; color: var(--texto); background: var(--bg-input); outline: none;
-    min-width: 110px; flex: 1 1 auto;
-  }
-  .filtros-bar-evol input:focus,
-  .filtros-bar-evol select:focus { border-color: var(--azul-cl); }
+
+
+  /* ── STATUS WRAP (visível só na aba Evolução) ──────────────────── */
+  #evol-status-wrap { display: none; }
+  #evol-status-wrap select { min-width: 160px; }
 
 </style>
 </head>
@@ -655,10 +637,7 @@
     <button class="tab-btn" id="tab-btn-evolucao" onclick="trocarAba('evolucao')">📈 Evolução</button>
   </div>
 
-  <!-- ABA: PAINEL -->
-  <div class="tab-page active" id="tab-painel">
-
-  <!-- FILTROS -->
+  <!-- FILTROS GLOBAIS — afetam Painel, Relatório e Evolução -->
   <div class="filtros-bar">
     <div class="filtro-label">Filtros:</div>
     <select id="f-regional" onchange="onFiltroRegionalChange()">
@@ -670,9 +649,23 @@
     <select id="f-auditor" onchange="aplicarFiltros()">
       <option value="">Todos os Auditores</option>
     </select>
+    <div id="evol-status-wrap" style="display:none">
+      <select id="ef-status" onchange="onFiltroStatusChange()" title="Filtrar por status — Aba Evolução">
+        <option value="">Todos os Status</option>
+        <option value="zero-total">🌟 Nunca registrou</option>
+        <option value="excel">⭐ Histórico mínimo</option>
+        <option value="reducao">🟢 Em redução</option>
+        <option value="estavel">🟡 Estável</option>
+        <option value="crescimento">🔴 Em crescimento</option>
+        <option value="sem-dados">⚫ Sem dados</option>
+      </select>
+    </div>
     <button class="btn-limpar" id="btn-limpar-painel" data-tip="Limpar filtros" onclick="limparFiltros()" title="Limpar filtros"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <span id="filtro-resultado" class="filtro-chip-resultado" style="display:none"></span>
   </div>
+
+  <!-- ABA: PAINEL -->
+  <div class="tab-page active" id="tab-painel">
 
   <!-- KPIs -->
   <div class="kpi-strip" id="kpi-strip">
@@ -786,33 +779,11 @@
         <div id="evol-chart-tooltip" style="display:none;position:absolute;background:var(--bg-body);border:1px solid var(--cinza-bd);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--texto);pointer-events:none;z-index:100"></div>
       </div>
 
-      <!-- datalists para autocomplete -->
-      <datalist id="dl-regionais"></datalist>
-      <datalist id="dl-filiais"></datalist>
-      <datalist id="dl-ljs"></datalist>
-
       <!-- Tabela por filial -->
       <div style="background:var(--bg-card);border-radius:10px;padding:20px;box-shadow:var(--sombra)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
           <div style="font-size:12px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.6px">Evolução por Filial — Início do Ano vs Atual</div>
           <button class="btn-slide-export" data-tip="Exportar slide PNG — selecione um Regional no filtro primeiro" onclick="exportarSlideRegional()" title="Exportar Slide do Regional"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M9 10l2 2 4-4"/></svg></button>
-        </div>
-        <div class="filtros-bar-evol">
-          <div class="filtro-label">Filtros:</div>
-          <input id="ef-lj" list="dl-ljs" placeholder="LJ…" oninput="_renderEvolucaoDebounced()">
-          <input id="ef-loja" list="dl-filiais" placeholder="Filial…" oninput="_renderEvolucaoDebounced()">
-          <input id="ef-regional" list="dl-regionais" placeholder="Regional…" oninput="_renderEvolucaoDebounced()">
-          <select id="ef-status" onchange="renderEvolucao()">
-            <option value="">Todos os Status</option>
-            <option value="zero-total">🌟 Nunca registrou</option>
-            <option value="excel">⭐ Histórico mínimo</option>
-            <option value="reducao">🟢 Em redução</option>
-            <option value="estavel">🟡 Estável</option>
-            <option value="crescimento">🔴 Em crescimento</option>
-            <option value="sem-dados">⚫ Sem dados</option>
-          </select>
-          <button class="btn-limpar" id="btn-limpar-evol" data-tip="Limpar filtros" onclick="limparFiltrosEvol()" title="Limpar filtros"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-          <span id="evol-resultado" class="filtro-chip-resultado" style="display:none"></span>
         </div>
         <div style="overflow-x:auto">
           <table id="evol-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
@@ -1373,12 +1344,9 @@ function trocarAba(aba) {
     document.getElementById('tab-' + id).classList.toggle('active', aba === id);
     document.getElementById('tab-btn-' + id).classList.toggle('active', aba === id);
   });
-  if (aba === 'evolucao') {
-    const fReg  = document.getElementById('f-regional');
-    const efReg = document.getElementById('ef-regional');
-    if (fReg && efReg && fReg.value && !efReg.value) efReg.value = fReg.value;
-    renderEvolucao();
-  }
+  const stWrap = document.getElementById('evol-status-wrap');
+  if (stWrap) stWrap.style.display = aba === 'evolucao' ? '' : 'none';
+  if (aba === 'evolucao') renderEvolucao();
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1984,11 +1952,13 @@ function _popularAuditores(reg, lj) {
   if (prev && [...selA.options].some(o => o.value === prev)) selA.value = prev;
 }
 
+function onFiltroStatusChange() { renderEvolucao(); _atualizarResultadoPainel(); }
+
 function _atualizarResultadoPainel() {
   const chip = document.getElementById('filtro-resultado');
   const btn  = document.getElementById('btn-limpar-painel');
   if (!chip) return;
-  const ativo = ['f-regional','f-filial','f-auditor'].some(id => {
+  const ativo = ['f-regional','f-filial','f-auditor','ef-status'].some(id => {
     const el = document.getElementById(id); return el && el.value;
   });
   chip.textContent = ativo ? (dadosTabela.length + ' de ' + BASE_REGIONAIS.length + ' filiais') : '';
@@ -2012,29 +1982,7 @@ function onFiltroFilialChange() {
   aplicarFiltros();
 }
 
-// ── FILTROS EVOLUÇÃO ─────────────────────────────────────────────
-const _renderEvolucaoDebounced = (function() {
-  let t; return function() { clearTimeout(t); t = setTimeout(renderEvolucao, 220); };
-})();
 
-function limparFiltrosEvol() {
-  ['ef-lj','ef-loja','ef-regional','ef-status'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  renderEvolucao();
-}
-
-function _atualizarResultadoEvol(total, vis) {
-  const chip = document.getElementById('evol-resultado');
-  const btn  = document.getElementById('btn-limpar-evol');
-  if (!chip) return;
-  const ativo = ['ef-lj','ef-loja','ef-regional','ef-status'].some(id => {
-    const el = document.getElementById(id); return el && el.value;
-  });
-  chip.textContent = ativo ? (vis + ' de ' + total + ' filiais') : '';
-  chip.style.display = ativo ? '' : 'none';
-  if (btn) btn.classList.toggle('btn-limpar-ativo', ativo);
-}
 
 function popularFiltroRegional() {
   const regionais = [...new Set(BASE_REGIONAIS.map(b => b.regional))].sort();
@@ -2068,14 +2016,15 @@ function reverterVencidos() {
   toast('Vencidos revertidos com sucesso.');
 }
 
-function aplicarFiltros() { filialSel = null; renderTabela(); _atualizarResultadoPainel(); }
+function aplicarFiltros() { filialSel = null; renderTabela(); _atualizarResultadoPainel(); renderEvolucao(); }
 function limparFiltros() {
   document.getElementById('f-regional').value = '';
   document.getElementById('f-filial').value   = '';
   document.getElementById('f-auditor').value  = '';
+  const st = document.getElementById('ef-status'); if (st) st.value = '';
   _popularFiliais('');
   _popularAuditores('', '');
-  filialSel = null; renderTabela(); _atualizarResultadoPainel();
+  filialSel = null; renderTabela(); _atualizarResultadoPainel(); renderEvolucao();
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -2309,20 +2258,18 @@ function renderEvolucao() {
   );
   renderGraficoLinha(todasSemanas, totaisPorSemana);
 
-  // Filtros
-  const fLj      = (document.getElementById('ef-lj')      || {value:''}).value.trim().toLowerCase();
-  const fLoja    = (document.getElementById('ef-loja')    || {value:''}).value.trim().toLowerCase();
-  const fReg     = (document.getElementById('ef-regional')|| {value:''}).value.trim().toLowerCase();
-  const fStatus  = (document.getElementById('ef-status')  || {value:''}).value;
+  // Filtros — usa os mesmos selects globais do Painel
+  const fReg    = (document.getElementById('f-regional') || {value:''}).value;
+  const fFilial = (document.getElementById('f-filial')   || {value:''}).value;
+  const fStatus = (document.getElementById('ef-status')  || {value:''}).value;
 
   let linhas = ev.filter(e => {
-    if (fLj     && !String(e.base.lj).includes(fLj))          return false;
-    if (fLoja   && !e.base.loja.toLowerCase().includes(fLoja)) return false;
-    if (fReg    && !e.base.regional.toLowerCase().includes(fReg)) return false;
-    if (fStatus && e.status !== fStatus)                       return false;
+    if (fReg    && e.base.regional !== fReg)                    return false;
+    if (fFilial && String(e.base.lj) !== String(fFilial))       return false;
+    if (fStatus && e.status !== fStatus)                        return false;
     return true;
   });
-  _atualizarResultadoEvol(ev.length, linhas.length);
+  _atualizarResultadoPainel();
 
   // Ordenação
   const { col, dir } = evolSortState;
