@@ -772,7 +772,10 @@
 
       <!-- Gráfico de linha -->
       <div style="background:var(--bg-card);border-radius:10px;padding:20px;margin-bottom:24px;box-shadow:var(--sombra)">
-        <div style="font-size:12px;font-weight:700;color:var(--accent-text);margin-bottom:16px;text-transform:uppercase;letter-spacing:.6px">Evolução do Total Consolidado D60 — Semana a Semana</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px">
+          <div id="evol-chart-titulo" style="font-size:12px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.6px;flex:1">Evolução do Total Consolidado D60 — Semana a Semana</div>
+          <button onclick="exportarGraficoTransparente()" data-tip="Exportar gráfico PNG com fundo transparente (para apresentações)" style="background:transparent;border:1px solid var(--cinza-bd);border-radius:6px;padding:4px 10px;font-size:10px;color:var(--texto-sec);cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PNG s/fundo</button>
+        </div>
         <div id="evol-chart-wrap" style="position:relative;width:100%;overflow-x:auto">
           <svg id="evol-chart" style="display:block;min-width:600px;width:100%" height="220"></svg>
         </div>
@@ -2230,18 +2233,38 @@ function fecharCardDetalhe() {
 
 function renderEvolucao() {
   const ev = calcEvolucao();
-  const comDados = ev.filter(e => e.delta !== null && e.nSemanas >= 2);
+
+  // Lê filtros PRIMEIRO — aplicados em todos os painéis, gráfico e tabela
+  const fReg    = (document.getElementById('f-regional') || {value:''}).value;
+  const fFilial = (document.getElementById('f-filial')   || {value:''}).value;
+  const fStatus = (document.getElementById('ef-status')  || {value:''}).value;
+
+  // Label de contexto para titles e insights
+  const ctxLabel = fFilial
+    ? 'LJ ' + fFilial
+    : fReg ? fReg : '';
+
+  // evFiltrado = filtro por regional/filial (status só na tabela)
+  const evFiltrado = ev.filter(e => {
+    if (fReg    && e.base.regional !== fReg)              return false;
+    if (fFilial && String(e.base.lj) !== String(fFilial)) return false;
+    return true;
+  });
+
+  const comDados = evFiltrado.filter(e => e.delta !== null && e.nSemanas >= 2);
   const topRed  = comDados.filter(e => e.delta < 0).sort((a,b) => a.deltaPct - b.deltaPct).slice(0,3);
   const topCres = comDados.filter(e => e.delta > 0).sort((a,b) => b.deltaPct - a.deltaPct).slice(0,3);
-  const excel   = ev.filter(e => e.status === 'zero-total' || e.status === 'excel');
+  const excel   = evFiltrado.filter(e => e.status === 'zero-total' || e.status === 'excel');
+
+  const ctxSpan = ctxLabel ? ' de <b style="color:var(--accent-text)">' + ctxLabel + '</b>' : '';
 
   document.getElementById('evol-top-reducao').innerHTML = topRed.length
     ? topRed.map(e => '<span style="color:#22C55E;font-weight:700">' + e.base.loja + '</span> ↘ ' + e.deltaPct.toFixed(1) + '% <span style="opacity:.7">(' + formatMoeda(Math.abs(e.delta)) + ')</span>').join('<br>')
-    : '<span style="opacity:.6">Sem dados suficientes</span>';
+    : '<span style="color:#22C55E;font-size:11px;line-height:1.6">✅ Nenhuma filial' + ctxSpan + ' em trajetória de redução — todas em estabilidade ou crescimento neste período.</span>';
 
   document.getElementById('evol-top-crescimento').innerHTML = topCres.length
     ? topCres.map(e => '<span style="color:#EF4444;font-weight:700">' + e.base.loja + '</span> ↗ +' + e.deltaPct.toFixed(1) + '% <span style="opacity:.7">(' + formatMoeda(e.delta) + ')</span>').join('<br>')
-    : '<span style="opacity:.6">Nenhuma filial em crescimento</span>';
+    : '<span style="color:#22C55E;font-size:11px;line-height:1.6">✅ Nenhuma filial' + ctxSpan + ' em crescimento de D60. Situação sob controle.</span>';
 
   document.getElementById('evol-excelencia').innerHTML = excel.length
     ? excel.map(e => {
@@ -2249,24 +2272,22 @@ function renderEvolucao() {
         const desc = e.status === 'zero-total' ? '<span style="opacity:.6;font-size:10px"> — nunca registrou</span>' : '<span style="opacity:.6;font-size:10px"> — histórico mínimo</span>';
         return '<span style="color:' + (e.status === 'zero-total' ? '#A78BFA' : '#60A5FA') + ';font-weight:700">' + ic + ' ' + e.base.loja + '</span>' + desc;
       }).join('<br>')
-    : '<span style="opacity:.6">Nenhuma identificada</span>';
+    : '<span style="color:#F59E0B;font-size:11px;line-height:1.6">💡 Nenhuma filial' + ctxSpan + ' atingiu excelência em D60. Recomenda-se intensificar ações de regularização e acompanhamento semanal.</span>';
 
-  // Gráfico linha
+  // Gráfico — soma apenas lojas do evFiltrado
   const todasSemanas = [...new Set(Object.values(D60_HIST).flatMap(h => Object.keys(h)))].sort();
   const totaisPorSemana = todasSemanas.map(s =>
-    BASE_REGIONAIS.reduce((sum, b) => sum + ((D60_HIST[b.lj] && D60_HIST[b.lj][s] !== undefined) ? D60_HIST[b.lj][s] : 0), 0)
+    evFiltrado.reduce((sum, e) => sum + ((D60_HIST[e.base.lj] && D60_HIST[e.base.lj][s] !== undefined) ? D60_HIST[e.base.lj][s] : 0), 0)
   );
+  const tituloGraf = ctxLabel
+    ? 'Evolução D60 — ' + ctxLabel + ' — Semana a Semana'
+    : 'Evolução do Total Consolidado D60 — Semana a Semana';
+  const elTitGraf = document.getElementById('evol-chart-titulo');
+  if (elTitGraf) elTitGraf.textContent = tituloGraf;
   renderGraficoLinha(todasSemanas, totaisPorSemana);
 
-  // Filtros — usa os mesmos selects globais do Painel
-  const fReg    = (document.getElementById('f-regional') || {value:''}).value;
-  const fFilial = (document.getElementById('f-filial')   || {value:''}).value;
-  const fStatus = (document.getElementById('ef-status')  || {value:''}).value;
-
-  let linhas = ev.filter(e => {
-    if (fReg    && e.base.regional !== fReg)                    return false;
-    if (fFilial && String(e.base.lj) !== String(fFilial))       return false;
-    if (fStatus && e.status !== fStatus)                        return false;
+  let linhas = evFiltrado.filter(e => {
+    if (fStatus && e.status !== fStatus) return false;
     return true;
   });
   _atualizarResultadoPainel();
@@ -2444,6 +2465,38 @@ function renderGraficoLinha(semanas, totais) {
     hitAreas;
 }
 
+function exportarGraficoTransparente() {
+  const svg = document.getElementById('evol-chart');
+  if (!svg) return;
+  const W = svg.clientWidth || 800, H = 220;
+  const fReg    = (document.getElementById('f-regional') || {value:''}).value;
+  const fFilial = (document.getElementById('f-filial')   || {value:''}).value;
+  const svgEl = svg.cloneNode(true);
+  svgEl.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  const svgData = new XMLSerializer().serializeToString(svgEl);
+  const blob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = function() {
+    const scale = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width  = W * scale;
+    canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    // Sem fillRect = fundo transparente
+    ctx.drawImage(img, 0, 0, W, H);
+    URL.revokeObjectURL(url);
+    const sufixo = fFilial ? 'LJ' + fFilial : fReg ? fReg.replace(/\s+/g, '_') : 'geral';
+    const a = document.createElement('a');
+    a.download = 'grafico-d60-' + sufixo + '.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    toast('📊 Gráfico exportado com fundo transparente!');
+  };
+  img.src = url;
+}
+
 function mostrarTooltipGraf(evt, texto) {
   const tt = document.getElementById('evol-chart-tooltip');
   tt.style.display = 'block';
@@ -2473,9 +2526,9 @@ function preencherDatalistsEvolucao() {
 // ── EXPORTAR SLIDE REGIONAL ───────────────────────────────────────────
 async function exportarSlideRegional() {
   // Exige seleção de um regional — evita gerar múltiplos arquivos
-  const fReg = (document.getElementById('ef-regional') || {value:''}).value.trim();
+  const fReg = (document.getElementById('f-regional') || {value:''}).value.trim();
   if (!fReg) {
-    toast('⚠️ Selecione um Regional no filtro acima para exportar o slide.');
+    toast('⚠️ Selecione um Regional no filtro para exportar o slide.');
     return;
   }
   const ev  = calcEvolucao();
