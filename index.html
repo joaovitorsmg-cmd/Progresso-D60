@@ -1356,19 +1356,34 @@ function trocarAba(aba) {
 // RELATÓRIO GERAL (Carlos) — todas as filiais, D60 atual x anterior
 // ════════════════════════════════════════════════════════════════════
 function dadosRelatorioGeral() {
+  const fReg    = (document.getElementById('f-regional') || {value:''}).value;
+  const fFilial = (document.getElementById('f-filial')   || {value:''}).value;
+  const fAud    = (document.getElementById('f-auditor')  || {value:''}).value;
   const semAnt = getSemanaAnterior(semanaAtual);
-  let linhas = BASE_REGIONAIS.map(b => {
-    const d60a   = getD60Atual(b.lj);
-    const hist   = D60_HIST[b.lj] || {};
-    const d60ant = semAnt && hist[semAnt] !== undefined ? hist[semAnt] : null;
-    const varVal = (d60a !== null && d60ant !== null) ? d60ant - d60a : null;
-    const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
-    return { b, d60a, d60ant, varVal, varPct };
-  });
+  let linhas = BASE_REGIONAIS
+    .filter(b => {
+      if (fReg    && b.regional !== fReg)          return false;
+      if (fFilial && String(b.lj) !== fFilial)     return false;
+      if (fAud    && !matchAuditor(b, fAud))       return false;
+      return true;
+    })
+    .map(b => {
+      const d60a   = getD60Atual(b.lj);
+      const hist   = D60_HIST[b.lj] || {};
+      const d60ant = semAnt && hist[semAnt] !== undefined ? hist[semAnt] : null;
+      const varVal = (d60a !== null && d60ant !== null) ? d60ant - d60a : null;
+      const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
+      return { b, d60a, d60ant, varVal, varPct };
+    });
   if (sortRelState.col) {
     linhas = linhas.slice().sort((x, y) => {
       const vx = valorOrdenacaoRel(x, sortRelState.col);
       const vy = valorOrdenacaoRel(y, sortRelState.col);
+      // Valores nulos (-Infinity) sempre ficam no final, independente da direção
+      const xNull = vx === -Infinity, yNull = vy === -Infinity;
+      if (xNull && yNull) return 0;
+      if (xNull) return 1;
+      if (yNull) return -1;
       if (typeof vx === 'string' || typeof vy === 'string') {
         return String(vx).localeCompare(String(vy)) * sortRelState.dir;
       }
@@ -1503,15 +1518,25 @@ function exportarRelatorioXLSX() {
   XLSX.writeFile(wb, 'D60_Relatorio_Geral_' + hoje() + '.xlsx');
 }
 
+// Helper de download de PNG compatível com mobile (evita reload entre exports)
+async function _downloadPNG(canvas, filename) {
+  const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = url;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 async function exportarRelatorioPNG() {
   const el = document.getElementById('relatorio-area');
   if (!el) return;
   try {
     const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2 });
-    const link = document.createElement('a');
-    link.download = 'D60_Relatorio_Geral_' + hoje() + '.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    await _downloadPNG(canvas, 'D60_Relatorio_Geral_' + hoje() + '.png');
   } catch(e) {
     toast('Erro ao gerar imagem: ' + e.message);
   }
@@ -1779,11 +1804,8 @@ async function exportarPNG(lj) {
   try {
     const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2 });
     el.style.display = 'none';
-    const link = document.createElement('a');
     const base = BASE_REGIONAIS.find(b => b.lj === lj);
-    link.download = 'D60_LJ' + lj + '_' + (base ? base.loja.replace(/\s/g,'_') : '') + '.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    await _downloadPNG(canvas, 'D60_LJ' + lj + '_' + (base ? base.loja.replace(/\s/g,'_') : '') + '.png');
   } catch(e) {
     el.style.display = 'none';
     toast('Erro ao gerar imagem: ' + e.message);
@@ -2491,7 +2513,7 @@ function exportarGraficoTransparente() {
     const a = document.createElement('a');
     a.download = 'grafico-d60-' + sufixo + '.png';
     a.href = canvas.toDataURL('image/png');
-    a.click();
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     toast('📊 Gráfico exportado com fundo transparente!');
   };
   img.src = url;
@@ -2820,10 +2842,7 @@ async function exportarSlideRegional() {
     ctx.fillText('Total regional: ' + formatMoeda(totalReg) + '  (' + pctGeral + '% do D60 total)', W - PAD, footY + FOOTER_H / 2 + 4);
 
     // Download
-    const link = document.createElement('a');
-    link.download = 'D60_Regional_' + reg.replace(/\s+/g,'_') + '_' + (semanaAtual || 'atual') + '.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    await _downloadPNG(canvas, 'D60_Regional_' + reg.replace(/\s+/g,'_') + '_' + (semanaAtual || 'atual') + '.png');
   }
   toast('✅ Slide exportado com sucesso!');
 }
