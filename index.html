@@ -1371,7 +1371,7 @@ function dadosRelatorioGeral() {
       const d60a   = getD60Atual(b.lj);
       const hist   = D60_HIST[b.lj] || {};
       const d60ant = semAnt && hist[semAnt] !== undefined ? hist[semAnt] : null;
-      const varVal = (d60a !== null && d60ant !== null) ? d60ant - d60a : null;
+      const varVal = (d60a !== null && d60ant !== null) ? d60a - d60ant : null;
       const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
       return { b, d60a, d60ant, varVal, varPct };
     });
@@ -1459,7 +1459,7 @@ function renderRelatorioGeral() {
   html += '</tr></thead><tbody>';
 
   linhas.forEach(({ b, d60a, d60ant, varVal, varPct }) => {
-    const corVar = varVal === null ? '#374151' : (varVal > 0 ? '#065F46' : (varVal < 0 ? '#991B1B' : '#374151'));
+    const corVar = varVal === null ? '#374151' : (varVal < 0 ? '#065F46' : (varVal > 0 ? '#991B1B' : '#374151'));
     const varTxt = varVal !== null
       ? (varVal > 0 ? '+' : '') + formatMoeda(varVal) + ' (' + (varPct > 0 ? '+' : '') + varPct.toFixed(1) + '%)'
       : '—';
@@ -1475,7 +1475,7 @@ function renderRelatorioGeral() {
     html += '</tr>';
   });
 
-  const corTotVar = totVar > 0 ? '#065F46' : (totVar < 0 ? '#991B1B' : '#0A1628');
+  const corTotVar = totVar < 0 ? '#065F46' : (totVar > 0 ? '#991B1B' : '#0A1628');
   const totVarTxt = (totVar > 0 ? '+' : '') + formatMoeda(totVar) +
     (totVarPct !== null ? ' (' + (totVarPct > 0 ? '+' : '') + totVarPct.toFixed(1) + '%)' : '');
   html += '<tr style="background:#E8EFF8;font-weight:800">';
