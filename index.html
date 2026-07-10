@@ -786,7 +786,7 @@
       <div style="background:var(--bg-card);border-radius:10px;padding:20px;box-shadow:var(--sombra)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
           <div style="font-size:12px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.6px">Evolução por Filial — Início do Ano vs Atual</div>
-          <button class="btn-slide-export" data-tip="Exportar slide PNG — selecione um Regional no filtro primeiro" onclick="exportarSlideRegional()" title="Exportar Slide do Regional"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M9 10l2 2 4-4"/></svg></button>
+          <button class="btn-slide-export" data-tip="Exportar slide PNG — todas as filiais ou o Regional selecionado" onclick="exportarSlideRegional()" title="Exportar Slide"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M9 10l2 2 4-4"/></svg></button>
         </div>
         <div style="overflow-x:auto">
           <table id="evol-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
@@ -1534,11 +1534,22 @@ async function _downloadPNG(canvas, filename) {
 async function exportarRelatorioPNG() {
   const el = document.getElementById('relatorio-area');
   if (!el) return;
+  const parent = el.parentNode;
+  const next   = el.nextSibling;
+  el.style.position = 'fixed';
+  el.style.left     = '-9999px';
+  el.style.top      = '0';
+  document.body.appendChild(el);
   try {
     const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2 });
     await _downloadPNG(canvas, 'D60_Relatorio_Geral_' + hoje() + '.png');
   } catch(e) {
     toast('Erro ao gerar imagem: ' + e.message);
+  } finally {
+    el.style.position = '';
+    el.style.left     = '';
+    el.style.top      = '';
+    if (next) parent.insertBefore(el, next); else parent.appendChild(el);
   }
 }
 
@@ -1800,15 +1811,25 @@ function exportarXLSX(lj) {
 async function exportarPNG(lj) {
   const el = document.getElementById('export-area');
   if (!el) { toast('Nenhuma filial selecionada.'); return; }
-  el.style.display = 'block';
+  const parent = el.parentNode;
+  const next   = el.nextSibling;
+  el.style.display  = 'block';
+  el.style.position = 'fixed';
+  el.style.left     = '-9999px';
+  el.style.top      = '0';
+  document.body.appendChild(el);
   try {
     const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2 });
-    el.style.display = 'none';
     const base = BASE_REGIONAIS.find(b => b.lj === lj);
     await _downloadPNG(canvas, 'D60_LJ' + lj + '_' + (base ? base.loja.replace(/\s/g,'_') : '') + '.png');
   } catch(e) {
-    el.style.display = 'none';
     toast('Erro ao gerar imagem: ' + e.message);
+  } finally {
+    el.style.display  = 'none';
+    el.style.position = '';
+    el.style.left     = '';
+    el.style.top      = '';
+    if (next) parent.insertBefore(el, next); else parent.appendChild(el);
   }
 }
 
@@ -2547,25 +2568,23 @@ function preencherDatalistsEvolucao() {
 
 // ── EXPORTAR SLIDE REGIONAL ───────────────────────────────────────────
 async function exportarSlideRegional() {
-  // Exige seleção de um regional — evita gerar múltiplos arquivos
   const fReg = (document.getElementById('f-regional') || {value:''}).value.trim();
-  if (!fReg) {
-    toast('⚠️ Selecione um Regional no filtro para exportar o slide.');
-    return;
-  }
-  const ev  = calcEvolucao();
+  const ev   = calcEvolucao();
 
-  // Filtrar apenas o regional selecionado
   const regMap = {};
-  ev.forEach(e => {
-    const reg = e.base.regional;
-    if (reg.toLowerCase() !== fReg.toLowerCase()) return;
-    if (!regMap[reg]) regMap[reg] = [];
-    regMap[reg].push(e);
-  });
+  if (fReg) {
+    ev.forEach(e => {
+      const reg = e.base.regional;
+      if (reg.toLowerCase() !== fReg.toLowerCase()) return;
+      if (!regMap[reg]) regMap[reg] = [];
+      regMap[reg].push(e);
+    });
+  } else {
+    regMap['GERAL'] = [...ev];
+  }
 
   const regsAExportar = Object.keys(regMap);
-  if (!regsAExportar.length) { toast('Nenhuma filial encontrada para o regional selecionado.'); return; }
+  if (!regsAExportar.length) { toast('Nenhuma filial encontrada.'); return; }
 
   const totalGeral = BASE_REGIONAIS.reduce((s, b) => s + (getD60Atual(b.lj) || 0), 0);
   const semanaRef  = semanaAtual ? formatarData(semanaAtual) : 'última semana';
@@ -2693,7 +2712,7 @@ async function exportarSlideRegional() {
     let yy = TOP_STRIPE + LOGO_AREA + 22;
     ctx.fillStyle = C.accent;
     ctx.font = 'bold 26px Arial, sans-serif';
-    ctx.fillText('D60 — REGIONAL ' + reg.toUpperCase(), PAD, yy);
+    ctx.fillText(reg === 'GERAL' ? 'D60 — TODAS AS FILIAIS' : 'D60 — REGIONAL ' + reg.toUpperCase(), PAD, yy);
 
     yy += 22;
     ctx.fillStyle = C.txtSub;
@@ -2711,7 +2730,7 @@ async function exportarSlideRegional() {
     const totCres   = crescs.reduce((s,e) => s + (e.delta||0), 0);
 
     const kpis = [
-      { label: 'TOTAL D60 REGIONAL', val: formatMoeda(totalReg), sub: pctGeral + '% do D60 total da empresa', cor: C.accent,  border: C.accent  },
+      { label: reg === 'GERAL' ? 'TOTAL D60 GERAL' : 'TOTAL D60 REGIONAL', val: formatMoeda(totalReg), sub: reg === 'GERAL' ? filiais.length + ' filiais' : pctGeral + '% do D60 total da empresa', cor: C.accent, border: C.accent },
       { label: 'FILIAIS EM REDUÇÃO',  val: reducoes.length + ' filial' + (reducoes.length!==1?'is':''), sub: 'Redução acum: ' + formatMoeda(totRed), cor: C.green,  border: C.green   },
       { label: 'EM CRESCIMENTO',      val: crescs.length   + ' filial' + (crescs.length!==1?'is':''),   sub: crescs.length ? 'Crescimento acum: ' + formatMoeda(totCres) : 'Nenhuma em crescimento', cor: C.red, border: C.red },
     ];
