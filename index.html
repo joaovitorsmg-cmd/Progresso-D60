@@ -2580,21 +2580,27 @@ async function exportarGraficoRepresentatividade() {
 
   if (!linhas.length) { toast('Sem dados para exportar.'); return; }
 
-  const totalD60   = linhas.reduce((s, e) => s + (e.valAtual || 0), 0);
-  const maxVal     = linhas[0].valAtual || 1;
-  const semanaRef  = semanaAtual ? formatarData(semanaAtual) : 'atual';
+  const totalD60  = linhas.reduce((s, e) => s + (e.valAtual || 0), 0);
+  const maxVal    = linhas[0].valAtual || 1;
+  const semanaRef = semanaAtual ? formatarData(semanaAtual) : 'atual';
 
-  // ── Dimensões ──
-  const W       = 1400;
-  const PAD     = 52;
-  const SCALE   = 2;
-  const HDR_H   = 84;   // header azul
-  const TITLE_H = 72;   // título + subtítulo
-  const ROW_H   = 52;
-  const SEP_H   = 8;    // separação entre seções de rank
-  const FOOTER_H= 52;
-  const TOP_H   = 6;    // faixa de cor topo
-  const totalH  = TOP_H + HDR_H + TITLE_H + linhas.length * ROW_H + FOOTER_H + 24;
+  // ── Dimensões: duas colunas, fonte grande para nitidez em 17×33cm ──────────
+  const W        = 1640;   // largura lógica
+  const SCALE    = 3;      // ×3 → 4920px saída, ~735 DPI em 17cm
+  const PAD      = 52;
+  const COL_GAP  = 44;
+  const COL_W    = Math.floor((W - PAD * 2 - COL_GAP) / 2); // 746px
+  const TOP_H    = 8;
+  const HDR_H    = 120;
+  const TITLE_H  = 88;
+  const COL_HDR_H= 32;     // cabeçalho das colunas
+  const ROW_H    = 100;    // altura generosa por linha
+  const FOOTER_H = 68;
+
+  const nLeft  = Math.ceil(linhas.length / 2);
+  const nRight = linhas.length - nLeft;
+  const nRows  = Math.max(nLeft, nRight);
+  const totalH = TOP_H + HDR_H + TITLE_H + COL_HDR_H + nRows * ROW_H + FOOTER_H + 12;
 
   const canvas = document.createElement('canvas');
   canvas.width  = W * SCALE;
@@ -2606,154 +2612,185 @@ async function exportarGraficoRepresentatividade() {
   ctx.fillStyle = '#F0F4FB';
   ctx.fillRect(0, 0, W, totalH);
 
-  // ── Faixa topo gradiente ──
+  // ── Faixa topo ──
   const gTop = ctx.createLinearGradient(0, 0, W, 0);
-  gTop.addColorStop(0,   '#1E3A8A');
-  gTop.addColorStop(0.5, '#2563EB');
-  gTop.addColorStop(1,   '#60A5FA');
+  gTop.addColorStop(0, '#1E3A8A'); gTop.addColorStop(0.5, '#2563EB'); gTop.addColorStop(1, '#60A5FA');
   ctx.fillStyle = gTop;
   ctx.fillRect(0, 0, W, TOP_H);
 
   // ── Header ──
   const gHdr = ctx.createLinearGradient(0, TOP_H, 0, TOP_H + HDR_H);
-  gHdr.addColorStop(0, '#1E3A8A');
-  gHdr.addColorStop(1, '#1D4ED8');
+  gHdr.addColorStop(0, '#1E3A8A'); gHdr.addColorStop(1, '#1D4ED8');
   ctx.fillStyle = gHdr;
   ctx.fillRect(0, TOP_H, W, HDR_H);
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 20px Arial, sans-serif';
-  ctx.fillText('AGROQUIMA', PAD, TOP_H + 32);
+  ctx.font = 'bold 38px Arial, sans-serif';
+  ctx.fillText('AGROQUIMA', PAD, TOP_H + 48);
   ctx.fillStyle = '#BFDBFE';
-  ctx.font = '12px Arial, sans-serif';
-  ctx.fillText('GESTÃO DE CRÉDITO · D60 LIVRE', PAD, TOP_H + 52);
+  ctx.font = '21px Arial, sans-serif';
+  ctx.fillText('GESTÃO DE CRÉDITO · D60 LIVRE', PAD, TOP_H + 80);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = '#BFDBFE';
-  ctx.font = '11px Arial, sans-serif';
-  ctx.fillText('Posição: ' + semanaRef, W - PAD, TOP_H + 32);
-  ctx.fillText('Exportado em ' + new Date().toLocaleDateString('pt-BR'), W - PAD, TOP_H + 52);
+  ctx.font = '19px Arial, sans-serif';
+  ctx.fillText('Posição: ' + semanaRef, W - PAD, TOP_H + 48);
+  ctx.fillText('Exportado em ' + new Date().toLocaleDateString('pt-BR'), W - PAD, TOP_H + 80);
 
-  // ── Título ──
-  let yy = TOP_H + HDR_H + 26;
+  // ── Títulos ──
+  const tyBase = TOP_H + HDR_H + 30;
   ctx.textAlign = 'left';
   ctx.fillStyle = '#1E3A8A';
-  ctx.font = 'bold 22px Arial, sans-serif';
-  ctx.fillText('MAPA DE REPRESENTATIVIDADE D60', PAD, yy);
+  ctx.font = 'bold 34px Arial, sans-serif';
+  ctx.fillText('MAPA DE REPRESENTATIVIDADE D60', PAD, tyBase);
 
-  yy += 20;
-  ctx.fillStyle = '#64748B';
-  ctx.font = '13px Arial, sans-serif';
+  ctx.fillStyle = '#475569';
+  ctx.font = '19px Arial, sans-serif';
   const subCtx = fFilial ? 'LJ ' + fFilial : fReg || 'Todas as Filiais';
-  ctx.fillText('Concentração do risco D60 por filial · ' + subCtx + ' · do maior para o menor · Total: ' + formatMoeda(totalD60), PAD, yy);
+  ctx.fillText('Concentração D60 por filial  ·  ' + subCtx + '  ·  Total: ' + formatMoeda(totalD60), PAD, tyBase + 30);
 
-  // ── Layout das colunas ──
-  const LJ_W    = 44;
-  const NAME_W  = 220;
-  const BAR_X   = PAD + LJ_W + 12 + NAME_W + 12;
-  const VAL_W   = 148;
-  const PCT_W   = 64;
-  const RANK_W  = 28;
-  const BAR_W   = W - BAR_X - PAD - VAL_W - PCT_W - 16;
+  // ── Divisor vertical entre colunas ──
+  const divX = PAD + COL_W + Math.floor(COL_GAP / 2);
+  ctx.strokeStyle = 'rgba(30,58,138,0.2)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([8, 5]);
+  ctx.beginPath();
+  ctx.moveTo(divX, TOP_H + HDR_H + 6);
+  ctx.lineTo(divX, TOP_H + HDR_H + TITLE_H + COL_HDR_H + nRows * ROW_H - 4);
+  ctx.stroke();
+  ctx.setLineDash([]);
 
-  yy = TOP_H + HDR_H + TITLE_H;
+  // ── Cabeçalhos de colunas ──
+  const chY = TOP_H + HDR_H + TITLE_H + COL_HDR_H - 8;
+  [0, 1].forEach(col => {
+    const cx = PAD + col * (COL_W + COL_GAP);
+    ctx.fillStyle = 'rgba(30,58,138,0.06)';
+    ctx.fillRect(cx - 4, TOP_H + HDR_H + TITLE_H, COL_W + 8, COL_HDR_H);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#64748B';
+    ctx.font = 'bold 14px Arial, sans-serif';
+    ctx.fillText('LJ', cx, chY);
+    ctx.fillText('FILIAL / REGIONAL', cx + 72, chY);
+    ctx.textAlign = 'right';
+    ctx.fillText('D60 ATUAL', cx + COL_W - 78, chY);
+    ctx.fillText('REPR.', cx + COL_W, chY);
+  });
 
-  linhas.forEach((e, i) => {
-    const ry    = yy + i * ROW_H;
-    const pct   = totalD60 > 0 ? (e.valAtual / totalD60 * 100) : 0;
-    const barW  = (e.valAtual / maxVal) * BAR_W;
-    const t     = linhas.length > 1 ? i / (linhas.length - 1) : 0;
-
-    // Interpolação azul royal: escuro (#1E3A8A) → médio (#3B82F6) → claro (#93C5FD)
+  // ── Helpers de cor ──
+  function bColor(t) {
     let bR, bG, bB;
     if (t < 0.5) {
       const u = t * 2;
-      bR = Math.round(30  + u * (59  - 30));
-      bG = Math.round(58  + u * (130 - 58));
-      bB = Math.round(138 + u * (246 - 138));
+      bR = Math.round(30 + u*(59-30)); bG = Math.round(58 + u*(130-58)); bB = Math.round(138 + u*(246-138));
     } else {
-      const u = (t - 0.5) * 2;
-      bR = Math.round(59  + u * (147 - 59));
-      bG = Math.round(130 + u * (197 - 130));
-      bB = Math.round(246 + u * (253 - 246));
+      const u = (t-0.5)*2;
+      bR = Math.round(59 + u*(147-59)); bG = Math.round(130 + u*(197-130)); bB = Math.round(246 + u*(253-246));
     }
-    const barColor = 'rgb(' + bR + ',' + bG + ',' + bB + ')';
+    return 'rgb('+bR+','+bG+','+bB+')';
+  }
 
-    // ── Linha de fundo ──
-    ctx.fillStyle = i % 2 === 0 ? '#FFFFFF' : '#EBF1FA';
-    ctx.fillRect(PAD - 8, ry, W - PAD * 2 + 16, ROW_H);
+  // ── Layout interno de cada coluna (746px) ──
+  const LJ_W      = 60;    // código da loja
+  const GAP       = 12;
+  const NAME_W    = 222;   // nome + regional (clipText)
+  const BAR_X_OFF = LJ_W + GAP + NAME_W + GAP; // 306px
+  const VAL_W     = 128;
+  const PCT_W     = 76;
+  const BAR_W     = COL_W - BAR_X_OFF - GAP - VAL_W - GAP - PCT_W; // ~204px
 
-    // ── Borda lateral colorida de rank ──
-    ctx.fillStyle = barColor;
-    ctx.fillRect(PAD - 8, ry, 4, ROW_H);
+  const rowAreaY = TOP_H + HDR_H + TITLE_H + COL_HDR_H;
 
-    const mid = ry + ROW_H / 2 + 5;
+  function drawRow(item, gi, colX, ry) {
+    const pct = totalD60 > 0 ? (item.valAtual / totalD60 * 100) : 0;
+    const t   = linhas.length > 1 ? gi / (linhas.length - 1) : 0;
+    const bc  = bColor(t);
 
-    // ── Rank / LJ ──
+    // Fundo alternado
+    ctx.fillStyle = gi % 2 === 0 ? '#FFFFFF' : '#EBF1FA';
+    ctx.fillRect(colX - 4, ry, COL_W + 8, ROW_H);
+
+    // Borda lateral colorida (ranking)
+    ctx.fillStyle = bc;
+    ctx.fillRect(colX - 4, ry, 6, ROW_H);
+
+    const midY = ry + Math.round(ROW_H / 2);
+
+    // LJ
     ctx.textAlign = 'left';
-    ctx.fillStyle = barColor;
-    ctx.font = 'bold 14px Arial, sans-serif';
-    ctx.fillText(String(e.base.lj), PAD, mid);
+    ctx.fillStyle = bc;
+    ctx.font = 'bold 34px Arial, sans-serif';
+    ctx.fillText(String(item.base.lj), colX, midY + 8);
 
-    // ── Nome da filial ──
+    // Nome + Regional
+    const nameX = colX + LJ_W + GAP;
     ctx.fillStyle = '#0F172A';
-    ctx.font = 'bold 12px Arial, sans-serif';
-    ctx.fillText(clipText(ctx, e.base.loja, NAME_W - 4), PAD + LJ_W + 12, mid - 4);
+    ctx.font = 'bold 24px Arial, sans-serif';
+    ctx.fillText(clipText(ctx, item.base.loja, NAME_W - 4), nameX, midY - 5);
     ctx.fillStyle = '#64748B';
-    ctx.font = '10px Arial, sans-serif';
-    ctx.fillText(e.base.regional, PAD + LJ_W + 12, mid + 10);
+    ctx.font = '17px Arial, sans-serif';
+    ctx.fillText(clipText(ctx, item.base.regional, NAME_W - 4), nameX, midY + 20);
 
-    // ── Barra ──
-    const barY = ry + 14;
-    const barH = ROW_H - 28;
-    // fundo da barra
+    // Barra de proporção
+    const barX = colX + BAR_X_OFF;
+    const barH = 26;
+    const barY = ry + Math.round((ROW_H - barH) / 2);
+    const barFill = (item.valAtual / maxVal) * BAR_W;
+
     ctx.fillStyle = 'rgba(37,99,235,0.08)';
-    roundRect(ctx, BAR_X, barY, BAR_W, barH, 4); ctx.fill();
-    // barra colorida
-    if (barW > 2) {
-      ctx.fillStyle = barColor;
-      roundRect(ctx, BAR_X, barY, barW, barH, 4); ctx.fill();
-      // brilho sutil no topo da barra
+    roundRect(ctx, barX, barY, BAR_W, barH, 5); ctx.fill();
+    if (barFill > 2) {
+      ctx.fillStyle = bc;
+      roundRect(ctx, barX, barY, barFill, barH, 5); ctx.fill();
       const gl = ctx.createLinearGradient(0, barY, 0, barY + barH);
-      gl.addColorStop(0,   'rgba(255,255,255,0.18)');
-      gl.addColorStop(1,   'rgba(255,255,255,0)');
+      gl.addColorStop(0, 'rgba(255,255,255,0.22)'); gl.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = gl;
-      roundRect(ctx, BAR_X, barY, barW, barH, 4); ctx.fill();
+      roundRect(ctx, barX, barY, barFill, barH, 5); ctx.fill();
     }
 
-    // ── Valor ──
-    const valX = BAR_X + BAR_W + 12;
+    // Valor D60
+    const valX = barX + BAR_W + GAP;
     ctx.textAlign = 'right';
     ctx.fillStyle = '#0F172A';
-    ctx.font = '600 12px Arial, sans-serif';
-    ctx.fillText(formatMoeda(e.valAtual), valX + VAL_W, mid);
+    ctx.font = 'bold 23px Arial, sans-serif';
+    ctx.fillText(formatMoeda(item.valAtual), valX + VAL_W, midY + 8);
 
-    // ── Percentual ──
-    ctx.fillStyle = barColor;
-    ctx.font = 'bold 13px Arial, sans-serif';
-    ctx.fillText(pct.toFixed(1) + '%', W - PAD, mid);
+    // Percentual
+    ctx.fillStyle = bc;
+    ctx.font = 'bold 28px Arial, sans-serif';
+    ctx.fillText(pct.toFixed(1)+'%', colX + COL_W, midY + 8);
 
-    // separador fino
+    // Separador
     ctx.strokeStyle = 'rgba(203,213,225,0.5)'; ctx.lineWidth = 0.5;
-    ctx.beginPath(); ctx.moveTo(PAD - 8, ry + ROW_H); ctx.lineTo(W - PAD + 8, ry + ROW_H); ctx.stroke();
-  });
+    ctx.beginPath(); ctx.moveTo(colX-4, ry+ROW_H); ctx.lineTo(colX+COL_W+4, ry+ROW_H); ctx.stroke();
+  }
+
+  // ── Renderizar colunas ──
+  for (let i = 0; i < nLeft; i++) {
+    drawRow(linhas[i], i, PAD, rowAreaY + i * ROW_H);
+  }
+  for (let i = 0; i < nRight; i++) {
+    const gi = nLeft + i;
+    drawRow(linhas[gi], gi, PAD + COL_W + COL_GAP, rowAreaY + i * ROW_H);
+  }
 
   // ── Footer ──
-  const footY = yy + linhas.length * ROW_H + 8;
-  ctx.fillStyle = '#1E3A8A';
+  const footY = rowAreaY + nRows * ROW_H + 4;
+  const gFoot = ctx.createLinearGradient(0, footY, 0, footY + FOOTER_H);
+  gFoot.addColorStop(0, '#1E3A8A'); gFoot.addColorStop(1, '#1E40AF');
+  ctx.fillStyle = gFoot;
   ctx.fillRect(0, footY, W, FOOTER_H);
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#BFDBFE';
-  ctx.font = '11px Arial, sans-serif';
-  ctx.fillText('Agroquima · Gestão de Crédito D60 Livre · ' + new Date().toLocaleDateString('pt-BR'), PAD, footY + FOOTER_H / 2 + 4);
+  ctx.font = '19px Arial, sans-serif';
+  ctx.fillText('Agroquima · Gestão de Crédito D60 Livre · ' + new Date().toLocaleDateString('pt-BR'), PAD, footY + Math.round(FOOTER_H/2) + 7);
   ctx.textAlign = 'right';
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 11px Arial, sans-serif';
-  ctx.fillText('Total D60: ' + formatMoeda(totalD60) + '  ·  ' + linhas.length + ' filiais', W - PAD, footY + FOOTER_H / 2 + 4);
+  ctx.font = 'bold 19px Arial, sans-serif';
+  ctx.fillText('Total D60: ' + formatMoeda(totalD60) + '  ·  ' + linhas.length + ' filiais', W - PAD, footY + Math.round(FOOTER_H/2) + 7);
 
-  const sufixo = fFilial ? 'LJ' + fFilial : fReg ? fReg.replace(/\s+/g,'_') : 'geral';
+  const sufixo = fFilial ? 'LJ'+fFilial : fReg ? fReg.replace(/\s+/g,'_') : 'geral';
   await _downloadPNG(canvas, 'D60_Representatividade_' + sufixo + '_' + (semanaAtual || 'atual') + '.png');
   toast('📊 Gráfico de representatividade exportado!');
 }
