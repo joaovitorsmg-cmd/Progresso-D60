@@ -134,6 +134,22 @@
   }
   .login-remember input[type=checkbox] { width:16px;height:16px;margin:0;cursor:pointer;accent-color:var(--azul); }
 
+  /* ── PERIOD TOGGLE ─────────────────────────────────────────────── */
+  .period-toggle { display:flex;gap:0;border:1px solid var(--cinza-bd);border-radius:8px;overflow:hidden; }
+  .period-btn {
+    padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;border:none;
+    background:var(--bg-input);color:var(--texto-sec);transition:all .15s;
+  }
+  .period-btn.active { background:var(--azul);color:#fff; }
+  .period-btn:first-child { border-right:1px solid var(--cinza-bd); }
+  /* ── SORTABLE TABLE HEADERS ─────────────────────────────────────── */
+  .sort-th { cursor:pointer;user-select:none;white-space:nowrap; }
+  .sort-th:hover { background:rgba(255,255,255,.12); }
+  .sort-th .sort-ico { opacity:.4;margin-left:4px;font-size:9px; }
+  .sort-th.asc .sort-ico::after  { content:'▲';opacity:1; }
+  .sort-th.desc .sort-ico::after { content:'▼';opacity:1; }
+  .sort-th:not(.asc):not(.desc) .sort-ico::after { content:'⇅'; }
+
   /* ── MODO BADGE ─────────────────────────────────────────────────── */
   .modo-badge {
     display: inline-flex; align-items: center; gap: 6px;
@@ -700,6 +716,7 @@
     <button class="tab-btn" id="tab-btn-relatorio" onclick="trocarAba('relatorio')">📊 Relatório Geral</button>
     <button class="tab-btn" id="tab-btn-evolucao" onclick="trocarAba('evolucao')">📈 Evolução</button>
     <button class="tab-btn" id="tab-btn-recebimentos" onclick="trocarAba('recebimentos')">💰 Recebimentos</button>
+    <button class="tab-btn" id="tab-btn-novostiulos" onclick="trocarAba('novostiulos')">📈 Novos Títulos</button>
   </div>
 
   <!-- FILTROS GLOBAIS — afetam Painel, Relatório e Evolução -->
@@ -890,48 +907,116 @@
   <div class="tab-page" id="tab-recebimentos">
     <div style="padding:20px 28px">
 
-      <!-- KPIs -->
-      <div id="rec-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px"></div>
-
-      <!-- Filtros + ações -->
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">
-        <select id="rec-f-regional" class="filtro-sel" onchange="renderRecebimentos()" style="min-width:160px">
-          <option value="">Todos os Regionais</option>
-        </select>
-        <select id="rec-f-filial" class="filtro-sel" onchange="renderRecebimentos()" style="min-width:180px">
-          <option value="">Todas as Filiais</option>
-        </select>
-        <select id="rec-f-rep" class="filtro-sel" onchange="renderRecebimentos()" style="min-width:180px">
-          <option value="">Todos os Representantes</option>
-        </select>
-        <button class="btn-export" onclick="exportarRecebimentosXLS()" style="margin-left:auto">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          Exportar XLS
-        </button>
+      <!-- Cabeçalho: período + ações -->
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+        <div class="period-toggle">
+          <button class="period-btn active" id="rec-period-semana" onclick="setRecPeriod('semana')">Última semana</button>
+          <button class="period-btn" id="rec-period-total" onclick="setRecPeriod('total')">Todo o período</button>
+        </div>
+        <div id="rec-periodo-label" style="font-size:11px;color:var(--texto-mut)"></div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <select id="rec-f-regional" class="filtro-sel" onchange="renderRecebimentos()" style="min-width:140px">
+            <option value="">Todos os Regionais</option>
+          </select>
+          <select id="rec-f-filial" class="filtro-sel" onchange="renderRecebimentos()" style="min-width:160px">
+            <option value="">Todas as Filiais</option>
+          </select>
+          <select id="rec-f-rep" class="filtro-sel" onchange="renderRecebimentos()" style="min-width:160px">
+            <option value="">Todos os Reps.</option>
+          </select>
+          <button class="btn-export" onclick="exportarRecebimentosXLS()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            XLS
+          </button>
+        </div>
       </div>
+
+      <!-- KPIs -->
+      <div id="rec-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
 
       <!-- Tabela -->
       <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;box-shadow:var(--sombra)">
         <div style="overflow-x:auto">
           <table id="rec-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
-            <thead>
+            <thead id="rec-thead">
               <tr style="background:var(--azul);color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">
-                <th style="padding:9px 12px;text-align:left">LJ</th>
-                <th style="padding:9px 12px;text-align:left">Filial</th>
-                <th style="padding:9px 12px;text-align:left">Regional</th>
-                <th style="padding:9px 12px;text-align:left">Representante</th>
+                <th class="sort-th" data-col="lj" style="padding:9px 12px;text-align:left" onclick="recSortBy('lj')">LJ<span class="sort-ico"></span></th>
+                <th class="sort-th" data-col="filial" style="padding:9px 12px;text-align:left" onclick="recSortBy('filial')">Filial<span class="sort-ico"></span></th>
+                <th class="sort-th" data-col="regional" style="padding:9px 12px;text-align:left" onclick="recSortBy('regional')">Regional<span class="sort-ico"></span></th>
+                <th class="sort-th" data-col="representante" style="padding:9px 12px;text-align:left" onclick="recSortBy('representante')">Representante<span class="sort-ico"></span></th>
                 <th style="padding:9px 12px;text-align:left">Cliente</th>
-                <th style="padding:9px 12px;text-align:left">Título / NF</th>
-                <th style="padding:9px 12px;text-align:right">Vencto</th>
-                <th style="padding:9px 12px;text-align:right">Valor Recebido</th>
+                <th style="padding:9px 12px;text-align:left">Título/NF</th>
+                <th class="sort-th" data-col="vencto" style="padding:9px 12px;text-align:right" onclick="recSortBy('vencto')">Vencto<span class="sort-ico"></span></th>
+                <th class="sort-th" data-col="valor" style="padding:9px 12px;text-align:right" onclick="recSortBy('valor')">Valor<span class="sort-ico"></span></th>
               </tr>
             </thead>
             <tbody id="rec-tbody"></tbody>
           </table>
         </div>
         <div id="rec-empty" style="display:none;padding:40px;text-align:center;color:var(--texto-mut);font-size:13px">
-          📭 Nenhum dado disponível.<br>
-          <span style="font-size:12px;margin-top:6px;display:block">Importe dois arquivos de semanas distintas para identificar recebimentos.</span>
+          📭 Nenhum recebimento identificado.<br>
+          <span style="font-size:12px;margin-top:6px;display:block">Importe arquivos de semanas distintas para identificar títulos quitados.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!--  ABA: NOVOS TÍTULOS                                           -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="tab-page" id="tab-novostiulos">
+    <div style="padding:20px 28px">
+
+      <!-- Cabeçalho: período + ações -->
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+        <div class="period-toggle">
+          <button class="period-btn active" id="nov-period-semana" onclick="setNovPeriod('semana')">Última semana</button>
+          <button class="period-btn" id="nov-period-total" onclick="setNovPeriod('total')">Todo o período</button>
+        </div>
+        <div id="nov-periodo-label" style="font-size:11px;color:var(--texto-mut)"></div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <select id="nov-f-regional" class="filtro-sel" onchange="renderNovosTitulos()" style="min-width:140px">
+            <option value="">Todos os Regionais</option>
+          </select>
+          <select id="nov-f-filial" class="filtro-sel" onchange="renderNovosTitulos()" style="min-width:160px">
+            <option value="">Todas as Filiais</option>
+          </select>
+          <select id="nov-f-rep" class="filtro-sel" onchange="renderNovosTitulos()" style="min-width:160px">
+            <option value="">Todos os Reps.</option>
+          </select>
+          <button class="btn-export" onclick="exportarNovosTitulosXLS()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            XLS
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div id="nov-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
+
+      <!-- Tabela -->
+      <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;box-shadow:var(--sombra)">
+        <div style="overflow-x:auto">
+          <table id="nov-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
+            <thead id="nov-thead">
+              <tr style="background:#7C3AED;color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">
+                <th class="sort-th" data-col="lj" style="padding:9px 12px;text-align:left" onclick="novSortBy('lj')">LJ<span class="sort-ico"></span></th>
+                <th class="sort-th" data-col="filial" style="padding:9px 12px;text-align:left" onclick="novSortBy('filial')">Filial<span class="sort-ico"></span></th>
+                <th class="sort-th" data-col="regional" style="padding:9px 12px;text-align:left" onclick="novSortBy('regional')">Regional<span class="sort-ico"></span></th>
+                <th class="sort-th" data-col="representante" style="padding:9px 12px;text-align:left" onclick="novSortBy('representante')">Representante<span class="sort-ico"></span></th>
+                <th style="padding:9px 12px;text-align:left">Cliente</th>
+                <th style="padding:9px 12px;text-align:left">Título/NF</th>
+                <th class="sort-th" data-col="vencto" style="padding:9px 12px;text-align:right" onclick="novSortBy('vencto')">Vencto<span class="sort-ico"></span></th>
+                <th class="sort-th" data-col="valor" style="padding:9px 12px;text-align:right" onclick="novSortBy('valor')">Valor<span class="sort-ico"></span></th>
+              </tr>
+            </thead>
+            <tbody id="nov-tbody"></tbody>
+          </table>
+        </div>
+        <div id="nov-empty" style="display:none;padding:40px;text-align:center;color:var(--texto-mut);font-size:13px">
+          📭 Nenhum título novo identificado.<br>
+          <span style="font-size:12px;margin-top:6px;display:block">Importe arquivos de semanas distintas para identificar novos títulos no D60.</span>
         </div>
       </div>
 
@@ -1278,6 +1363,7 @@ function importarVencidos(input) {
       const rows  = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
       const semanaAnterior = semanaAtual;
+      const prevDataSnap   = JSON.parse(JSON.stringify(vencidosData)); // snapshot antes de sobrescrever
 
       // Backup previous vencidos/histórico for revert
       try {
@@ -1326,6 +1412,12 @@ function importarVencidos(input) {
         if (!D60_HIST[lj]) D60_HIST[lj] = {};
         D60_HIST[lj][semanaNova] = total;
       });
+
+      // Registrar movimentos (recebimentos + novos títulos) antes de avançar semana
+      if (semanaAnterior && semanaAnterior !== semanaNova) {
+        _gravarMovimentos(prevDataSnap, semanaAnterior, semanaNova);
+      }
+
       semanaAtual = semanaNova;
 
       document.getElementById('import-status').innerHTML =
@@ -1524,14 +1616,18 @@ function renderTabela() {
 // ABAS
 // ════════════════════════════════════════════════════════════════════
 function trocarAba(aba) {
-  ['painel','relatorio','evolucao','recebimentos'].forEach(id => {
-    document.getElementById('tab-' + id).classList.toggle('active', aba === id);
-    document.getElementById('tab-btn-' + id).classList.toggle('active', aba === id);
+  ['painel','relatorio','evolucao','recebimentos','novostiulos'].forEach(id => {
+    document.getElementById('tab-' + id)?.classList.toggle('active', aba === id);
+    document.getElementById('tab-btn-' + id)?.classList.toggle('active', aba === id);
   });
   const stWrap = document.getElementById('evol-status-wrap');
   if (stWrap) stWrap.style.display = aba === 'evolucao' ? '' : 'none';
-  if (aba === 'evolucao')      renderEvolucao();
-  if (aba === 'recebimentos')  renderRecebimentos();
+  // global filtros-bar only applies to Painel/Relatório/Evolução
+  const filtrosBar = document.querySelector('.filtros-bar');
+  if (filtrosBar) filtrosBar.style.display = ['recebimentos','novostiulos'].includes(aba) ? 'none' : '';
+  if (aba === 'evolucao')     renderEvolucao();
+  if (aba === 'recebimentos') renderRecebimentos();
+  if (aba === 'novostiulos')  renderNovosTitulos();
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -2960,6 +3056,10 @@ document.addEventListener('mousemove', e => {
 // ════════════════════════════════════════════════════════════════════
 // ABA RECEBIMENTOS — títulos que sumiram vs. semana anterior
 // ════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════
+// RECEBIMENTOS + NOVOS TÍTULOS — movimentos entre semanas
+// ════════════════════════════════════════════════════════════════════
+
 function _titleKey(t) {
   const cod = String(t.codCliente || '').trim();
   const num = String(t.titulo || '').trim();
@@ -2970,185 +3070,372 @@ function _titleKey(t) {
   return String(t.cliente || '').trim().toUpperCase() + '|' + (t.valor || 0) + '|' + ven;
 }
 
-function calcRecebimentos() {
-  let prevData = {}, prevSemana = null, prevRef = null;
-  try {
-    const bk = JSON.parse(localStorage.getItem('ven_backup') || 'null');
-    if (bk && bk.vencidosData) { prevData = bk.vencidosData; prevSemana = bk.semanaAtual; prevRef = bk.semanaNova; }
-  } catch(e) {}
+// Chamado em cada importação: calcula e acumula recebimentos e novos títulos
+function _gravarMovimentos(prevData, semDe, semAte) {
+  if (!semDe || !semAte || semDe === semAte) return;
 
-  const items = [];
+  const entrada_key = semDe + '→' + semAte;
+
+  // ── Recebimentos: títulos que estavam antes e não estão agora ──
+  const recItems = [];
   Object.entries(prevData).forEach(([ljStr, prevTits]) => {
-    const lj   = parseInt(ljStr);
-    const base = BASE_REGIONAIS.find(b => b.lj === lj);
+    const lj      = parseInt(ljStr);
     const currKeys = new Set((vencidosData[lj] || []).map(_titleKey));
     prevTits.forEach(t => {
       if (!currKeys.has(_titleKey(t)) && (t.valor || 0) > 0) {
-        items.push({ lj, base, t });
+        recItems.push({ lj, t });
       }
     });
   });
 
-  // ordenar por valor desc
-  items.sort((a, b) => (b.t.valor || 0) - (a.t.valor || 0));
-  return { items, prevSemana, prevRef };
+  // ── Novos títulos: títulos que estão agora e não estavam antes ──
+  const prevAllKeys = new Map();
+  Object.entries(prevData).forEach(([ljStr, prevTits]) => {
+    const lj = parseInt(ljStr);
+    prevTits.forEach(t => { prevAllKeys.set(_titleKey(t) + '|' + lj, true); });
+  });
+  const novItems = [];
+  Object.entries(vencidosData).forEach(([ljStr, currTits]) => {
+    const lj = parseInt(ljStr);
+    currTits.forEach(t => {
+      if (!prevAllKeys.has(_titleKey(t) + '|' + lj) && (t.valor || 0) > 0) {
+        novItems.push({ lj, t });
+      }
+    });
+  });
+
+  // Persiste em localStorage — acumula histórico
+  try {
+    const recHist = JSON.parse(localStorage.getItem('rec_hist') || '[]');
+    // Remove entrada duplicada para a mesma chave se reimportar
+    const recFiltered = recHist.filter(e => e.key !== entrada_key);
+    recFiltered.push({ key: entrada_key, semDe, semAte, items: recItems });
+    localStorage.setItem('rec_hist', JSON.stringify(recFiltered.slice(-52)));
+  } catch(e) {}
+
+  try {
+    const novHist = JSON.parse(localStorage.getItem('nov_hist') || '[]');
+    const novFiltered = novHist.filter(e => e.key !== entrada_key);
+    novFiltered.push({ key: entrada_key, semDe, semAte, items: novItems });
+    localStorage.setItem('nov_hist', JSON.stringify(novFiltered.slice(-52)));
+  } catch(e) {}
 }
 
-function _popularFiltrosRec(items) {
+// Retorna lista de itens de recebimentos conforme período ('semana' = apenas última entrada; 'total' = todo o histórico)
+function _getRec(periodo) {
+  try {
+    const hist = JSON.parse(localStorage.getItem('rec_hist') || '[]');
+    if (!hist.length) {
+      // Fallback: calcula on-the-fly a partir do ven_backup (compatibilidade retroativa)
+      const bk = JSON.parse(localStorage.getItem('ven_backup') || 'null');
+      if (!bk || !bk.vencidosData) return { items: [], semDe: null, semAte: null };
+      const prevData = bk.vencidosData;
+      const items = [];
+      Object.entries(prevData).forEach(([ljStr, prevTits]) => {
+        const lj = parseInt(ljStr);
+        const base = BASE_REGIONAIS.find(b => b.lj === lj);
+        const currKeys = new Set((vencidosData[lj] || []).map(_titleKey));
+        prevTits.forEach(t => {
+          if (!currKeys.has(_titleKey(t)) && (t.valor || 0) > 0) items.push({ lj, base, t, semDe: bk.semanaAtual, semAte: bk.semanaNova });
+        });
+      });
+      items.sort((a,b) => (b.t.valor||0) - (a.t.valor||0));
+      return { items, semDe: bk.semanaAtual, semAte: bk.semanaNova };
+    }
+    const entries = periodo === 'semana' ? [hist[hist.length - 1]] : hist;
+    const items = [];
+    entries.forEach(e => {
+      e.items.forEach(({ lj, t }) => {
+        const base = BASE_REGIONAIS.find(b => b.lj === lj);
+        items.push({ lj, base, t, semDe: e.semDe, semAte: e.semAte });
+      });
+    });
+    items.sort((a,b) => (b.t.valor||0) - (a.t.valor||0));
+    const semDe = entries[0]?.semDe || null;
+    const semAte = entries[entries.length-1]?.semAte || null;
+    return { items, semDe, semAte };
+  } catch(e) { return { items: [], semDe: null, semAte: null }; }
+}
+
+function _getNovos(periodo) {
+  try {
+    const hist = JSON.parse(localStorage.getItem('nov_hist') || '[]');
+    if (!hist.length) {
+      // Fallback: calcula on-the-fly do ven_backup
+      const bk = JSON.parse(localStorage.getItem('ven_backup') || 'null');
+      if (!bk || !bk.vencidosData) return { items: [], semDe: null, semAte: null };
+      const prevData = bk.vencidosData;
+      const prevAllKeys = new Map();
+      Object.entries(prevData).forEach(([ljStr, ts]) => {
+        const lj = parseInt(ljStr);
+        ts.forEach(t => { prevAllKeys.set(_titleKey(t) + '|' + lj, true); });
+      });
+      const items = [];
+      Object.entries(vencidosData).forEach(([ljStr, currTits]) => {
+        const lj = parseInt(ljStr);
+        const base = BASE_REGIONAIS.find(b => b.lj === lj);
+        currTits.forEach(t => {
+          if (!prevAllKeys.has(_titleKey(t) + '|' + lj) && (t.valor||0) > 0) {
+            items.push({ lj, base, t, semDe: bk.semanaAtual, semAte: bk.semanaNova });
+          }
+        });
+      });
+      items.sort((a,b) => (b.t.valor||0) - (a.t.valor||0));
+      return { items, semDe: bk.semanaAtual, semAte: bk.semanaNova };
+    }
+    const entries = periodo === 'semana' ? [hist[hist.length - 1]] : hist;
+    const items = [];
+    entries.forEach(e => {
+      e.items.forEach(({ lj, t }) => {
+        const base = BASE_REGIONAIS.find(b => b.lj === lj);
+        items.push({ lj, base, t, semDe: e.semDe, semAte: e.semAte });
+      });
+    });
+    items.sort((a,b) => (b.t.valor||0) - (a.t.valor||0));
+    const semDe = entries[0]?.semDe || null;
+    const semAte = entries[entries.length-1]?.semAte || null;
+    return { items, semDe, semAte };
+  } catch(e) { return { items: [], semDe: null, semAte: null }; }
+}
+
+// ── Estado de ordenação ──
+const recSortState = { col: 'valor', dir: 'desc' };
+const novSortState = { col: 'valor', dir: 'desc' };
+let recPeriodo = 'semana';
+let novPeriodo = 'semana';
+
+function setRecPeriod(p) {
+  recPeriodo = p;
+  document.getElementById('rec-period-semana').classList.toggle('active', p === 'semana');
+  document.getElementById('rec-period-total').classList.toggle('active', p === 'total');
+  renderRecebimentos();
+}
+
+function setNovPeriod(p) {
+  novPeriodo = p;
+  document.getElementById('nov-period-semana').classList.toggle('active', p === 'semana');
+  document.getElementById('nov-period-total').classList.toggle('active', p === 'total');
+  renderNovosTitulos();
+}
+
+function recSortBy(col) {
+  if (recSortState.col === col) recSortState.dir = recSortState.dir === 'asc' ? 'desc' : 'asc';
+  else { recSortState.col = col; recSortState.dir = col === 'valor' ? 'desc' : 'asc'; }
+  renderRecebimentos();
+}
+
+function novSortBy(col) {
+  if (novSortState.col === col) novSortState.dir = novSortState.dir === 'asc' ? 'desc' : 'asc';
+  else { novSortState.col = col; novSortState.dir = col === 'valor' ? 'desc' : 'asc'; }
+  renderNovosTitulos();
+}
+
+function _sortItems(items, state) {
+  const { col, dir } = state;
+  const mult = dir === 'asc' ? 1 : -1;
+  return [...items].sort((a, b) => {
+    let va, vb;
+    switch(col) {
+      case 'lj':            va = a.lj; vb = b.lj; break;
+      case 'filial':        va = (a.base?.loja||''); vb = (b.base?.loja||''); break;
+      case 'regional':      va = (a.base?.regional||''); vb = (b.base?.regional||''); break;
+      case 'representante': va = (a.t.representante||'').trim(); vb = (b.t.representante||'').trim(); break;
+      case 'vencto':        va = a.t.vencto||''; vb = b.t.vencto||''; break;
+      case 'valor':         va = a.t.valor||0; vb = b.t.valor||0; break;
+      default:              va = 0; vb = 0;
+    }
+    if (typeof va === 'string') return mult * va.localeCompare(vb, 'pt-BR');
+    return mult * (va - vb);
+  });
+}
+
+function _popularFiltros(items, prefixo, renderFn) {
   const regs = [...new Set(items.map(i => i.base?.regional).filter(Boolean))].sort();
   const ljs  = [...new Set(items.map(i => i.lj))].sort((a,b) => a-b);
   const reps = [...new Set(items.map(i => (i.t.representante||'').trim()).filter(Boolean))].sort();
 
-  const selReg = document.getElementById('rec-f-regional');
-  const selFil = document.getElementById('rec-f-filial');
-  const selRep = document.getElementById('rec-f-rep');
+  const selReg = document.getElementById(prefixo + '-f-regional');
+  const selFil = document.getElementById(prefixo + '-f-filial');
+  const selRep = document.getElementById(prefixo + '-f-rep');
   if (!selReg) return;
 
-  const prev = { reg: selReg.value, fil: selFil.value, rep: selRep.value };
-  selReg.innerHTML = '<option value="">Todos os Regionais</option>' + regs.map(r => `<option${prev.reg===r?' selected':''}>${r}</option>`).join('');
+  const prevReg = selReg.value, prevFil = selFil.value, prevRep = selRep.value;
+  selReg.innerHTML = '<option value="">Todos os Regionais</option>' + regs.map(r => `<option value="${r}">${r}</option>`).join('');
   selFil.innerHTML = '<option value="">Todas as Filiais</option>' + ljs.map(lj => {
     const b = BASE_REGIONAIS.find(x => x.lj === lj);
-    const label = b ? lj + ' — ' + b.loja : lj;
-    return `<option value="${lj}"${prev.fil==lj?' selected':''}>${label}</option>`;
+    return `<option value="${lj}">${b ? lj + ' — ' + b.loja : lj}</option>`;
   }).join('');
-  selRep.innerHTML = '<option value="">Todos os Representantes</option>' + reps.map(r => `<option${prev.rep===r?' selected':''}>${r}</option>`).join('');
+  selRep.innerHTML = '<option value="">Todos os Reps.</option>' + reps.map(r => `<option value="${r}">${r}</option>`).join('');
+  // Restore selections AFTER rebuilding (using .value assignment, not selected attribute)
+  selReg.value = prevReg; selFil.value = prevFil; selRep.value = prevRep;
 }
 
-function renderRecebimentos() {
-  const { items, prevSemana, prevRef } = calcRecebimentos();
-
-  _popularFiltrosRec(items);
-
-  const fReg = (document.getElementById('rec-f-regional')||{value:''}).value;
-  const fFil = (document.getElementById('rec-f-filial')||{value:''}).value;
-  const fRep = (document.getElementById('rec-f-rep')||{value:''}).value;
-
-  const filtrados = items.filter(i => {
+function _filtrarItems(items, prefixo) {
+  const fReg = (document.getElementById(prefixo + '-f-regional')||{value:''}).value;
+  const fFil = (document.getElementById(prefixo + '-f-filial')||{value:''}).value;
+  const fRep = (document.getElementById(prefixo + '-f-rep')||{value:''}).value;
+  return items.filter(i => {
     if (fReg && i.base?.regional !== fReg) return false;
     if (fFil && String(i.lj) !== String(fFil)) return false;
     if (fRep && (i.t.representante||'').trim() !== fRep) return false;
     return true;
   });
+}
 
-  const total       = filtrados.reduce((s, i) => s + (i.t.valor||0), 0);
-  const totalTitulos= filtrados.length;
-  const filiaisSet  = new Set(filtrados.map(i => i.lj));
-  const maiorFilial = (() => {
-    const por = {};
-    filtrados.forEach(i => { por[i.lj] = (por[i.lj]||0) + (i.t.valor||0); });
-    const lj = Object.entries(por).sort((a,b)=>b[1]-a[1])[0];
-    if (!lj) return '—';
-    const b = BASE_REGIONAIS.find(x => x.lj === parseInt(lj[0]));
-    return (b ? b.loja : 'LJ'+lj[0]) + ' · ' + formatMoeda(lj[1]);
-  })();
+function _renderKpis(el, filtrados, semDe, semAte, cor, clickFilter) {
+  if (!el) return;
+  const total    = filtrados.reduce((s,i) => s + (i.t.valor||0), 0);
+  const filsSet  = new Set(filtrados.map(i => i.lj));
+  const porFil   = {};
+  filtrados.forEach(i => { porFil[i.lj] = (porFil[i.lj]||0) + (i.t.valor||0); });
+  const topLj    = Object.entries(porFil).sort((a,b) => b[1]-a[1])[0];
+  const topBase  = topLj ? BASE_REGIONAIS.find(x => x.lj === parseInt(topLj[0])) : null;
+  const topLabel = topLj ? (topBase ? topBase.loja : 'LJ'+topLj[0]) : '—';
+  const topVal   = topLj ? formatMoeda(topLj[1]) : '';
+  const dDe  = semDe  ? formatarData(semDe)  : '?';
+  const dAte = semAte ? formatarData(semAte) : '?';
 
-  // ── KPIs ──
-  const kpiEl = document.getElementById('rec-kpis');
-  if (kpiEl) {
-    const semDe = prevSemana ? formatarData(prevSemana) : '?';
-    const semAte= prevRef    ? formatarData(prevRef)    : '?';
-    kpiEl.innerHTML = [
-      ['💰 Total Recebido', formatMoeda(total), 'Entre ' + semDe + ' e ' + semAte, '#065F46', '#DCFCE7'],
-      ['📋 Títulos Quitados', totalTitulos, 'títulos saíram do D60', '#1E3A8A', '#DBEAFE'],
-      ['🏢 Filiais c/ Recebimento', filiaisSet.size, 'de ' + BASE_REGIONAIS.length + ' filiais', '#6D28D9', '#EDE9FE'],
-      ['🏆 Maior Filial', maiorFilial, 'maior volume recebido', '#92400E', '#FEF3C7'],
-    ].map(([lbl, val, sub, cor, bg]) =>
-      `<div style="background:var(--bg-card);border-radius:10px;padding:16px;border-left:4px solid ${cor};box-shadow:var(--sombra)">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--texto-ter);margin-bottom:8px">${lbl}</div>
-        <div style="font-size:18px;font-weight:700;color:${cor}">${val}</div>
-        <div style="font-size:11px;color:var(--texto-mut);margin-top:4px">${sub}</div>
-      </div>`
-    ).join('');
-  }
+  el.innerHTML = `
+    <div style="background:var(--bg-card);border-radius:10px;padding:14px 16px;border-left:4px solid ${cor};box-shadow:var(--sombra)">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--texto-ter);margin-bottom:6px">Total</div>
+      <div style="font-size:17px;font-weight:700;color:${cor}">${formatMoeda(total)}</div>
+      <div style="font-size:10px;color:var(--texto-mut);margin-top:3px">${filtrados.length} títulos</div>
+    </div>
+    <div style="background:var(--bg-card);border-radius:10px;padding:14px 16px;border-left:4px solid ${cor};box-shadow:var(--sombra)">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--texto-ter);margin-bottom:6px">Filiais</div>
+      <div style="font-size:17px;font-weight:700;color:${cor}">${filsSet.size}</div>
+      <div style="font-size:10px;color:var(--texto-mut);margin-top:3px">de ${BASE_REGIONAIS.length} no total</div>
+    </div>
+    <div style="background:var(--bg-card);border-radius:10px;padding:14px 16px;border-left:4px solid ${cor};box-shadow:var(--sombra);cursor:pointer" onclick="${clickFilter}(${topLj ? topLj[0] : 0})" title="Clique para filtrar esta filial">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--texto-ter);margin-bottom:6px">Maior Filial 🏆</div>
+      <div style="font-size:13px;font-weight:700;color:${cor}">${topLabel}</div>
+      <div style="font-size:10px;color:var(--texto-mut);margin-top:3px">${topVal}</div>
+    </div>
+    <div style="background:var(--bg-card);border-radius:10px;padding:14px 16px;border-left:4px solid ${cor};box-shadow:var(--sombra)">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--texto-ter);margin-bottom:6px">Período</div>
+      <div style="font-size:11px;font-weight:700;color:${cor}">${dDe}</div>
+      <div style="font-size:10px;color:var(--texto-mut);margin-top:2px">→ ${dAte}</div>
+    </div>`;
+}
 
-  // ── Tabela ──
-  const tbody  = document.getElementById('rec-tbody');
-  const empty  = document.getElementById('rec-empty');
+function _renderTabMovimentos(tbodyId, emptyId, theadId, items, sortState, corValor) {
+  const tbody = document.getElementById(tbodyId);
+  const empty = document.getElementById(emptyId);
   if (!tbody) return;
 
-  if (!filtrados.length) {
+  if (!items.length) {
     tbody.innerHTML = '';
     if (empty) empty.style.display = 'block';
+    // Reset sort indicators
+    document.querySelectorAll('#' + theadId + ' .sort-th').forEach(th => {
+      th.classList.remove('asc','desc');
+    });
     return;
   }
   if (empty) empty.style.display = 'none';
 
-  let html = '', totRow = 0;
-  filtrados.forEach((item, idx) => {
+  // Sort indicators
+  document.querySelectorAll('#' + theadId + ' .sort-th').forEach(th => {
+    const col = th.dataset.col;
+    th.classList.toggle('asc', col === sortState.col && sortState.dir === 'asc');
+    th.classList.toggle('desc', col === sortState.col && sortState.dir === 'desc');
+  });
+
+  const sorted = _sortItems(items, sortState);
+  let html = '', tot = 0;
+  sorted.forEach((item, idx) => {
     const { lj, base, t } = item;
-    totRow += (t.valor||0);
-    const bg = idx % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-input)';
+    tot += (t.valor||0);
+    const bg    = idx % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-input)';
     const nome  = base ? base.loja : 'LJ'+lj;
     const reg   = base ? base.regional : '—';
     const rep   = t.representante || '—';
     const cli   = t.cliente || '—';
-    const titNF = [t.titulo, t.nf].filter(Boolean).join(' / ') || '—';
+    const titNF = [t.titulo, t.nf].filter(Boolean).join('/') || '—';
     const ven   = t.vencto ? formatarData(t.vencto) : '—';
     html += `<tr style="background:${bg}">
-      <td style="padding:8px 12px;font-weight:700;color:var(--azul)">${lj}</td>
-      <td style="padding:8px 12px;font-weight:600;color:var(--texto)">${nome}</td>
-      <td style="padding:8px 12px;color:var(--texto-sec)">${reg}</td>
-      <td style="padding:8px 12px;color:var(--texto-sec)">${rep}</td>
-      <td style="padding:8px 12px;color:var(--texto)">${cli}</td>
-      <td style="padding:8px 12px;color:var(--texto-ter)">${titNF}</td>
-      <td style="padding:8px 12px;text-align:right;color:var(--texto-sec)">${ven}</td>
-      <td style="padding:8px 12px;text-align:right;font-weight:700;color:#065F46">${formatMoeda(t.valor||0)}</td>
+      <td style="padding:7px 12px;font-weight:700;color:var(--azul)">${lj}</td>
+      <td style="padding:7px 12px;font-weight:600;color:var(--texto)">${nome}</td>
+      <td style="padding:7px 12px;color:var(--texto-sec)">${reg}</td>
+      <td style="padding:7px 12px;color:var(--texto-sec)">${rep}</td>
+      <td style="padding:7px 12px;color:var(--texto)">${cli}</td>
+      <td style="padding:7px 12px;color:var(--texto-ter);font-size:11px">${titNF}</td>
+      <td style="padding:7px 12px;text-align:right;color:var(--texto-sec)">${ven}</td>
+      <td style="padding:7px 12px;text-align:right;font-weight:700;color:${corValor}">${formatMoeda(t.valor||0)}</td>
     </tr>`;
   });
-  // Total
   html += `<tr style="background:var(--azul);color:#fff;font-weight:700">
-    <td colspan="7" style="padding:9px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.5px">TOTAL RECEBIDO (${filtrados.length} títulos)</td>
-    <td style="padding:9px 12px;text-align:right;font-size:14px">${formatMoeda(totRow)}</td>
+    <td colspan="7" style="padding:8px 12px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.5px">TOTAL (${sorted.length} títulos)</td>
+    <td style="padding:8px 12px;text-align:right;font-size:13px">${formatMoeda(tot)}</td>
   </tr>`;
   tbody.innerHTML = html;
 }
 
-function exportarRecebimentosXLS() {
-  const { items, prevSemana, prevRef } = calcRecebimentos();
-  if (!items.length) { toast('Sem dados de recebimentos para exportar.'); return; }
+function _recFiltrarMaiorFilial(lj) {
+  if (!lj) return;
+  const sel = document.getElementById('rec-f-filial');
+  if (sel) { sel.value = String(lj); renderRecebimentos(); }
+}
 
-  const fReg = (document.getElementById('rec-f-regional')||{value:''}).value;
-  const fFil = (document.getElementById('rec-f-filial')||{value:''}).value;
-  const fRep = (document.getElementById('rec-f-rep')||{value:''}).value;
+function _novFiltrarMaiorFilial(lj) {
+  if (!lj) return;
+  const sel = document.getElementById('nov-f-filial');
+  if (sel) { sel.value = String(lj); renderNovosTitulos(); }
+}
+
+function renderRecebimentos() {
+  const { items, semDe, semAte } = _getRec(recPeriodo);
+  _popularFiltros(items, 'rec', renderRecebimentos);
+  const filtrados = _filtrarItems(items, 'rec');
+  _renderKpis(document.getElementById('rec-kpis'), filtrados, semDe, semAte, '#065F46', '_recFiltrarMaiorFilial');
+  const label = document.getElementById('rec-periodo-label');
+  if (label && semDe && semAte) label.textContent = formatarData(semDe) + ' → ' + formatarData(semAte);
+  _renderTabMovimentos('rec-tbody', 'rec-empty', 'rec-thead', filtrados, recSortState, '#065F46');
+}
+
+function renderNovosTitulos() {
+  const { items, semDe, semAte } = _getNovos(novPeriodo);
+  _popularFiltros(items, 'nov', renderNovosTitulos);
+  const filtrados = _filtrarItems(items, 'nov');
+  _renderKpis(document.getElementById('nov-kpis'), filtrados, semDe, semAte, '#7C3AED', '_novFiltrarMaiorFilial');
+  const label = document.getElementById('nov-periodo-label');
+  if (label && semDe && semAte) label.textContent = formatarData(semDe) + ' → ' + formatarData(semAte);
+  _renderTabMovimentos('nov-tbody', 'nov-empty', 'nov-thead', filtrados, novSortState, '#7C3AED');
+}
+
+function _exportMovimentosXLS(getFn, periodo, sheetName, filePrefix, titulo) {
+  const { items, semDe, semAte } = getFn(periodo);
+  if (!items.length) { toast('Sem dados para exportar.'); return; }
+  const fReg = (document.getElementById((sheetName === 'Recebimentos' ? 'rec' : 'nov') + '-f-regional')||{value:''}).value;
+  const fFil = (document.getElementById((sheetName === 'Recebimentos' ? 'rec' : 'nov') + '-f-filial')||{value:''}).value;
+  const fRep = (document.getElementById((sheetName === 'Recebimentos' ? 'rec' : 'nov') + '-f-rep')||{value:''}).value;
   const filtrados = items.filter(i => {
     if (fReg && i.base?.regional !== fReg) return false;
     if (fFil && String(i.lj) !== String(fFil)) return false;
     if (fRep && (i.t.representante||'').trim() !== fRep) return false;
     return true;
   });
-
   const total = filtrados.reduce((s,i) => s+(i.t.valor||0), 0);
-  const semDe = prevSemana ? formatarData(prevSemana) : '?';
-  const semAte= prevRef    ? formatarData(prevRef)    : '?';
-
-  const header = ['LJ','Filial','Regional','Representante','Cliente','Cód. Cliente','Título','NF','Emissão','Vencimento','Atraso','Valor Recebido'];
+  const header = ['LJ','Filial','Regional','Representante','Cliente','Cód. Cliente','Título','NF','Emissão','Vencimento','Atraso','Valor'];
   const rows = filtrados.map(({ lj, base, t }) => [
-    lj,
-    base ? base.loja : 'LJ'+lj,
-    base ? base.regional : '',
-    t.representante || '',
-    t.cliente || '',
-    t.codCliente || '',
-    t.titulo || '',
-    t.nf || '',
-    t.emissao || '',
-    t.vencto || '',
-    t.atraso || '',
-    t.valor || 0,
+    lj, base ? base.loja : 'LJ'+lj, base ? base.regional : '',
+    t.representante||'', t.cliente||'', t.codCliente||'',
+    t.titulo||'', t.nf||'', t.emissao||'', t.vencto||'', t.atraso||'', t.valor||0,
   ]);
   rows.push(['','','','','','','','','','TOTAL','', total]);
-
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet([
-    ['RECEBIMENTOS D60 — AGROQUIMA'],
-    ['Período: ' + semDe + ' → ' + semAte],
-    [],
-    header,
-    ...rows,
-  ]);
-  XLSX.utils.book_append_sheet(wb, ws, 'Recebimentos');
-  XLSX.writeFile(wb, 'D60_Recebimentos_' + (prevRef || 'atual') + '.xlsx');
-  toast('✅ XLS de recebimentos exportado!');
+  const ws = XLSX.utils.aoa_to_sheet([[titulo],[`Período: ${semDe ? formatarData(semDe) : '?'} → ${semAte ? formatarData(semAte) : '?'}`],[],header,...rows]);
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, filePrefix + '_' + (semAte || 'atual') + '.xlsx');
+  toast('✅ XLS exportado!');
+}
+
+function exportarRecebimentosXLS() {
+  _exportMovimentosXLS(_getRec, recPeriodo, 'Recebimentos', 'D60_Recebimentos', 'RECEBIMENTOS D60 — AGROQUIMA');
+}
+
+function exportarNovosTitulosXLS() {
+  _exportMovimentosXLS(_getNovos, novPeriodo, 'Novos Titulos', 'D60_NovosTitulos', 'NOVOS TÍTULOS D60 — AGROQUIMA');
 }
 
 function renderGraficoLinha(semanas, totais) {
