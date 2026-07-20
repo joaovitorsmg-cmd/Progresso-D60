@@ -74,12 +74,12 @@
     min-height: 100vh; background: var(--login-bg);
   }
   .login-card {
-    background: var(--bg-card); border-radius: 16px; padding: 48px 40px;
+    background: var(--bg-card); border-radius: 16px; padding: 44px 36px 36px;
     box-shadow: 0 20px 60px rgba(0,0,0,.25); width: 380px; text-align: center;
   }
   .login-logo { font-size: 13px; letter-spacing: 3px; color: var(--azul-cl); font-weight: 700; margin-bottom: 6px; }
   .login-title { font-size: 22px; font-weight: 700; color: var(--accent-text); margin-bottom: 4px; }
-  .login-sub { font-size: 13px; color: var(--texto-mut); margin-bottom: 32px; }
+  .login-sub { font-size: 13px; color: var(--texto-mut); margin-bottom: 28px; }
   .login-card input, .login-card select {
     width: 100%; padding: 12px 16px; border: 1.5px solid var(--cinza-bd);
     border-radius: 8px; font-size: 14px; color: var(--texto); margin-bottom: 14px;
@@ -94,6 +94,45 @@
   }
   .btn-login:hover { background: var(--azul-med); }
   .modo-hint { font-size: 12px; color: var(--texto-sec); margin-top: 8px; }
+  /* ── Perfis salvos ── */
+  .login-profiles { display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-bottom:20px; }
+  .login-profile-chip {
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    cursor:pointer;padding:8px 6px;border-radius:12px;border:2px solid transparent;
+    transition:all .18s;min-width:68px;position:relative;
+  }
+  .login-profile-chip:hover { border-color:var(--azul-cl);background:rgba(37,99,235,.07); }
+  .login-profile-chip:hover .login-chip-remove { opacity:1; }
+  .login-profile-avatar {
+    width:52px;height:52px;border-radius:50%;
+    background:linear-gradient(135deg,#1E3A8A,#2563EB);
+    color:#fff;font-size:17px;font-weight:700;letter-spacing:.5px;
+    display:flex;align-items:center;justify-content:center;user-select:none;
+  }
+  .login-profile-name { font-size:11px;font-weight:600;color:var(--texto-pri);text-align:center;max-width:68px;line-height:1.2; }
+  .login-profile-add {
+    width:52px;height:52px;border-radius:50%;
+    border:2px dashed var(--cinza-bd);color:var(--texto-mut);font-size:26px;line-height:1;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:all .18s;
+  }
+  .login-profile-chip:hover .login-profile-add { border-color:var(--azul-cl);color:var(--azul-cl); }
+  .login-chip-remove {
+    position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;
+    background:var(--verm);color:#fff;font-size:11px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;opacity:0;
+    transition:opacity .15s;cursor:pointer;line-height:1;
+  }
+  .login-divider {
+    display:flex;align-items:center;gap:8px;margin:4px 0 18px;
+    color:var(--texto-mut);font-size:12px;
+  }
+  .login-divider::before,.login-divider::after { content:'';flex:1;height:1px;background:var(--cinza-bd); }
+  .login-remember {
+    display:flex;align-items:center;gap:8px;font-size:13px;
+    color:var(--texto-sec);margin-bottom:16px;cursor:pointer;text-align:left;
+  }
+  .login-remember input[type=checkbox] { width:16px;height:16px;margin:0;cursor:pointer;accent-color:var(--azul); }
 
   /* ── MODO BADGE ─────────────────────────────────────────────────── */
   .modo-badge {
@@ -588,18 +627,19 @@
 <!-- ════════ LOGIN ════════ -->
 <div id="login-screen">
   <div class="login-card">
-    <div style="margin-bottom:16px">
-      <img id="login-logo-img" alt="Agroquima" style="width:140px;height:140px;object-fit:contain;border-radius:16px">
+    <div style="margin-bottom:14px">
+      <img id="login-logo-img" alt="Agroquima" style="width:130px;height:130px;object-fit:contain;border-radius:16px">
     </div>
     <div class="login-title">Auditoria D60</div>
     <div class="login-sub">Endividamento Vencido ≥ 60 dias</div>
-    <div class="login-err" id="login-err">Senha incorreta.</div>
-    <input type="password" id="login-senha" placeholder="Senha de acesso" autocomplete="off">
-    <select id="login-modo">
-      <option value="consulta">Apenas consultar</option>
-      <option value="auditoria">Registrar auditoria</option>
-    </select>
-    <div id="login-auditor-wrap" style="display:none">
+
+    <!-- ── Perfis salvos ── -->
+    <div id="login-profiles" class="login-profiles" style="display:none"></div>
+
+    <!-- ── Formulário de acesso ── -->
+    <div id="login-form-section">
+      <div class="login-err" id="login-err">Senha incorreta.</div>
+      <input type="password" id="login-senha" placeholder="Senha de acesso" autocomplete="current-password">
       <select id="login-auditor">
         <option value="">— Selecione seu nome —</option>
         <option>João Vitor Mendes</option>
@@ -608,9 +648,14 @@
         <option>Fábio Ribeiro</option>
         <option>Patrick Lima</option>
       </select>
+      <label class="login-remember">
+        <input type="checkbox" id="login-remember" checked>
+        Salvar neste dispositivo
+      </label>
+      <button class="btn-login" onclick="fazerLogin()">Entrar</button>
     </div>
-    <button class="btn-login" onclick="fazerLogin()">Entrar</button>
-    <div class="modo-hint">Qualquer dúvida, contate a coordenação.</div>
+
+    <div class="modo-hint" id="login-hint">Qualquer dúvida, contate a coordenação.</div>
   </div>
 </div>
 
@@ -943,44 +988,93 @@ let filialSel    = null;
 let dadosTabela  = [];
 
 // ════════════════════════════════════════════════════════════════════
-// LOGIN
+// LOGIN — perfis salvos
 // ════════════════════════════════════════════════════════════════════
-document.getElementById('login-modo').addEventListener('change', function() {
-  document.getElementById('login-auditor-wrap').style.display =
-    this.value === 'auditoria' ? 'block' : 'none';
-});
+function _initials(name) {
+  const p = name.trim().split(/\s+/).filter(Boolean);
+  return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : name.slice(0,2).toUpperCase();
+}
+function _getSavedProfiles() {
+  try { return JSON.parse(localStorage.getItem('aud_profiles') || '[]'); } catch(e) { return []; }
+}
+function _saveProfile(auditor) {
+  const list = _getSavedProfiles().filter(p => p.auditor !== auditor);
+  list.unshift({ auditor });
+  localStorage.setItem('aud_profiles', JSON.stringify(list.slice(0, 6)));
+}
+function removerPerfil(auditor, ev) {
+  ev.stopPropagation();
+  const list = _getSavedProfiles().filter(p => p.auditor !== auditor);
+  localStorage.setItem('aud_profiles', JSON.stringify(list));
+  _renderLoginProfiles();
+}
+function _renderLoginProfiles() {
+  const profiles = _getSavedProfiles();
+  const profDiv  = document.getElementById('login-profiles');
+  const formDiv  = document.getElementById('login-form-section');
+  const hint     = document.getElementById('login-hint');
+  if (!profiles.length) {
+    profDiv.style.display = 'none';
+    formDiv.style.display = 'block';
+    hint.textContent = 'Qualquer dúvida, contate a coordenação.';
+    return;
+  }
+  profDiv.innerHTML = profiles.map(p => {
+    const esc = p.auditor.replace(/'/g, "\\'");
+    const first = p.auditor.split(' ')[0];
+    return '<div class="login-profile-chip" onclick="loginComPerfil(\'' + esc + '\')" title="' + p.auditor + '">'
+      + '<div class="login-chip-remove" onclick="removerPerfil(\'' + esc + '\',event)" title="Remover">×</div>'
+      + '<div class="login-profile-avatar">' + _initials(p.auditor) + '</div>'
+      + '<div class="login-profile-name">' + first + '</div>'
+      + '</div>';
+  }).join('') +
+    '<div class="login-profile-chip" onclick="mostrarFormLogin()" title="Entrar com outro usuário">'
+    + '<div class="login-profile-add">+</div>'
+    + '<div class="login-profile-name" style="color:var(--texto-mut)">Outro</div>'
+    + '</div>';
+  profDiv.style.display = 'flex';
+  formDiv.style.display = 'none';
+  hint.textContent = 'Toque no seu nome para entrar.';
+}
+function mostrarFormLogin() {
+  document.getElementById('login-profiles').style.display = 'none';
+  document.getElementById('login-form-section').style.display = 'block';
+  document.getElementById('login-hint').textContent = 'Qualquer dúvida, contate a coordenação.';
+  document.getElementById('login-senha').focus();
+}
+function loginComPerfil(auditor) {
+  _doLogin(auditor);
+}
 
 document.getElementById('login-senha').addEventListener('keydown', e => {
   if (e.key === 'Enter') fazerLogin();
 });
 
 function fazerLogin() {
-  const senha  = document.getElementById('login-senha').value.trim();
-  const modo   = document.getElementById('login-modo').value;
-  const auditor= document.getElementById('login-auditor').value;
-  const err    = document.getElementById('login-err');
+  const senha   = document.getElementById('login-senha').value.trim();
+  const auditor = document.getElementById('login-auditor').value;
+  const remember= document.getElementById('login-remember').checked;
+  const err     = document.getElementById('login-err');
 
-  if (senha !== SENHA) { err.style.display = 'block'; return; }
-  if (modo === 'auditoria' && !auditor) {
-    err.textContent = 'Selecione seu nome para registrar auditoria.';
+  if (senha !== SENHA) { err.textContent = 'Senha incorreta.'; err.style.display = 'block'; return; }
+  if (!auditor) {
+    err.textContent = 'Selecione seu nome.';
     err.style.display = 'block'; return;
   }
   err.style.display = 'none';
-  MODO = modo; AUDITOR_ATUAL = auditor;
+  if (remember) _saveProfile(auditor);
+  _doLogin(auditor);
+}
 
+function _doLogin(auditor) {
+  MODO = 'auditoria'; AUDITOR_ATUAL = auditor;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-
-  const badge = MODO === 'auditoria'
-    ? '<span class="modo-badge modo-auditoria">✏️ Modo Auditoria</span>'
-    : '<span class="modo-badge modo-consulta">👁 Modo Consulta</span>';
-  document.getElementById('modo-badge-header').innerHTML = badge;
-  document.getElementById('header-auditor').textContent =
-    AUDITOR_ATUAL ? AUDITOR_ATUAL : '';
-
+  document.getElementById('modo-badge-header').innerHTML =
+    '<span class="modo-badge modo-auditoria">✏️ Modo Auditoria</span>';
+  document.getElementById('header-auditor').textContent = AUDITOR_ATUAL;
   popularFiltroRegional();
   carregarNuvem();
-  // Atualizar botão de tema após o app se tornar visível
   const _t = document.documentElement.getAttribute('data-theme') || 'dark';
   _aplicarTema(_t);
 }
@@ -988,6 +1082,9 @@ function fazerLogin() {
 function sair() {
   location.reload();
 }
+
+// Inicializar tela de login com perfis salvos
+_renderLoginProfiles();
 
 // ════════════════════════════════════════════════════════════════════
 // JSONBIN
