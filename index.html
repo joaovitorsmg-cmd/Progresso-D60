@@ -699,6 +699,7 @@
     <button class="tab-btn active" id="tab-btn-painel" onclick="trocarAba('painel')">📋 Painel</button>
     <button class="tab-btn" id="tab-btn-relatorio" onclick="trocarAba('relatorio')">📊 Relatório Geral</button>
     <button class="tab-btn" id="tab-btn-evolucao" onclick="trocarAba('evolucao')">📈 Evolução</button>
+    <button class="tab-btn" id="tab-btn-recebimentos" onclick="trocarAba('recebimentos')">💰 Recebimentos</button>
   </div>
 
   <!-- FILTROS GLOBAIS — afetam Painel, Relatório e Evolução -->
@@ -882,6 +883,61 @@
 
     </div>
   </div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!--  ABA: RECEBIMENTOS                                            -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="tab-page" id="tab-recebimentos">
+    <div style="padding:20px 28px">
+
+      <!-- KPIs -->
+      <div id="rec-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px"></div>
+
+      <!-- Filtros + ações -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+        <select id="rec-f-regional" class="filtro-sel" onchange="renderRecebimentos()" style="min-width:160px">
+          <option value="">Todos os Regionais</option>
+        </select>
+        <select id="rec-f-filial" class="filtro-sel" onchange="renderRecebimentos()" style="min-width:180px">
+          <option value="">Todas as Filiais</option>
+        </select>
+        <select id="rec-f-rep" class="filtro-sel" onchange="renderRecebimentos()" style="min-width:180px">
+          <option value="">Todos os Representantes</option>
+        </select>
+        <button class="btn-export" onclick="exportarRecebimentosXLS()" style="margin-left:auto">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Exportar XLS
+        </button>
+      </div>
+
+      <!-- Tabela -->
+      <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;box-shadow:var(--sombra)">
+        <div style="overflow-x:auto">
+          <table id="rec-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
+            <thead>
+              <tr style="background:var(--azul);color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">
+                <th style="padding:9px 12px;text-align:left">LJ</th>
+                <th style="padding:9px 12px;text-align:left">Filial</th>
+                <th style="padding:9px 12px;text-align:left">Regional</th>
+                <th style="padding:9px 12px;text-align:left">Representante</th>
+                <th style="padding:9px 12px;text-align:left">Cliente</th>
+                <th style="padding:9px 12px;text-align:left">Título / NF</th>
+                <th style="padding:9px 12px;text-align:right">Vencto</th>
+                <th style="padding:9px 12px;text-align:right">Valor Recebido</th>
+              </tr>
+            </thead>
+            <tbody id="rec-tbody"></tbody>
+          </table>
+        </div>
+        <div id="rec-empty" style="display:none;padding:40px;text-align:center;color:var(--texto-mut);font-size:13px">
+          📭 Nenhum dado disponível.<br>
+          <span style="font-size:12px;margin-top:6px;display:block">Importe dois arquivos de semanas distintas para identificar recebimentos.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
 </div>
 
 <div id="toast"></div>
@@ -1468,13 +1524,14 @@ function renderTabela() {
 // ABAS
 // ════════════════════════════════════════════════════════════════════
 function trocarAba(aba) {
-  ['painel','relatorio','evolucao'].forEach(id => {
+  ['painel','relatorio','evolucao','recebimentos'].forEach(id => {
     document.getElementById('tab-' + id).classList.toggle('active', aba === id);
     document.getElementById('tab-btn-' + id).classList.toggle('active', aba === id);
   });
   const stWrap = document.getElementById('evol-status-wrap');
   if (stWrap) stWrap.style.display = aba === 'evolucao' ? '' : 'none';
-  if (aba === 'evolucao') renderEvolucao();
+  if (aba === 'evolucao')      renderEvolucao();
+  if (aba === 'recebimentos')  renderRecebimentos();
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -2899,6 +2956,200 @@ document.addEventListener('mousemove', e => {
   const tt = document.getElementById('evol-row-tooltip');
   if (tt && tt.style.display !== 'none') moverTooltipLinha(e);
 });
+
+// ════════════════════════════════════════════════════════════════════
+// ABA RECEBIMENTOS — títulos que sumiram vs. semana anterior
+// ════════════════════════════════════════════════════════════════════
+function _titleKey(t) {
+  const cod = String(t.codCliente || '').trim();
+  const num = String(t.titulo || '').trim();
+  const nf  = String(t.nf || '').trim();
+  const ven = String(t.vencto || '').trim();
+  if (cod && num) return cod + '|' + num + '|' + ven;
+  if (cod && nf)  return cod + '|' + nf  + '|' + ven;
+  return String(t.cliente || '').trim().toUpperCase() + '|' + (t.valor || 0) + '|' + ven;
+}
+
+function calcRecebimentos() {
+  let prevData = {}, prevSemana = null, prevRef = null;
+  try {
+    const bk = JSON.parse(localStorage.getItem('ven_backup') || 'null');
+    if (bk && bk.vencidosData) { prevData = bk.vencidosData; prevSemana = bk.semanaAtual; prevRef = bk.semanaNova; }
+  } catch(e) {}
+
+  const items = [];
+  Object.entries(prevData).forEach(([ljStr, prevTits]) => {
+    const lj   = parseInt(ljStr);
+    const base = BASE_REGIONAIS.find(b => b.lj === lj);
+    const currKeys = new Set((vencidosData[lj] || []).map(_titleKey));
+    prevTits.forEach(t => {
+      if (!currKeys.has(_titleKey(t)) && (t.valor || 0) > 0) {
+        items.push({ lj, base, t });
+      }
+    });
+  });
+
+  // ordenar por valor desc
+  items.sort((a, b) => (b.t.valor || 0) - (a.t.valor || 0));
+  return { items, prevSemana, prevRef };
+}
+
+function _popularFiltrosRec(items) {
+  const regs = [...new Set(items.map(i => i.base?.regional).filter(Boolean))].sort();
+  const ljs  = [...new Set(items.map(i => i.lj))].sort((a,b) => a-b);
+  const reps = [...new Set(items.map(i => (i.t.representante||'').trim()).filter(Boolean))].sort();
+
+  const selReg = document.getElementById('rec-f-regional');
+  const selFil = document.getElementById('rec-f-filial');
+  const selRep = document.getElementById('rec-f-rep');
+  if (!selReg) return;
+
+  const prev = { reg: selReg.value, fil: selFil.value, rep: selRep.value };
+  selReg.innerHTML = '<option value="">Todos os Regionais</option>' + regs.map(r => `<option${prev.reg===r?' selected':''}>${r}</option>`).join('');
+  selFil.innerHTML = '<option value="">Todas as Filiais</option>' + ljs.map(lj => {
+    const b = BASE_REGIONAIS.find(x => x.lj === lj);
+    const label = b ? lj + ' — ' + b.loja : lj;
+    return `<option value="${lj}"${prev.fil==lj?' selected':''}>${label}</option>`;
+  }).join('');
+  selRep.innerHTML = '<option value="">Todos os Representantes</option>' + reps.map(r => `<option${prev.rep===r?' selected':''}>${r}</option>`).join('');
+}
+
+function renderRecebimentos() {
+  const { items, prevSemana, prevRef } = calcRecebimentos();
+
+  _popularFiltrosRec(items);
+
+  const fReg = (document.getElementById('rec-f-regional')||{value:''}).value;
+  const fFil = (document.getElementById('rec-f-filial')||{value:''}).value;
+  const fRep = (document.getElementById('rec-f-rep')||{value:''}).value;
+
+  const filtrados = items.filter(i => {
+    if (fReg && i.base?.regional !== fReg) return false;
+    if (fFil && String(i.lj) !== String(fFil)) return false;
+    if (fRep && (i.t.representante||'').trim() !== fRep) return false;
+    return true;
+  });
+
+  const total       = filtrados.reduce((s, i) => s + (i.t.valor||0), 0);
+  const totalTitulos= filtrados.length;
+  const filiaisSet  = new Set(filtrados.map(i => i.lj));
+  const maiorFilial = (() => {
+    const por = {};
+    filtrados.forEach(i => { por[i.lj] = (por[i.lj]||0) + (i.t.valor||0); });
+    const lj = Object.entries(por).sort((a,b)=>b[1]-a[1])[0];
+    if (!lj) return '—';
+    const b = BASE_REGIONAIS.find(x => x.lj === parseInt(lj[0]));
+    return (b ? b.loja : 'LJ'+lj[0]) + ' · ' + formatMoeda(lj[1]);
+  })();
+
+  // ── KPIs ──
+  const kpiEl = document.getElementById('rec-kpis');
+  if (kpiEl) {
+    const semDe = prevSemana ? formatarData(prevSemana) : '?';
+    const semAte= prevRef    ? formatarData(prevRef)    : '?';
+    kpiEl.innerHTML = [
+      ['💰 Total Recebido', formatMoeda(total), 'Entre ' + semDe + ' e ' + semAte, '#065F46', '#DCFCE7'],
+      ['📋 Títulos Quitados', totalTitulos, 'títulos saíram do D60', '#1E3A8A', '#DBEAFE'],
+      ['🏢 Filiais c/ Recebimento', filiaisSet.size, 'de ' + BASE_REGIONAIS.length + ' filiais', '#6D28D9', '#EDE9FE'],
+      ['🏆 Maior Filial', maiorFilial, 'maior volume recebido', '#92400E', '#FEF3C7'],
+    ].map(([lbl, val, sub, cor, bg]) =>
+      `<div style="background:var(--bg-card);border-radius:10px;padding:16px;border-left:4px solid ${cor};box-shadow:var(--sombra)">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--texto-ter);margin-bottom:8px">${lbl}</div>
+        <div style="font-size:18px;font-weight:700;color:${cor}">${val}</div>
+        <div style="font-size:11px;color:var(--texto-mut);margin-top:4px">${sub}</div>
+      </div>`
+    ).join('');
+  }
+
+  // ── Tabela ──
+  const tbody  = document.getElementById('rec-tbody');
+  const empty  = document.getElementById('rec-empty');
+  if (!tbody) return;
+
+  if (!filtrados.length) {
+    tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  let html = '', totRow = 0;
+  filtrados.forEach((item, idx) => {
+    const { lj, base, t } = item;
+    totRow += (t.valor||0);
+    const bg = idx % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-input)';
+    const nome  = base ? base.loja : 'LJ'+lj;
+    const reg   = base ? base.regional : '—';
+    const rep   = t.representante || '—';
+    const cli   = t.cliente || '—';
+    const titNF = [t.titulo, t.nf].filter(Boolean).join(' / ') || '—';
+    const ven   = t.vencto ? formatarData(t.vencto) : '—';
+    html += `<tr style="background:${bg}">
+      <td style="padding:8px 12px;font-weight:700;color:var(--azul)">${lj}</td>
+      <td style="padding:8px 12px;font-weight:600;color:var(--texto)">${nome}</td>
+      <td style="padding:8px 12px;color:var(--texto-sec)">${reg}</td>
+      <td style="padding:8px 12px;color:var(--texto-sec)">${rep}</td>
+      <td style="padding:8px 12px;color:var(--texto)">${cli}</td>
+      <td style="padding:8px 12px;color:var(--texto-ter)">${titNF}</td>
+      <td style="padding:8px 12px;text-align:right;color:var(--texto-sec)">${ven}</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:700;color:#065F46">${formatMoeda(t.valor||0)}</td>
+    </tr>`;
+  });
+  // Total
+  html += `<tr style="background:var(--azul);color:#fff;font-weight:700">
+    <td colspan="7" style="padding:9px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.5px">TOTAL RECEBIDO (${filtrados.length} títulos)</td>
+    <td style="padding:9px 12px;text-align:right;font-size:14px">${formatMoeda(totRow)}</td>
+  </tr>`;
+  tbody.innerHTML = html;
+}
+
+function exportarRecebimentosXLS() {
+  const { items, prevSemana, prevRef } = calcRecebimentos();
+  if (!items.length) { toast('Sem dados de recebimentos para exportar.'); return; }
+
+  const fReg = (document.getElementById('rec-f-regional')||{value:''}).value;
+  const fFil = (document.getElementById('rec-f-filial')||{value:''}).value;
+  const fRep = (document.getElementById('rec-f-rep')||{value:''}).value;
+  const filtrados = items.filter(i => {
+    if (fReg && i.base?.regional !== fReg) return false;
+    if (fFil && String(i.lj) !== String(fFil)) return false;
+    if (fRep && (i.t.representante||'').trim() !== fRep) return false;
+    return true;
+  });
+
+  const total = filtrados.reduce((s,i) => s+(i.t.valor||0), 0);
+  const semDe = prevSemana ? formatarData(prevSemana) : '?';
+  const semAte= prevRef    ? formatarData(prevRef)    : '?';
+
+  const header = ['LJ','Filial','Regional','Representante','Cliente','Cód. Cliente','Título','NF','Emissão','Vencimento','Atraso','Valor Recebido'];
+  const rows = filtrados.map(({ lj, base, t }) => [
+    lj,
+    base ? base.loja : 'LJ'+lj,
+    base ? base.regional : '',
+    t.representante || '',
+    t.cliente || '',
+    t.codCliente || '',
+    t.titulo || '',
+    t.nf || '',
+    t.emissao || '',
+    t.vencto || '',
+    t.atraso || '',
+    t.valor || 0,
+  ]);
+  rows.push(['','','','','','','','','','TOTAL','', total]);
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['RECEBIMENTOS D60 — AGROQUIMA'],
+    ['Período: ' + semDe + ' → ' + semAte],
+    [],
+    header,
+    ...rows,
+  ]);
+  XLSX.utils.book_append_sheet(wb, ws, 'Recebimentos');
+  XLSX.writeFile(wb, 'D60_Recebimentos_' + (prevRef || 'atual') + '.xlsx');
+  toast('✅ XLS de recebimentos exportado!');
+}
 
 function renderGraficoLinha(semanas, totais) {
   const svg = document.getElementById('evol-chart');
