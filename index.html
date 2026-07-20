@@ -1117,8 +1117,11 @@ function importarVencidos(input) {
   reader.onload = function(e) {
     try {
       const wb    = XLSX.read(e.target.result, { type: 'array', cellDates: true });
-      const ws    = wb.Sheets['Títulos'];
-      if (!ws) { toast('⚠️ Aba "Títulos" não encontrada no arquivo.'); return; }
+      // Busca case-insensitive + normalização de acento (lida com encoding do .xls legado)
+      const _normSh = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+      const _shKey  = wb.SheetNames.find(n => _normSh(n) === 'titulos');
+      const ws      = _shKey ? wb.Sheets[_shKey] : null;
+      if (!ws) { toast('⚠️ Aba "Títulos" não encontrada. Abas: ' + wb.SheetNames.join(', ')); return; }
       const rows  = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
       const semanaAnterior = semanaAtual;
