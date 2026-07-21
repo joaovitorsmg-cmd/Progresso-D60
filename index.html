@@ -145,10 +145,10 @@
   /* ── SORTABLE TABLE HEADERS ─────────────────────────────────────── */
   .sort-th { cursor:pointer;user-select:none;white-space:nowrap; }
   .sort-th:hover { background:rgba(255,255,255,.12); }
-  .sort-th .sort-ico { opacity:.4;margin-left:4px;font-size:9px; }
-  .sort-th.asc .sort-ico::after  { content:'▲';opacity:1; }
-  .sort-th.desc .sort-ico::after { content:'▼';opacity:1; }
-  .sort-th:not(.asc):not(.desc) .sort-ico::after { content:'⇅'; }
+  .sort-th .sort-ico { margin-left:4px;font-size:9px; }
+  .sort-th .sort-ico::after         { content:'⇅';color:rgba(255,255,255,.35); }
+  .sort-th.asc  .sort-ico::after    { content:'▲';color:#fff; }
+  .sort-th.desc .sort-ico::after    { content:'▼';color:#fff; }
 
   /* ── MODO BADGE ─────────────────────────────────────────────────── */
   .modo-badge {
@@ -924,6 +924,7 @@
           <select id="rec-f-rep" class="filtro-sel" onchange="renderRecebimentos()" style="min-width:160px">
             <option value="">Todos os Reps.</option>
           </select>
+          <button id="rec-btn-limpar" class="btn-limpar" onclick="limparFiltrosRec()" title="Limpar filtros"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           <button class="btn-export" onclick="exportarRecebimentosXLS()">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             XLS
@@ -985,6 +986,7 @@
           <select id="nov-f-rep" class="filtro-sel" onchange="renderNovosTitulos()" style="min-width:160px">
             <option value="">Todos os Reps.</option>
           </select>
+          <button id="nov-btn-limpar" class="btn-limpar" onclick="limparFiltrosNov()" title="Limpar filtros"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           <button class="btn-export" onclick="exportarNovosTitulosXLS()">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             XLS
@@ -3249,25 +3251,43 @@ function _sortItems(items, state) {
   });
 }
 
-function _popularFiltros(items, prefixo, renderFn) {
-  const regs = [...new Set(items.map(i => i.base?.regional).filter(Boolean))].sort();
-  const ljs  = [...new Set(items.map(i => i.lj))].sort((a,b) => a-b);
-  const reps = [...new Set(items.map(i => (i.t.representante||'').trim()).filter(Boolean))].sort();
-
+function _popularFiltros(items, prefixo) {
   const selReg = document.getElementById(prefixo + '-f-regional');
   const selFil = document.getElementById(prefixo + '-f-filial');
   const selRep = document.getElementById(prefixo + '-f-rep');
   if (!selReg) return;
 
-  const prevReg = selReg.value, prevFil = selFil.value, prevRep = selRep.value;
+  const prevReg = selReg.value;
+  const prevFil = selFil.value;
+  const prevRep = selRep.value;
+
+  // ── Regional: opções de toda a base de dados ──
+  const regs = [...new Set(items.map(i => i.base?.regional).filter(Boolean))].sort();
   selReg.innerHTML = '<option value="">Todos os Regionais</option>' + regs.map(r => `<option value="${r}">${r}</option>`).join('');
+  selReg.value = prevReg;
+  const curReg = selReg.value; // "" se prevReg não existe na lista nova
+
+  // ── Filial: SOMENTE itens do regional selecionado (cascata) ──
+  const itemsParaFil = curReg ? items.filter(i => i.base?.regional === curReg) : items;
+  const ljs = [...new Set(itemsParaFil.map(i => i.lj))].sort((a,b) => a-b);
   selFil.innerHTML = '<option value="">Todas as Filiais</option>' + ljs.map(lj => {
     const b = BASE_REGIONAIS.find(x => x.lj === lj);
     return `<option value="${lj}">${b ? lj + ' — ' + b.loja : lj}</option>`;
   }).join('');
+  selFil.value = prevFil;
+  // Se a filial anterior não pertence ao regional atual, select volta para ""
+  const curFil = selFil.value;
+
+  // ── Rep: SOMENTE itens do regional+filial selecionados (cascata) ──
+  const itemsParaRep = itemsParaFil.filter(i => !curFil || String(i.lj) === curFil);
+  const reps = [...new Set(itemsParaRep.map(i => (i.t.representante||'').trim()).filter(Boolean))].sort();
   selRep.innerHTML = '<option value="">Todos os Reps.</option>' + reps.map(r => `<option value="${r}">${r}</option>`).join('');
-  // Restore selections AFTER rebuilding (using .value assignment, not selected attribute)
-  selReg.value = prevReg; selFil.value = prevFil; selRep.value = prevRep;
+  selRep.value = prevRep;
+  // Se o rep anterior não pertence ao filtro atual, select volta para ""
+
+  // ── Indicador visual: botão × fica destacado quando há filtro ativo ──
+  const btn = document.getElementById(prefixo + '-btn-limpar');
+  if (btn) btn.classList.toggle('btn-limpar-ativo', !!(selReg.value || selFil.value || selRep.value));
 }
 
 function _filtrarItems(items, prefixo) {
@@ -3383,23 +3403,39 @@ function _novFiltrarMaiorFilial(lj) {
   if (sel) { sel.value = String(lj); renderNovosTitulos(); }
 }
 
+function limparFiltrosRec() {
+  ['rec-f-regional','rec-f-filial','rec-f-rep'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  renderRecebimentos();
+}
+
+function limparFiltrosNov() {
+  ['nov-f-regional','nov-f-filial','nov-f-rep'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  renderNovosTitulos();
+}
+
 function renderRecebimentos() {
   const { items, semDe, semAte } = _getRec(recPeriodo);
-  _popularFiltros(items, 'rec', renderRecebimentos);
+  _popularFiltros(items, 'rec');
   const filtrados = _filtrarItems(items, 'rec');
   _renderKpis(document.getElementById('rec-kpis'), filtrados, semDe, semAte, '#065F46', '_recFiltrarMaiorFilial');
   const label = document.getElementById('rec-periodo-label');
-  if (label && semDe && semAte) label.textContent = formatarData(semDe) + ' → ' + formatarData(semAte);
+  if (label) label.textContent = semDe && semAte ? formatarData(semDe) + ' → ' + formatarData(semAte) : '';
   _renderTabMovimentos('rec-tbody', 'rec-empty', 'rec-thead', filtrados, recSortState, '#065F46');
 }
 
 function renderNovosTitulos() {
   const { items, semDe, semAte } = _getNovos(novPeriodo);
-  _popularFiltros(items, 'nov', renderNovosTitulos);
+  _popularFiltros(items, 'nov');
   const filtrados = _filtrarItems(items, 'nov');
   _renderKpis(document.getElementById('nov-kpis'), filtrados, semDe, semAte, '#7C3AED', '_novFiltrarMaiorFilial');
   const label = document.getElementById('nov-periodo-label');
-  if (label && semDe && semAte) label.textContent = formatarData(semDe) + ' → ' + formatarData(semAte);
+  if (label) label.textContent = semDe && semAte ? formatarData(semDe) + ' → ' + formatarData(semAte) : '';
   _renderTabMovimentos('nov-tbody', 'nov-empty', 'nov-thead', filtrados, novSortState, '#7C3AED');
 }
 
