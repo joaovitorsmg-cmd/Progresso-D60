@@ -1358,10 +1358,11 @@ function importarVencidos(input) {
     try {
       const wb    = XLSX.read(e.target.result, { type: 'array', cellDates: true });
       // Busca case-insensitive + normalização de acento (lida com encoding do .xls legado)
+      // Aceita tanto 'Título' (singular, formato novo) quanto 'Títulos' (plural, formato legado)
       const _normSh = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
-      const _shKey  = wb.SheetNames.find(n => _normSh(n) === 'titulos');
+      const _shKey  = wb.SheetNames.find(n => { const k = _normSh(n); return k === 'titulos' || k === 'titulo'; });
       const ws      = _shKey ? wb.Sheets[_shKey] : null;
-      if (!ws) { toast('⚠️ Aba "Títulos" não encontrada. Abas: ' + wb.SheetNames.join(', ')); return; }
+      if (!ws) { toast('⚠️ Aba de títulos não encontrada. Abas: ' + wb.SheetNames.join(', ')); return; }
       const rows  = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
       const semanaAnterior = semanaAtual;
@@ -1374,10 +1375,24 @@ function importarVencidos(input) {
         }));
       } catch(e) {}
 
+      // ── Mapeamento de colunas ──────────────────────────────────────────
+      // Cada campo tenta múltiplas variantes para sobreviver a pequenas mudanças de nome.
+      // Prioridade: variante mais recente primeiro, legada depois.
+      //
+      //  Filial (loja): 'LJ' (novo, col 5) antes de 'LOJA_LOT' (legado/lote).
+      //    No formato novo LOJA_LOT é identificador de lote (batch), não a filial.
+      //  Representante: 'REPRESENTANTE: ' (com espaço, atual) | 'REPRESENTANTE:' | 'REPRESENTANTE'
+      //  Título/NF: 'TÍTULO' | 'TITULO'
+      //  Vencimento: 'VENCTO' | 'Vencto'
+      //  Emissão: 'EMISSÃO' | 'EMISSAO' | 'EMISSAO ' (variante com espaço extra)
+      //  Praça: 'PRAÇA PAGTO' | 'PRACA PAGTO'
+      //  Situação: 'SIT.' | 'SIT'
+      // ──────────────────────────────────────────────────────────────────
+
       // agrupar títulos por LJ
       vencidosData = {};
       rows.forEach(r => {
-        const lj = parseInt(r['LOJA_LOT'] || r['LOJA'] || r['LJ'] || r['lj'] || 0);
+        const lj = parseInt(r['LJ'] || r['lj'] || r['LOJA_LOT'] || r['LOJA'] || 0);
         if (!lj) return;
         if (!vencidosData[lj]) vencidosData[lj] = [];
         let vencto = r['VENCTO'] || r['Vencto'] || '';
@@ -1388,7 +1403,7 @@ function importarVencidos(input) {
           vencto = d.toISOString().slice(0,10);
         }
         vencidosData[lj].push({
-          representante: (r['REPRESENTANTE: '] || r['REPRESENTANTE'] || '').trim(),
+          representante: (r['REPRESENTANTE: '] || r['REPRESENTANTE:'] || r['REPRESENTANTE'] || '').trim(),
           cliente:       (r['CLIENTE'] || '').trim(),
           codCliente:    r['CÓDIGO_CLIENT'] || r['CODIGO_CLIENT'] || '',
           praca:         (r['PRAÇA PAGTO'] || r['PRACA PAGTO'] || '').trim(),
