@@ -1434,6 +1434,14 @@ function importarVencidos(input) {
         D60_HIST[lj][semanaNova] = total;
       });
 
+      // Zero-fill: filiais que tinham histórico mas não aparecem no novo LOJA_LOT
+      // recebem D60=0 nesta semana (em vez de herdar silenciosamente o valor anterior)
+      Object.keys(D60_HIST).forEach(lj => {
+        if (!vencidosData[lj]) {
+          D60_HIST[lj][semanaNova] = 0;
+        }
+      });
+
       // Registrar movimentos (recebimentos + novos títulos) antes de avançar semana
       if (semanaAnterior && semanaAnterior !== semanaNova) {
         _gravarMovimentos(prevDataSnap, semanaAnterior, semanaNova);
