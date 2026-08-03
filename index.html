@@ -1366,7 +1366,7 @@ function importarVencidos(input) {
       const _shKey  = wb.SheetNames.find(n => { const k = _normSh(n); return k === 'titulos' || k === 'titulo'; });
       const ws      = _shKey ? wb.Sheets[_shKey] : null;
       if (!ws) { toast('⚠️ Aba de títulos não encontrada. Abas: ' + wb.SheetNames.join(', ')); return; }
-      const rows  = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const rows  = XLSX.utils.sheet_to_json(ws, { defval: '', blankrows: false });
 
       const semanaAnterior = semanaAtual;
       const prevDataSnap   = JSON.parse(JSON.stringify(vencidosData)); // snapshot antes de sobrescrever
@@ -1399,28 +1399,31 @@ function importarVencidos(input) {
         const lj = parseInt(r['LOJA_LOT'] || r['LOJA'] || r['LJ'] || r['lj'] || 0);
         if (!lj) return;
         if (!vencidosData[lj]) vencidosData[lj] = [];
-        let vencto = r['VENCTO'] || r['Vencto'] || '';
-        if (vencto instanceof Date) vencto = vencto.toISOString().slice(0,10);
-        else if (typeof vencto === 'number') {
-          // Excel serial
-          const d = new Date((vencto - 25569) * 86400000);
-          vencto = d.toISOString().slice(0,10);
-        }
+        // Normaliza data para YYYY-MM-DD independente do formato da célula
+        const _normDate = v => {
+          if (!v) return '';
+          if (v instanceof Date) return v.toISOString().slice(0,10);
+          if (typeof v === 'number') { const d = new Date((v-25569)*86400000); return d.toISOString().slice(0,10); }
+          const s = String(v).trim();
+          // DD/MM/YYYY ou DD/MM/YY
+          if (/^\d{2}\/\d{2}\/\d{2,4}$/.test(s)) {
+            const [dd,mm,yy] = s.split('/');
+            const yyyy = yy.length === 2 ? (parseInt(yy) > 50 ? '19'+yy : '20'+yy) : yy;
+            return `${yyyy}-${mm}-${dd}`;
+          }
+          return s;
+        };
+        const vencto = _normDate(r['VENCTO'] || r['Vencto'] || '');
         vencidosData[lj].push({
           representante: (r['REPRESENTANTE: '] || r['REPRESENTANTE:'] || r['REPRESENTANTE'] || '').trim(),
           cliente:       (r['CLIENTE'] || '').trim(),
-          codCliente:    r['CÓDIGO_CLIENT'] || r['CODIGO_CLIENT'] || '',
+          codCliente:    r['CÓDIGO_CLIENT'] || r['CODIGO_CLIENT'] || r['CÓDIGO_CLIENTE'] || r['CODIGO_CLIENTE'] || '',
           praca:         (r['PRAÇA PAGTO'] || r['PRACA PAGTO'] || '').trim(),
           lote:          r['LOTE'] || r['LOT'] || '',
           titulo:        r['TÍTULO'] || r['TITULO'] || '',
           nf:            r['N.F.'] || r['NF'] || '',
           vencto,
-          emissao:       (() => {
-            let em = r['EMISSÃO'] || r['EMISSAO'] || r['EMISSAO '] || '';
-            if (em instanceof Date) return em.toISOString().slice(0,10);
-            if (typeof em === 'number') { const d = new Date((em-25569)*86400000); return d.toISOString().slice(0,10); }
-            return em;
-          })(),
+          emissao:       _normDate(r['EMISSÃO'] || r['EMISSAO'] || r['EMISSAO '] || ''),
           atraso:        parseInt(r['ATRASO'] || 0),
           valor:         parseFloat(r['VALOR'] || 0),
           sit:           (r['SIT.'] || r['SIT'] || '').trim(),
@@ -3105,29 +3108,31 @@ function _gravarMovimentos(prevData, semDe, semAte) {
 
   const entrada_key = semDe + '→' + semAte;
 
-  // ── Recebimentos: títulos que estavam antes e não estão agora ──
+  // ── Recebimentos: títulos que estavam antes e não estão em nenhuma filial agora ──
+  // Compara contra TODOS os títulos da semana nova (sem filtrar por LJ) para não
+  // gerar falsos recebimentos quando LOJA_LOT de um título muda entre semanas.
+  const allCurrKeys = new Set(
+    Object.values(vencidosData).flatMap(tits => tits.map(_titleKey))
+  );
   const recItems = [];
   Object.entries(prevData).forEach(([ljStr, prevTits]) => {
-    const lj      = parseInt(ljStr);
-    const currKeys = new Set((vencidosData[lj] || []).map(_titleKey));
+    const lj = parseInt(ljStr);
     prevTits.forEach(t => {
-      if (!currKeys.has(_titleKey(t)) && (t.valor || 0) > 0) {
+      if (!allCurrKeys.has(_titleKey(t)) && (t.valor || 0) > 0) {
         recItems.push({ lj, t });
       }
     });
   });
 
-  // ── Novos títulos: títulos que estão agora e não estavam antes ──
-  const prevAllKeys = new Map();
-  Object.entries(prevData).forEach(([ljStr, prevTits]) => {
-    const lj = parseInt(ljStr);
-    prevTits.forEach(t => { prevAllKeys.set(_titleKey(t) + '|' + lj, true); });
-  });
+  // ── Novos títulos: títulos que estão agora e não estavam em nenhuma filial antes ──
+  const allPrevKeys = new Set(
+    Object.values(prevData).flatMap(tits => tits.map(_titleKey))
+  );
   const novItems = [];
   Object.entries(vencidosData).forEach(([ljStr, currTits]) => {
     const lj = parseInt(ljStr);
     currTits.forEach(t => {
-      if (!prevAllKeys.has(_titleKey(t) + '|' + lj) && (t.valor || 0) > 0) {
+      if (!allPrevKeys.has(_titleKey(t)) && (t.valor || 0) > 0) {
         novItems.push({ lj, t });
       }
     });
