@@ -3097,8 +3097,8 @@ function _titleKey(t) {
   const num = String(t.titulo || '').trim();
   const nf  = String(t.nf || '').trim();
   const ven = String(t.vencto || '').trim();
-  if (cod && num) return cod + '|' + num + '|' + ven;
   if (cod && nf)  return cod + '|' + nf  + '|' + ven;
+  if (cod && num) return cod + '|' + num + '|' + ven;
   return String(t.cliente || '').trim().toUpperCase() + '|' + (t.valor || 0) + '|' + ven;
 }
 
