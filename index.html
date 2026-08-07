@@ -1402,14 +1402,22 @@ function importarVencidos(input) {
         // Normaliza data para YYYY-MM-DD independente do formato da célula
         const _normDate = v => {
           if (!v) return '';
-          if (v instanceof Date) return v.toISOString().slice(0,10);
-          if (typeof v === 'number') { const d = new Date((v-25569)*86400000); return d.toISOString().slice(0,10); }
+          if (v instanceof Date) {
+            // SheetJS com cellDates:true cria datas UTC — toISOString() é seguro
+            return v.toISOString().slice(0,10);
+          }
+          if (typeof v === 'number') {
+            const d = new Date((v - 25569) * 86400000);
+            return d.toISOString().slice(0,10);
+          }
           const s = String(v).trim();
-          // DD/MM/YYYY ou DD/MM/YY
-          if (/^\d{2}\/\d{2}\/\d{2,4}$/.test(s)) {
-            const [dd,mm,yy] = s.split('/');
-            const yyyy = yy.length === 2 ? (parseInt(yy) > 50 ? '19'+yy : '20'+yy) : yy;
-            return `${yyyy}-${mm}-${dd}`;
+          // Já normalizado (YYYY-MM-DD)
+          if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+          // DD/MM/YYYY, D/M/YYYY, DD/MM/YY (1 ou 2 dígitos para dia e mês)
+          if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) {
+            const [dd, mm, yy] = s.split('/');
+            const yyyy = yy.length === 2 ? (parseInt(yy) > 50 ? '19' + yy : '20' + yy) : yy;
+            return `${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
           }
           return s;
         };
@@ -1421,7 +1429,7 @@ function importarVencidos(input) {
           praca:         (r['PRAÇA PAGTO'] || r['PRACA PAGTO'] || '').trim(),
           lote:          r['LOTE'] || r['LOT'] || '',
           titulo:        r['TÍTULO'] || r['TITULO'] || '',
-          nf:            r['N.F.'] || r['NF'] || '',
+          nf:            r['N.F.'] || r['N.F'] || r['NF'] || r['N. F.'] || '',
           vencto,
           emissao:       _normDate(r['EMISSÃO'] || r['EMISSAO'] || r['EMISSAO '] || ''),
           atraso:        parseInt(r['ATRASO'] || 0),
@@ -3164,13 +3172,14 @@ function _getRec(periodo) {
       const bk = JSON.parse(localStorage.getItem('ven_backup') || 'null');
       if (!bk || !bk.vencidosData) return { items: [], semDe: null, semAte: null };
       const prevData = bk.vencidosData;
+      // Compara contra TODOS os títulos da semana atual (cross-filial), igual ao caminho principal
+      const allCurrKeysFb = new Set(Object.values(vencidosData).flatMap(ts => ts.map(_titleKey)));
       const items = [];
       Object.entries(prevData).forEach(([ljStr, prevTits]) => {
         const lj = parseInt(ljStr);
         const base = BASE_REGIONAIS.find(b => b.lj === lj);
-        const currKeys = new Set((vencidosData[lj] || []).map(_titleKey));
         prevTits.forEach(t => {
-          if (!currKeys.has(_titleKey(t)) && (t.valor || 0) > 0) items.push({ lj, base, t, semDe: bk.semanaAtual, semAte: bk.semanaNova });
+          if (!allCurrKeysFb.has(_titleKey(t)) && (t.valor || 0) > 0) items.push({ lj, base, t, semDe: bk.semanaAtual, semAte: bk.semanaNova });
         });
       });
       items.sort((a,b) => (b.t.valor||0) - (a.t.valor||0));
@@ -3199,17 +3208,14 @@ function _getNovos(periodo) {
       const bk = JSON.parse(localStorage.getItem('ven_backup') || 'null');
       if (!bk || !bk.vencidosData) return { items: [], semDe: null, semAte: null };
       const prevData = bk.vencidosData;
-      const prevAllKeys = new Map();
-      Object.entries(prevData).forEach(([ljStr, ts]) => {
-        const lj = parseInt(ljStr);
-        ts.forEach(t => { prevAllKeys.set(_titleKey(t) + '|' + lj, true); });
-      });
+      // Compara contra TODOS os títulos da semana anterior (cross-filial), igual ao caminho principal
+      const allPrevKeysFb = new Set(Object.values(prevData).flatMap(ts => ts.map(_titleKey)));
       const items = [];
       Object.entries(vencidosData).forEach(([ljStr, currTits]) => {
         const lj = parseInt(ljStr);
         const base = BASE_REGIONAIS.find(b => b.lj === lj);
         currTits.forEach(t => {
-          if (!prevAllKeys.has(_titleKey(t) + '|' + lj) && (t.valor||0) > 0) {
+          if (!allPrevKeysFb.has(_titleKey(t)) && (t.valor||0) > 0) {
             items.push({ lj, base, t, semDe: bk.semanaAtual, semAte: bk.semanaNova });
           }
         });
