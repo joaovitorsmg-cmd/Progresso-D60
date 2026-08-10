@@ -1607,7 +1607,7 @@ function renderTabela() {
     if (auditadaEsta)   nAudit++;
     else                nSemAudit++;
 
-    const varVal = (d60a !== null && d60ant !== null) ? d60ant - d60a : null;
+    const varVal = (d60a !== null && d60ant !== null) ? d60a - d60ant : null;
     const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
 
     let pontBadge = '<span class="badge badge-gray">—</span>';
@@ -1620,7 +1620,7 @@ function renderTabela() {
 
     let varStr = '—';
     if (varVal !== null) {
-      const cor = varVal > 0 ? 'color:var(--verde)' : (varVal < 0 ? 'color:var(--verm)' : '');
+      const cor = varVal > 0 ? 'color:var(--verm)' : (varVal < 0 ? 'color:var(--verde)' : '');
       varStr = '<span style="' + cor + '">' +
         (varVal > 0 ? '+' : '') + formatMoeda(varVal) +
         '<br><small>' + (varPct !== null ? (varPct > 0 ? '+' : '') + varPct.toFixed(1) + '%' : '') + '</small></span>';
@@ -1919,14 +1919,14 @@ function renderDetalhe(lj) {
   html += '</div>';
 
   // Info grid
-  const varVal = (d60a !== null && d60ant !== null) ? d60ant - d60a : null;
+  const varVal = (d60a !== null && d60ant !== null) ? d60a - d60ant : null;
   const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
   html += '<div class="info-grid">';
   html += infoBox('D60 Ref. Atual', d60a !== null ? formatMoeda(d60a) : '—', '');
   html += infoBox('D60 Ref. Anterior', d60ant !== null ? formatMoeda(d60ant) : 'Sem auditoria', '');
   html += infoBox('Variação',
     varVal !== null ? (varVal > 0 ? '+' : '') + formatMoeda(varVal) + (varPct !== null ? ' (' + varPct.toFixed(1) + '%)' : '') : '—',
-    varVal === null ? '' : (varVal > 0 ? 'verde' : (varVal < 0 ? 'verm' : '')));
+    varVal === null ? '' : (varVal > 0 ? 'verm' : (varVal < 0 ? 'verde' : '')));
   html += infoBox('Pontuou', pont === true ? '✓ SIM' : (pont === false ? '✗ NÃO' : '—'),
     pont === true ? 'verde' : (pont === false ? 'verm' : ''));
   html += '</div>';
@@ -2039,13 +2039,13 @@ function renderDetalhe(lj) {
   // KPIs
   const d60aEx  = getD60Atual(lj);
   const d60antEx= getD60RefAuditoria(lj);
-  const varValEx= (d60aEx !== null && d60antEx !== null) ? d60antEx - d60aEx : null;
+  const varValEx= (d60aEx !== null && d60antEx !== null) ? d60aEx - d60antEx : null;
   const varPctEx= (varValEx !== null && d60antEx) ? varValEx / d60antEx * 100 : null;
   const pontEx  = getPontuou(lj);
   html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">';
   html += kpiBoxExp('D60 Atual',    d60aEx   !== null ? formatMoeda(d60aEx)   : '—', '#1E3A8A');
   html += kpiBoxExp('D60 Anterior', d60antEx !== null ? formatMoeda(d60antEx) : '—', '#374151');
-  html += kpiBoxExp('Variação',     varValEx !== null ? (varValEx>0?'+':'')+formatMoeda(varValEx)+(varPctEx!==null?' ('+varPctEx.toFixed(1)+'%)':'') : '—', varValEx===null?'#374151':(varValEx>0?'#065F46':'#991B1B'));
+  html += kpiBoxExp('Variação',     varValEx !== null ? (varValEx>0?'+':'')+formatMoeda(varValEx)+(varPctEx!==null?' ('+varPctEx.toFixed(1)+'%)':'') : '—', varValEx===null?'#374151':(varValEx>0?'#991B1B':'#065F46'));
   html += kpiBoxExp('Pontuou',      pontEx===true?'✓ SIM':(pontEx===false?'✗ NÃO':'—'), pontEx===true?'#065F46':(pontEx===false?'#991B1B':'#374151'));
   html += '</div>';
   // Histórico D60
@@ -2095,7 +2095,7 @@ function exportarXLSX(lj) {
   if (!base) return;
   const d60a   = getD60Atual(lj);
   const d60ant = getD60RefAuditoria(lj);
-  const varVal = (d60a !== null && d60ant !== null) ? d60ant - d60a : null;
+  const varVal = (d60a !== null && d60ant !== null) ? d60a - d60ant : null;
   const pont   = getPontuou(lj);
   const wb = XLSX.utils.book_new();
 
@@ -2246,16 +2246,16 @@ function calcularPreviewAuditoria(lj) {
     return;
   }
 
-  const varVal = d60Ant !== null ? d60Ant - d60At : null;
+  const varVal = d60Ant !== null ? d60At - d60Ant : null;
   const varPct = (varVal !== null && d60Ant) ? varVal / d60Ant * 100 : null;
-  const pontuou = varVal !== null ? varVal >= 0 : null;
+  const pontuou = varVal !== null ? varVal <= 0 : null;
 
   let html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
   html += '<div><div style="font-size:9px;color:#A9BBD9;text-transform:uppercase">D60 Anterior</div><div style="font-weight:700;color:var(--texto)">' + (d60Ant !== null ? formatMoeda(d60Ant) : '—') + '</div><div style="font-size:9px;color:#8FA3C7">' + (semAnt ? formatarData(semAnt) : '') + '</div></div>';
   html += '<div><div style="font-size:9px;color:#A9BBD9;text-transform:uppercase">D60 Atual</div><div style="font-weight:700;color:var(--texto)">' + formatMoeda(d60At) + '</div><div style="font-size:9px;color:#8FA3C7">' + formatarData(semAt) + '</div></div>';
   html += '<div><div style="font-size:9px;color:#A9BBD9;text-transform:uppercase">Variação</div>';
   if (varVal !== null) {
-    const cor = varVal > 0 ? 'var(--verde)' : (varVal < 0 ? 'var(--verm)' : 'var(--texto)');
+    const cor = varVal > 0 ? 'var(--verm)' : (varVal < 0 ? 'var(--verde)' : 'var(--texto)');
     html += '<div style="font-weight:700;color:' + cor + '">' + (varVal > 0 ? '+' : '') + formatMoeda(varVal) + '</div>';
     html += '<div style="font-size:9px;color:' + cor + '">' + (varPct !== null ? (varPct > 0 ? '+' : '') + varPct.toFixed(1) + '% · ' : '') + (pontuou ? '✓ PONTUOU' : '✗ NÃO PONTUOU') + '</div>';
   } else {
