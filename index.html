@@ -211,6 +211,17 @@
     min-width: 30px; height: 30px;
   }
   .btn-limpar:hover { border-color: var(--azul-cl); color: var(--azul-med); background: var(--azul-bg); }
+  .filtro-sel {
+    padding: 7px 12px; border: 1.5px solid var(--cinza-bd); border-radius: 6px;
+    font-size: 12px; color: var(--texto); background: var(--bg-card); outline: none; cursor: pointer;
+  }
+  .filtro-sel:focus { border-color: var(--azul-cl); }
+  .btn-export {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--azul-med); color: #fff; border: none; border-radius: 6px;
+    padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: background .2s;
+  }
+  .btn-export:hover { background: var(--azul-cl); }
 
   /* ── KPI STRIP ──────────────────────────────────────────────────── */
   .kpi-strip {
@@ -717,6 +728,7 @@
     <button class="tab-btn" id="tab-btn-evolucao" onclick="trocarAba('evolucao')">📈 Evolução</button>
     <button class="tab-btn" id="tab-btn-recebimentos" onclick="trocarAba('recebimentos')">💰 Recebimentos</button>
     <button class="tab-btn" id="tab-btn-novostiulos" onclick="trocarAba('novostiulos')">📈 Novos Títulos</button>
+    <button class="tab-btn" id="tab-btn-provvenc" onclick="trocarAba('provvenc')">⏰ Próx. Vencimentos</button>
   </div>
 
   <!-- FILTROS GLOBAIS — afetam Painel, Relatório e Evolução -->
@@ -1020,6 +1032,90 @@
           📭 Nenhum título novo identificado.<br>
           <span style="font-size:12px;margin-top:6px;display:block">Importe arquivos de semanas distintas para identificar novos títulos no D60.</span>
         </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!--  ABA: PRÓXIMOS VENCIMENTOS — sempre nasce vazia (crua)         -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="tab-page" id="tab-provvenc">
+    <div style="padding:20px 28px">
+
+      <!-- Estado inicial: sem dados -->
+      <div id="prov-cta" style="text-align:center;padding:60px 20px">
+        <div style="font-size:40px;margin-bottom:12px">⏰</div>
+        <div style="font-size:16px;font-weight:700;color:var(--texto)">Próximos Vencimentos</div>
+        <div style="font-size:13px;color:var(--texto-mut);max-width:520px;margin:8px auto 20px">
+          Esta aba nasce sempre vazia — é uma análise avulsa. Envie o Relatório de Cobrança Geral
+          para identificar, por filial, os títulos vencidos há até 59 dias, antes que entrem no D60.
+        </div>
+        <button class="btn-login" style="width:auto;padding:12px 28px" onclick="document.getElementById('prov-file-input').click()">📤 Enviar planilha</button>
+        <input type="file" id="prov-file-input" accept=".xls,.xlsx" style="display:none" onchange="importarProxVencimentos(this)">
+        <div id="prov-import-info" style="font-size:11px;color:var(--texto-mut);margin-top:12px"></div>
+      </div>
+
+      <!-- Conteúdo: só aparece após um upload -->
+      <div id="prov-content" style="display:none">
+
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+          <button class="btn-limpar" style="width:auto;padding:6px 12px;font-size:12px" onclick="document.getElementById('prov-file-input-2').click()">🔄 Trocar planilha</button>
+          <input type="file" id="prov-file-input-2" accept=".xls,.xlsx" style="display:none" onchange="importarProxVencimentos(this)">
+          <div id="prov-import-info-2" style="font-size:11px;color:var(--texto-mut)"></div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="prov-f-filial" class="filtro-sel" onchange="renderProxVencimentos()" style="min-width:170px">
+              <option value="">Todas as Filiais</option>
+            </select>
+            <select id="prov-f-auditor" class="filtro-sel" onchange="renderProxVencimentos()" style="min-width:160px">
+              <option value="">Todos os Auditores</option>
+            </select>
+            <select id="prov-f-regiao" class="filtro-sel" onchange="renderProxVencimentos()" style="min-width:140px">
+              <option value="">Todas as Regiões</option>
+            </select>
+            <button class="btn-limpar" onclick="limparFiltrosProv()" title="Limpar filtros"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            <button class="btn-export" onclick="exportarProxVencimentosXLS()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              XLS
+            </button>
+            <button class="btn-export" style="background:#7C3AED" onclick="exportarProxVencimentosPNG()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+              PNG
+            </button>
+          </div>
+        </div>
+
+        <div id="prov-export-area">
+          <div id="prov-contexto" style="display:none;background:var(--bg-card);border-radius:10px;padding:14px 18px;margin-bottom:16px;box-shadow:var(--sombra)"></div>
+
+          <div id="prov-kpis" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px"></div>
+
+          <div id="prov-table-wrap" style="background:var(--bg-card);border-radius:10px;overflow:hidden;box-shadow:var(--sombra)">
+            <div style="overflow-x:auto">
+              <table id="prov-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
+                <thead id="prov-thead">
+                  <tr style="background:var(--azul);color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">
+                    <th class="sort-th" data-col="lj" style="padding:9px 12px;text-align:left" onclick="provSortBy('lj')">LJ<span class="sort-ico"></span></th>
+                    <th class="sort-th" data-col="filial" style="padding:9px 12px;text-align:left" onclick="provSortBy('filial')">Filial<span class="sort-ico"></span></th>
+                    <th class="sort-th" data-col="regiao" style="padding:9px 12px;text-align:left" onclick="provSortBy('regiao')">Região<span class="sort-ico"></span></th>
+                    <th class="sort-th" data-col="auditor" style="padding:9px 12px;text-align:left" onclick="provSortBy('auditor')">Auditor<span class="sort-ico"></span></th>
+                    <th class="sort-th" data-col="representante" style="padding:9px 12px;text-align:left" onclick="provSortBy('representante')">Representante<span class="sort-ico"></span></th>
+                    <th class="sort-th" data-col="cliente" style="padding:9px 12px;text-align:left" onclick="provSortBy('cliente')">Cliente<span class="sort-ico"></span></th>
+                    <th style="padding:9px 12px;text-align:left">Título/NF</th>
+                    <th class="sort-th" data-col="vencto" style="padding:9px 12px;text-align:right" onclick="provSortBy('vencto')">Vencto<span class="sort-ico"></span></th>
+                    <th class="sort-th" data-col="dias" style="padding:9px 12px;text-align:right" onclick="provSortBy('dias')">Dias Vencido<span class="sort-ico"></span></th>
+                    <th class="sort-th" data-col="valor" style="padding:9px 12px;text-align:right" onclick="provSortBy('valor')">Valor<span class="sort-ico"></span></th>
+                  </tr>
+                </thead>
+                <tbody id="prov-tbody"></tbody>
+              </table>
+            </div>
+            <div id="prov-empty" style="display:none;padding:40px;text-align:center;color:var(--texto-mut);font-size:13px">
+              📭 Nenhum título vencido de até 59 dias para este filtro.
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -1676,7 +1772,7 @@ function renderTabela() {
 // ABAS
 // ════════════════════════════════════════════════════════════════════
 function trocarAba(aba) {
-  ['painel','relatorio','evolucao','recebimentos','novostiulos'].forEach(id => {
+  ['painel','relatorio','evolucao','recebimentos','novostiulos','provvenc'].forEach(id => {
     document.getElementById('tab-' + id)?.classList.toggle('active', aba === id);
     document.getElementById('tab-btn-' + id)?.classList.toggle('active', aba === id);
   });
@@ -1684,10 +1780,11 @@ function trocarAba(aba) {
   if (stWrap) stWrap.style.display = aba === 'evolucao' ? '' : 'none';
   // global filtros-bar only applies to Painel/Relatório/Evolução
   const filtrosBar = document.querySelector('.filtros-bar');
-  if (filtrosBar) filtrosBar.style.display = ['recebimentos','novostiulos'].includes(aba) ? 'none' : '';
+  if (filtrosBar) filtrosBar.style.display = ['recebimentos','novostiulos','provvenc'].includes(aba) ? 'none' : '';
   if (aba === 'evolucao')     renderEvolucao();
   if (aba === 'recebimentos') renderRecebimentos();
   if (aba === 'novostiulos')  renderNovosTitulos();
+  if (aba === 'provvenc' && provVencData.length) renderProxVencimentos();
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -2437,6 +2534,12 @@ function hoje() {
   // Brasília lá já é o dia seguinte, e a auditoria era gravada com data de amanhã.
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+// Diferença em dias corridos entre duas datas ISO (YYYY-MM-DD): isoFim - isoInicio.
+function _diasEntre(isoFim, isoInicio) {
+  const [y1,m1,d1] = isoFim.split('-').map(Number);
+  const [y2,m2,d2] = isoInicio.split('-').map(Number);
+  return Math.round((Date.UTC(y1,m1-1,d1) - Date.UTC(y2,m2-1,d2)) / 86400000);
 }
 
 // Identidade de um registro de auditoria (ts é gerado no push e é único).
@@ -3557,6 +3660,322 @@ function exportarRecebimentosXLS() {
 
 function exportarNovosTitulosXLS() {
   _exportMovimentosXLS(_getNovos, novPeriodo, 'Novos Titulos', 'D60_NovosTitulos', 'NOVOS TÍTULOS D60 — AGROQUIMA');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PRÓXIMOS VENCIMENTOS — análise avulsa, não persiste (aba sempre crua)
+// ════════════════════════════════════════════════════════════════════
+let provVencData    = [];   // [{lj, base, representante, cliente, ..., dias, valor}]
+let provFiltroFaixa = '';   // '' | '0-15' | '16-30' | '31-45' | '46-59'
+const provSortState = { col: 'dias', dir: 'desc' };
+
+const PROV_FAIXAS = [
+  { k:'0-15',  min:0,  max:15, cor:'#16A34A', corBg:'#DCFCE7', label:'0–15 dias'          },
+  { k:'16-30', min:16, max:30, cor:'#D97706', corBg:'#FEF3C7', label:'16–30 dias'         },
+  { k:'31-45', min:31, max:45, cor:'#EA580C', corBg:'#FFEDD5', label:'31–45 dias'         },
+  { k:'46-59', min:46, max:59, cor:'#DC2626', corBg:'#FEE2E2', label:'46–59 dias · CRÍTICO' },
+];
+function _provFaixa(dias) {
+  return PROV_FAIXAS.find(f => dias >= f.min && dias <= f.max) || PROV_FAIXAS[PROV_FAIXAS.length - 1];
+}
+
+function importarProxVencimentos(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const _normSh = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+      const shKey = wb.SheetNames.find(n => { const k = _normSh(n); return k === 'titulos' || k === 'titulo'; }) || wb.SheetNames[0];
+      const ws   = wb.Sheets[shKey];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '', blankrows: false });
+      if (!rows.length) { toast('⚠️ Planilha vazia.'); return; }
+
+      const _normDate = v => {
+        if (!v) return '';
+        if (v instanceof Date) return v.toISOString().slice(0,10);
+        if (typeof v === 'number') return new Date((v - 25569) * 86400000).toISOString().slice(0,10);
+        const s = String(v).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) {
+          const [dd, mm, yy] = s.split('/');
+          const yyyy = yy.length === 2 ? (parseInt(yy) > 50 ? '19' + yy : '20' + yy) : yy;
+          return `${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
+        }
+        return s;
+      };
+
+      const hj = hoje();
+      const dados = [];
+      rows.forEach(r => {
+        // Linha inteira descartada quando BCO = 555
+        const bco = String(r['BCO'] ?? '').trim();
+        if (bco === '555') return;
+
+        // Filial responsável = LOJA_LOT (mesma convenção do restante do painel)
+        const lj = parseInt(r['LOJA_LOT'] || r['LOJA'] || r['LJ'] || r['lj'] || 0);
+        if (!lj) return;
+
+        const emissao = _normDate(r['EMISSÃO'] || r['EMISSAO'] || r['EMISSAO '] || '');
+        const vencto  = _normDate(r['VENCTO']  || r['Vencto']  || '');
+        if (!vencto) return;
+
+        // Emissão: 01/01/2000 até hoje
+        if (emissao && (emissao < '2000-01-01' || emissao > hj)) return;
+
+        // Vencido entre 0 e 59 dias (60+ já pertence ao D60)
+        const dias = _diasEntre(hj, vencto);
+        if (dias < 0 || dias > 59) return;
+
+        dados.push({
+          lj, base: BASE_REGIONAIS.find(b => b.lj === lj),
+          representante: (r['REPRESENTANTE: '] || r['REPRESENTANTE:'] || r['REPRESENTANTE'] || '').trim(),
+          cliente:       (r['CLIENTE'] || '').trim(),
+          codCliente:    r['CÓDIGO_CLIENT'] || r['CODIGO_CLIENT'] || r['CÓDIGO_CLIENTE'] || r['CODIGO_CLIENTE'] || '',
+          titulo:        r['TÍTULO'] || r['TITULO'] || '',
+          nf:            r['N.F.'] || r['N.F'] || r['NF'] || r['N. F.'] || '',
+          emissao, vencto, dias,
+          ocorrencias:   parseInt(r['Total de Ocorrencias'] || r['TOTAL DE OCORRENCIAS'] || 1) || 1,
+          valor:         parseFloat(r['VALOR'] || 0),
+        });
+      });
+
+      if (!dados.length) { toast('⚠️ Nenhum título vencido entre 0 e 59 dias encontrado.'); return; }
+
+      provVencData    = dados;
+      provFiltroFaixa = '';
+      ['prov-f-filial','prov-f-auditor','prov-f-regiao'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+
+      const info = '✅ ' + file.name + ' — ' + dados.length + ' títulos (referência ' + formatarData(hj) + ')';
+      document.getElementById('prov-import-info').innerHTML   = info;
+      document.getElementById('prov-import-info-2').innerHTML = info;
+      document.getElementById('prov-cta').style.display     = 'none';
+      document.getElementById('prov-content').style.display = '';
+      renderProxVencimentos();
+      toast('Planilha carregada! ' + dados.length + ' títulos analisados.');
+    } catch(err) {
+      toast('⚠️ Erro ao ler o arquivo: ' + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function _provPopularFiltros() {
+  const selFil = document.getElementById('prov-f-filial');
+  const selAud = document.getElementById('prov-f-auditor');
+  const selReg = document.getElementById('prov-f-regiao');
+  if (!selFil) return;
+  const prevFil = selFil.value, prevAud = selAud.value, prevReg = selReg.value;
+
+  const ljs = [...new Set(provVencData.map(d => d.lj))].sort((a,b) => a-b);
+  selFil.innerHTML = '<option value="">Todas as Filiais</option>' + ljs.map(lj => {
+    const b = BASE_REGIONAIS.find(x => x.lj === lj);
+    return `<option value="${lj}">${b ? lj + ' — ' + b.loja : lj}</option>`;
+  }).join('');
+  selFil.value = prevFil;
+
+  const auditores = [...new Set(provVencData.map(d => d.base?.auditor).filter(Boolean))].sort();
+  selAud.innerHTML = '<option value="">Todos os Auditores</option>' + auditores.map(a => `<option value="${a}">${a}</option>`).join('');
+  selAud.value = prevAud;
+
+  const regioes = [...new Set(provVencData.map(d => d.base?.regiao).filter(Boolean))].sort();
+  selReg.innerHTML = '<option value="">Todas as Regiões</option>' + regioes.map(r => `<option value="${r}">${r}</option>`).join('');
+  selReg.value = prevReg;
+}
+
+function _provFiltrar() {
+  const fFil = (document.getElementById('prov-f-filial')  || {value:''}).value;
+  const fAud = (document.getElementById('prov-f-auditor') || {value:''}).value;
+  const fReg = (document.getElementById('prov-f-regiao')  || {value:''}).value;
+  return provVencData.filter(d => {
+    if (fFil && String(d.lj) !== fFil) return false;
+    if (fAud && d.base?.auditor !== fAud) return false;
+    if (fReg && d.base?.regiao !== fReg) return false;
+    if (provFiltroFaixa && _provFaixa(d.dias).k !== provFiltroFaixa) return false;
+    return true;
+  });
+}
+
+function provSetFaixa(k) {
+  provFiltroFaixa = (provFiltroFaixa === k) ? '' : k;
+  renderProxVencimentos();
+}
+
+function limparFiltrosProv() {
+  ['prov-f-filial','prov-f-auditor','prov-f-regiao'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  provFiltroFaixa = '';
+  renderProxVencimentos();
+}
+
+function provSortBy(col) {
+  if (provSortState.col === col) provSortState.dir = provSortState.dir === 'asc' ? 'desc' : 'asc';
+  else { provSortState.col = col; provSortState.dir = ['valor','dias','ocorrencias'].includes(col) ? 'desc' : 'asc'; }
+  renderProxVencimentos();
+}
+
+function _provSort(items) {
+  const { col, dir } = provSortState;
+  const mult = dir === 'asc' ? 1 : -1;
+  return [...items].sort((a,b) => {
+    let va, vb;
+    switch(col) {
+      case 'lj':            va = a.lj; vb = b.lj; break;
+      case 'filial':        va = a.base?.loja || ''; vb = b.base?.loja || ''; break;
+      case 'regiao':        va = a.base?.regiao || ''; vb = b.base?.regiao || ''; break;
+      case 'auditor':       va = a.base?.auditor || ''; vb = b.base?.auditor || ''; break;
+      case 'representante': va = (a.representante||'').trim(); vb = (b.representante||'').trim(); break;
+      case 'cliente':       va = (a.cliente||'').trim(); vb = (b.cliente||'').trim(); break;
+      case 'vencto':        va = a.vencto || ''; vb = b.vencto || ''; break;
+      case 'dias':          va = a.dias || 0; vb = b.dias || 0; break;
+      case 'valor':         va = a.valor || 0; vb = b.valor || 0; break;
+      default:              va = 0; vb = 0;
+    }
+    if (typeof va === 'string') return mult * va.localeCompare(vb, 'pt-BR');
+    return mult * (va - vb);
+  });
+}
+
+function _provRenderContexto(filtrados) {
+  const el = document.getElementById('prov-contexto');
+  if (!el) return;
+  const fFil = (document.getElementById('prov-f-filial') || {value:''}).value;
+  const b = fFil ? BASE_REGIONAIS.find(x => String(x.lj) === fFil) : null;
+  if (!b) { el.style.display = 'none'; return; }
+
+  const critico      = filtrados.filter(d => _provFaixa(d.dias).k === '46-59');
+  const totalCritico = critico.reduce((s,d) => s + (d.valor||0), 0);
+
+  el.style.display = '';
+  el.innerHTML = `
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--texto-ter);margin-bottom:8px">🎯 Filial em análise — visita de auditoria</div>
+    <div style="display:flex;flex-wrap:wrap;gap:26px;align-items:center">
+      <div>
+        <div style="font-size:20px;font-weight:800;color:var(--accent-text)">${b.lj} — ${b.loja}</div>
+        <div style="font-size:11px;color:var(--texto-mut)">${b.estado} · Regional ${b.regional} · Região ${b.regiao}</div>
+      </div>
+      <div><div style="font-size:10px;color:var(--texto-ter);text-transform:uppercase">Gerente</div><div style="font-size:14px;font-weight:700">${b.gerente}</div></div>
+      <div><div style="font-size:10px;color:var(--texto-ter);text-transform:uppercase">Supervisor</div><div style="font-size:14px;font-weight:700">${b.supervisor}</div></div>
+      <div><div style="font-size:10px;color:var(--texto-ter);text-transform:uppercase">Auditor</div><div style="font-size:14px;font-weight:700">${b.auditor}</div></div>
+      ${critico.length ? `<div style="margin-left:auto;background:var(--verm-bg);border:1.5px solid var(--verm);border-radius:8px;padding:8px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--verm);text-transform:uppercase">⚠️ Prestes a virar D60 (46–59 dias)</div>
+        <div style="font-size:15px;font-weight:800;color:var(--verm)">${critico.length} título(s) · ${formatMoeda(totalCritico)}</div>
+      </div>` : ''}
+    </div>`;
+}
+
+function _provRenderKpis(filtrados) {
+  const el = document.getElementById('prov-kpis');
+  if (!el) return;
+  const totalGeral = filtrados.reduce((s,d) => s + (d.valor||0), 0);
+
+  let html = `<div class="kpi-card" style="border-left:4px solid var(--azul-med);background:var(--bg-card);border-radius:10px;padding:14px 16px;box-shadow:var(--sombra)" onclick="provSetFaixa('')" title="Limpar filtro de faixa">
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--texto-ter);margin-bottom:6px">Total no período</div>
+    <div style="font-size:18px;font-weight:800;color:var(--azul-med)">${formatMoeda(totalGeral)}</div>
+    <div style="font-size:10px;color:var(--texto-mut);margin-top:3px">${filtrados.length} títulos</div>
+  </div>`;
+
+  PROV_FAIXAS.forEach(f => {
+    const itens = filtrados.filter(d => _provFaixa(d.dias).k === f.k);
+    const tot   = itens.reduce((s,d) => s + (d.valor||0), 0);
+    const ativo = provFiltroFaixa === f.k;
+    html += `<div class="kpi-card" style="border-left:4px solid ${f.cor};background:${ativo ? f.corBg : 'var(--bg-card)'};border-radius:10px;padding:14px 16px;box-shadow:var(--sombra);${ativo ? 'outline:2px solid '+f.cor+';outline-offset:-2px;' : ''}" onclick="provSetFaixa('${f.k}')" title="Clique para filtrar esta faixa">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:${ativo ? f.cor : 'var(--texto-ter)'};margin-bottom:6px">${f.label}</div>
+      <div style="font-size:18px;font-weight:800;color:${f.cor}">${itens.length}</div>
+      <div style="font-size:11px;color:var(--texto-mut);margin-top:3px">${formatMoeda(tot)}</div>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function _provRenderTabela(filtrados) {
+  const tbody = document.getElementById('prov-tbody');
+  const empty = document.getElementById('prov-empty');
+  const wrap  = document.getElementById('prov-table-wrap');
+  if (!tbody) return;
+
+  document.querySelectorAll('#prov-thead .sort-th').forEach(th => {
+    const col = th.dataset.col;
+    th.classList.toggle('asc',  col === provSortState.col && provSortState.dir === 'asc');
+    th.classList.toggle('desc', col === provSortState.col && provSortState.dir === 'desc');
+  });
+
+  if (!filtrados.length) {
+    tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  const sorted = _provSort(filtrados);
+  let html = '', tot = 0;
+  sorted.forEach(d => {
+    tot += (d.valor||0);
+    const f       = _provFaixa(d.dias);
+    const nome    = d.base ? d.base.loja : 'LJ'+d.lj;
+    const reincid = d.ocorrencias > 1 ? ` <span title="Este cliente aparece ${d.ocorrencias}× no período" style="color:${f.cor};font-weight:700">(${d.ocorrencias}×)</span>` : '';
+    html += `<tr style="background:${f.corBg}30;border-left:3px solid ${f.cor}">
+      <td style="padding:7px 12px;font-weight:700;color:var(--azul)">${d.lj}</td>
+      <td style="padding:7px 12px;font-weight:600;color:var(--texto)">${nome}</td>
+      <td style="padding:7px 12px;color:var(--texto-sec)">${d.base?.regiao || '—'}</td>
+      <td style="padding:7px 12px;color:var(--texto-sec)">${d.base?.auditor || '—'}</td>
+      <td style="padding:7px 12px;color:var(--texto-sec)">${d.representante || '—'}</td>
+      <td style="padding:7px 12px;color:var(--texto)">${d.cliente || '—'}${reincid}</td>
+      <td style="padding:7px 12px;color:var(--texto-ter);font-size:11px">${[d.titulo, d.nf].filter(Boolean).join('/') || '—'}</td>
+      <td style="padding:7px 12px;text-align:right;color:var(--texto-sec)">${formatarData(d.vencto)}</td>
+      <td style="padding:7px 12px;text-align:right"><span style="display:inline-block;padding:2px 9px;border-radius:20px;background:${f.cor};color:#fff;font-weight:700;font-size:11px">${d.dias}d</span></td>
+      <td style="padding:7px 12px;text-align:right;font-weight:700;color:${f.cor}">${formatMoeda(d.valor||0)}</td>
+    </tr>`;
+  });
+  html += `<tr style="background:var(--azul);color:#fff;font-weight:700">
+    <td colspan="9" style="padding:8px 12px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.5px">TOTAL (${sorted.length} títulos)</td>
+    <td style="padding:8px 12px;text-align:right;font-size:13px">${formatMoeda(tot)}</td>
+  </tr>`;
+  tbody.innerHTML = html;
+}
+
+function renderProxVencimentos() {
+  if (!provVencData.length) return;
+  _provPopularFiltros();
+  const filtrados = _provFiltrar();
+  _provRenderContexto(filtrados);
+  _provRenderKpis(filtrados);
+  _provRenderTabela(filtrados);
+}
+
+function exportarProxVencimentosXLS() {
+  if (!provVencData.length) { toast('Sem dados para exportar.'); return; }
+  const filtrados = _provSort(_provFiltrar());
+  if (!filtrados.length) { toast('Sem dados para exportar.'); return; }
+
+  const header = ['LJ','Filial','Região','Auditor','Representante','Cliente','Título','NF','Vencimento','Dias Vencido','Faixa','Ocorrências','Valor'];
+  const rows = filtrados.map(d => [
+    d.lj, d.base ? d.base.loja : 'LJ'+d.lj, d.base?.regiao||'', d.base?.auditor||'',
+    d.representante||'', d.cliente||'', d.titulo||'', d.nf||'', d.vencto||'',
+    d.dias, _provFaixa(d.dias).label, d.ocorrencias||1, d.valor||0,
+  ]);
+  const total = filtrados.reduce((s,d) => s + (d.valor||0), 0);
+  rows.push(new Array(header.length - 2).fill('').concat(['TOTAL', total]));
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([['PRÓXIMOS VENCIMENTOS D60 — AGROQUIMA'], ['Referência: ' + formatarData(hoje())], [], header, ...rows]);
+  XLSX.utils.book_append_sheet(wb, ws, 'Prox Vencimentos');
+  XLSX.writeFile(wb, 'D60_ProximosVencimentos_' + hoje() + '.xlsx');
+  toast('✅ XLS exportado!');
+}
+
+async function exportarProxVencimentosPNG() {
+  if (!provVencData.length) { toast('Sem dados para exportar.'); return; }
+  const el = document.getElementById('prov-export-area');
+  if (!el) return;
+  try {
+    const canvas = await html2canvas(el, { backgroundColor: getComputedStyle(document.body).backgroundColor || '#0A1628', scale: 2 });
+    await _downloadPNG(canvas, 'D60_ProximosVencimentos_' + hoje() + '.png');
+    toast('✅ PNG exportado!');
+  } catch(e) {
+    toast('Erro ao gerar imagem: ' + e.message);
+  }
 }
 
 function renderGraficoLinha(semanas, totais) {
