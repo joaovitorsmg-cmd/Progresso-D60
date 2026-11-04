@@ -1156,6 +1156,25 @@
 <div id="toast"></div>
 <div id="evol-row-tooltip"></div>
 
+<!-- MODAL: SEMANA DE REFERÊNCIA DA IMPORTAÇÃO — calendário com atalhos de seta -->
+<div id="semana-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);z-index:10010;align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border:1px solid var(--cinza-bd);border-radius:12px;padding:24px;width:92%;max-width:380px;color:var(--texto)">
+    <div style="font-weight:700;font-size:15px;color:var(--accent-text);margin-bottom:4px">📅 Semana de referência</div>
+    <div style="font-size:12px;color:var(--texto-mut);margin-bottom:4px">Data desta atualização de vencidos — cria uma nova semana no histórico D60.</div>
+    <div id="semana-modal-arquivo" style="font-size:11px;color:var(--texto-ter);margin-bottom:14px;word-break:break-all"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">
+      <button onclick="_semanaAjustar(-7)" title="7 dias antes" style="width:38px;height:38px;flex-shrink:0;border-radius:8px;border:1px solid var(--cinza-bd);background:var(--bg-input);color:var(--texto);font-size:16px;cursor:pointer">◀</button>
+      <input type="date" id="semana-modal-data" style="flex:1;min-width:0;padding:9px;border:1.5px solid var(--cinza-bd);border-radius:8px;background:var(--bg-input);color:var(--texto);font-size:14px;text-align:center">
+      <button onclick="_semanaAjustar(7)" title="7 dias depois" style="width:38px;height:38px;flex-shrink:0;border-radius:8px;border:1px solid var(--cinza-bd);background:var(--bg-input);color:var(--texto);font-size:16px;cursor:pointer">▶</button>
+    </div>
+    <div style="font-size:10px;color:var(--texto-mut);margin:-12px 0 16px">💡 As setas aqui do lado movem 7 dias (uma semana). Clique no campo pra abrir o calendário ou usar as setas do teclado (dia a dia).</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="_semanaCancelar()" style="padding:8px 16px;border:1px solid var(--cinza-bd);background:var(--bg-input);color:var(--texto);border-radius:6px;cursor:pointer">Cancelar</button>
+      <button onclick="_semanaConfirmar()" style="padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div id="config-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center">
   <div style="background:var(--bg-card);border:1px solid var(--cinza-bd);border-radius:10px;padding:24px;min-width:340px;max-width:440px;color:var(--texto)">
     <div style="font-weight:700;font-size:15px;margin-bottom:16px;color:var(--accent-text)">⚙️ Configurações</div>
@@ -1166,10 +1185,32 @@
     <button onclick="criarBinVencidos()" style="width:100%;padding:7px;background:var(--azul-bg);color:var(--accent-text);border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:14px">⚡ Criar bin automaticamente (usa a Master Key abaixo)</button>
     <label style="font-size:12px;color:#C3D2EA;display:block;margin-bottom:4px">JSONbin Master Key (Vencidos):</label>
     <input id="cfg-ven-key" type="password" placeholder="Master key" style="width:100%;padding:8px;border:1px solid var(--cinza-bd);border-radius:6px;font-size:13px;margin-bottom:14px;background:var(--bg-input);color:var(--texto)">
-    <button onclick="abrirHistorico()" style="width:100%;padding:7px;background:var(--azul-bg);color:var(--accent-text);border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:16px">🗂️ Histórico de Importações (editar/excluir semanas)</button>
+    <button onclick="abrirHistorico()" style="width:100%;padding:7px;background:var(--azul-bg);color:var(--accent-text);border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:10px">🗂️ Histórico de Importações (editar/excluir semanas)</button>
+    <button onclick="abrirLogImportacoes()" style="width:100%;padding:7px;background:var(--azul-bg);color:var(--accent-text);border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:16px">📋 Rastro de quem importou (usuário/data)</button>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button onclick="fecharConfig()" style="padding:8px 16px;border:1px solid var(--cinza-bd);background:var(--bg-input);color:var(--texto);border-radius:6px;cursor:pointer">Cancelar</button>
       <button onclick="salvarConfig()" style="padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: RASTRO DE IMPORTAÇÕES (quem/quando — oculto, só via Configurações) -->
+<div id="log-import-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);z-index:10000;align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border:1px solid var(--cinza-bd);border-radius:10px;padding:20px;width:94%;max-width:620px;max-height:80vh;display:flex;flex-direction:column;color:var(--texto)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-weight:700;font-size:15px;color:var(--accent-text)">📋 Rastro de Importações</div>
+      <button onclick="fecharLogImportacoes()" style="background:transparent;border:none;color:var(--texto-sec);font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div style="font-size:11.5px;opacity:.75;margin-bottom:10px">Quem subiu cada planilha de vencidos, e quando. Sincronizado entre dispositivos junto com os vencidos.</div>
+    <div style="overflow:auto;border:1px solid var(--cinza-bd);border-radius:8px;flex:1">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--azul);color:#fff;font-size:10px;text-transform:uppercase">
+          <th style="padding:7px 10px;text-align:left">Usuário</th>
+          <th style="padding:7px 10px;text-align:left">Arquivo</th>
+          <th style="padding:7px 10px;text-align:left">Data/Hora</th>
+        </tr></thead>
+        <tbody id="log-import-tbody"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -1260,6 +1301,7 @@ let semanaAtual  = null;    // '2026-06-12'
 let auditorias   = {};      // {lj: [{auditor, data, d60_ref, pontuou, semana_ref}]}
 let filialSel    = null;
 let dadosTabela  = [];
+let logImportacoes = []; // [{usuario, arquivo, ts}] — rastro de quem importou os vencidos, sincronizado na nuvem
 
 // ════════════════════════════════════════════════════════════════════
 // LOGIN — perfis salvos
@@ -1441,7 +1483,7 @@ async function salvarNuvem() {
 async function salvarVencidosNuvem() {
   if (!JSONBIN_VEN_ID || !JSONBIN_VEN_KEY) return;
   try {
-    const payload = JSON.stringify({ vencidosData, semanaAtual, d60Hist: D60_HIST, ts: new Date().toISOString() });
+    const payload = JSON.stringify({ vencidosData, semanaAtual, d60Hist: D60_HIST, log: logImportacoes, ts: new Date().toISOString() });
     const comprimido = LZString.compressToBase64(payload);
     const r = await fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_VEN_ID, {
       method: 'PUT',
@@ -1463,6 +1505,19 @@ function mesclarD60Hist(cloudHist) {
   });
 }
 
+// Mescla (não sobrescreve) para não perder o rastro de importações feitas em outro
+// dispositivo entre duas sincronizações.
+function mesclarLogImportacoes(cloudLog) {
+  if (!Array.isArray(cloudLog)) return;
+  const vistos = new Set(logImportacoes.map(l => l.ts + '|' + l.arquivo));
+  cloudLog.forEach(l => {
+    const chave = l.ts + '|' + l.arquivo;
+    if (!vistos.has(chave)) { logImportacoes.push(l); vistos.add(chave); }
+  });
+  logImportacoes.sort((a,b) => (a.ts < b.ts ? 1 : -1));
+  if (logImportacoes.length > 100) logImportacoes = logImportacoes.slice(0, 100);
+}
+
 async function carregarVencidosNuvem() {
   if (!JSONBIN_VEN_ID || !JSONBIN_VEN_KEY) return;
   try {
@@ -1479,6 +1534,7 @@ async function carregarVencidosNuvem() {
         vencidosData = registro.vencidosData;
         semanaAtual  = registro.semanaAtual || semanaAtual;
         mesclarD60Hist(registro.d60Hist);
+        mesclarLogImportacoes(registro.log);
         const ts = registro.ts ? new Date(registro.ts).toLocaleDateString('pt-BR') : '—';
         document.getElementById('import-status').innerHTML = '<span class="import-status">☁️ Vencidos da nuvem (' + ts + ')</span>';
         document.getElementById('import-date-info').textContent = 'Semana de referência: ' + formatarData(semanaAtual);
@@ -1492,15 +1548,44 @@ async function carregarVencidosNuvem() {
 // ════════════════════════════════════════════════════════════════════
 // IMPORTAR VENCIDOS
 // ════════════════════════════════════════════════════════════════════
+let _pendingImportFile = null;
+
 function importarVencidos(input) {
   const file = input.files[0];
+  input.value = ''; // permite reselecionar o mesmo arquivo depois, mesmo se cancelar
   if (!file) return;
-  const semanaNova = prompt('Data de referência desta atualização (semana atual):', hoje());
-  if (!semanaNova) { input.value = ''; return; }
+  _pendingImportFile = file;
+  const sugestao = semanaAtual ? _somarDiasISO(semanaAtual, 7) : hoje();
+  const campoData = document.getElementById('semana-modal-data');
+  campoData.value = sugestao;
+  campoData.max = hoje();
+  document.getElementById('semana-modal-arquivo').textContent = file.name;
+  document.getElementById('semana-modal').style.display = 'flex';
+}
+
+function _semanaAjustar(dias) {
+  const el = document.getElementById('semana-modal-data');
+  if (el.value) el.value = _somarDiasISO(el.value, dias);
+}
+
+function _semanaCancelar() {
+  _pendingImportFile = null;
+  document.getElementById('semana-modal').style.display = 'none';
+}
+
+function _semanaConfirmar() {
+  const semanaNova = document.getElementById('semana-modal-data').value;
+  const file = _pendingImportFile;
+  if (!semanaNova || !file) { _semanaCancelar(); return; }
   if (!confirm('Isso cria a semana ' + formatarData(semanaNova) + ' no histórico D60 (a partir da soma dos títulos do arquivo) e mantém o histórico anterior. Deseja seguir?')) {
-    input.value = '';
-    return;
+    return; // mantém o modal aberto pra escolher outra data, sem precisar reanexar o arquivo
   }
+  document.getElementById('semana-modal').style.display = 'none';
+  _processarImportacaoVencidos(file, semanaNova);
+  _pendingImportFile = null;
+}
+
+function _processarImportacaoVencidos(file, semanaNova) {
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
@@ -1614,6 +1699,8 @@ function importarVencidos(input) {
       const btnRev = document.getElementById('btn-reverter');
       if (btnRev) btnRev.style.display = localStorage.getItem('ven_backup') ? 'inline-block' : 'none';
       renderTabela();
+      logImportacoes.unshift({ usuario: AUDITOR_ATUAL || '—', arquivo: file.name, ts: new Date().toISOString() });
+      if (logImportacoes.length > 100) logImportacoes = logImportacoes.slice(0, 100);
       salvarVencidosNuvem();
     } catch(err) {
       toast('⚠️ Erro ao ler o arquivo: ' + err.message);
@@ -2578,6 +2665,12 @@ function _diasEntre(isoFim, isoInicio) {
   const [y1,m1,d1] = isoFim.split('-').map(Number);
   const [y2,m2,d2] = isoInicio.split('-').map(Number);
   return Math.round((Date.UTC(y1,m1-1,d1) - Date.UTC(y2,m2-1,d2)) / 86400000);
+}
+function _somarDiasISO(iso, dias) {
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m-1, d));
+  dt.setUTCDate(dt.getUTCDate() + dias);
+  return dt.toISOString().slice(0,10);
 }
 
 // Identidade de um registro de auditoria (ts é gerado no push e é único).
@@ -4780,6 +4873,24 @@ function abrirHistorico() {
 }
 function fecharHistorico() {
   document.getElementById('hist-modal').style.display = 'none';
+}
+
+function abrirLogImportacoes() {
+  fecharConfig();
+  const tbody = document.getElementById('log-import-tbody');
+  if (tbody) {
+    tbody.innerHTML = logImportacoes.length
+      ? logImportacoes.map(l => '<tr>' +
+          '<td style="padding:6px 10px">' + (l.usuario || '—') + '</td>' +
+          '<td style="padding:6px 10px">' + (l.arquivo || '—') + '</td>' +
+          '<td style="padding:6px 10px">' + new Date(l.ts).toLocaleString('pt-BR') + '</td>' +
+          '</tr>').join('')
+      : '<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--texto-mut)">Nenhuma importação registrada ainda.</td></tr>';
+  }
+  document.getElementById('log-import-modal').style.display = 'flex';
+}
+function fecharLogImportacoes() {
+  document.getElementById('log-import-modal').style.display = 'none';
 }
 
 function renderHistorico() {
