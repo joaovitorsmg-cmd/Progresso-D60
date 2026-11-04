@@ -4153,12 +4153,23 @@ function importarProxVencimentos(input) {
           titulo:        r['TÍTULO'] || r['TITULO'] || '',
           nf:            r['N.F.'] || r['N.F'] || r['NF'] || r['N. F.'] || '',
           emissao, vencto, dias,
-          ocorrencias:   parseInt(r['Total de Ocorrencias'] || r['TOTAL DE OCORRENCIAS'] || 1) || 1,
           valor:         parseFloat(r['VALOR'] || 0),
         });
       });
 
       if (!dados.length) { toast('⚠️ Nenhum título vencido entre 0 e 59 dias encontrado.'); return; }
+
+      // Ocorrências = quantas vezes este cliente aparece NESTA planilha (0-59 dias), não o
+      // "Total de Ocorrencias" bruto da planilha (que conta títulos fora desta janela e
+      // confundia o indicador "(Nx)" com o detalhe, que só mostra o que está aqui).
+      const contagemCliente = {};
+      dados.forEach(d => {
+        const chave = d.lj + '|' + (d.cliente || '').trim().toUpperCase();
+        contagemCliente[chave] = (contagemCliente[chave] || 0) + 1;
+      });
+      dados.forEach(d => {
+        d.ocorrencias = contagemCliente[d.lj + '|' + (d.cliente || '').trim().toUpperCase()];
+      });
 
       provVencData     = dados;
       provFaixasSel    = new Set(PROV_FAIXAS.map(f => f.k));
