@@ -908,8 +908,8 @@
                 <th style="padding:9px 12px;text-align:left" onclick="evolOrdenar('regional')" title="Ordenar por Regional">Regional <span id="evol-arrow-regional"></span></th>
                 <th style="padding:9px 12px;text-align:right" onclick="evolOrdenar('inicio')" title="Ordenar pelo valor inicial">Jan/2026 <span id="evol-arrow-inicio"></span></th>
                 <th style="padding:9px 12px;text-align:right" onclick="evolOrdenar('atual')" title="Ordenar pelo valor atual">Atual <span id="evol-arrow-atual"></span></th>
-                <th style="padding:9px 12px;text-align:right" title="Digite ou envie a planilha de faturamento — não é salvo">Faturamento</th>
-                <th style="padding:9px 12px;text-align:right" title="D60 Atual ÷ Faturamento informado">% Endiv.</th>
+                <th style="padding:9px 12px;text-align:right;cursor:pointer" onclick="evolOrdenar('faturamento')" title="Digite ou envie a planilha de faturamento — não é salvo">Faturamento <span id="evol-arrow-faturamento"></span></th>
+                <th style="padding:9px 12px;text-align:right;cursor:pointer" onclick="evolOrdenar('endividamento')" title="D60 Atual ÷ Faturamento informado">% Endiv. <span id="evol-arrow-endividamento"></span></th>
                 <th style="padding:9px 12px;text-align:right;cursor:pointer" onclick="evolOrdenar('repr')" title="% do total D60 atual — representa o peso desta filial no portfólio">Repr. % <span id="evol-arrow-repr"></span></th>
                 <th style="padding:9px 12px;text-align:right" onclick="evolOrdenar('delta')" title="Ordenar por variação R$">Variação R$ <span id="evol-arrow-delta"></span></th>
                 <th style="padding:9px 12px;text-align:right" onclick="evolOrdenar('deltapct')" title="Ordenar por variação %">Var % <span id="evol-arrow-deltapct"></span></th>
@@ -1901,6 +1901,7 @@ function trocarAba(aba) {
   // global filtros-bar only applies to Painel/Relatório/Evolução
   const filtrosBar = document.querySelector('.filtros-bar');
   if (filtrosBar) filtrosBar.style.display = ['recebimentos','novostiulos','provvenc'].includes(aba) ? 'none' : '';
+  if (aba === 'relatorio')    renderRelatorioGeral();
   if (aba === 'evolucao')     renderEvolucao();
   if (aba === 'recebimentos') renderRecebimentos();
   if (aba === 'novostiulos')  renderNovosTitulos();
@@ -1929,7 +1930,9 @@ function dadosRelatorioGeral() {
       const d60ant = semAnt && hist[semAnt] !== undefined ? hist[semAnt] : null;
       const varVal = (d60a !== null && d60ant !== null) ? d60a - d60ant : null;
       const varPct = (varVal !== null && d60ant) ? varVal / d60ant * 100 : null;
-      return { b, d60a, d60ant, varVal, varPct };
+      const fat = faturamentoPorFilial[b.lj];
+      const endividamento = (fat && d60a !== null) ? (d60a / fat * 100) : null;
+      return { b, d60a, d60ant, varVal, varPct, fat, endividamento };
     });
   if (sortRelState.col) {
     linhas = linhas.slice().sort((x, y) => {
@@ -1961,6 +1964,8 @@ function valorOrdenacaoRel(row, col) {
     case 'anterior': return row.d60ant === null ? -Infinity : row.d60ant;
     case 'atual':    return row.d60a   === null ? -Infinity : row.d60a;
     case 'variacao': return row.varVal === null ? -Infinity : row.varVal;
+    case 'faturamento':    return row.fat           === null || row.fat           === undefined ? -Infinity : row.fat;
+    case 'endividamento':  return row.endividamento  === null                                   ? -Infinity : row.endividamento;
     default: return 0;
   }
 }
@@ -1990,12 +1995,15 @@ function renderRelatorioGeral() {
   const semAnt = getSemanaAnterior(semanaAtual);
 
   let totAnt = 0, totAtual = 0, totVar = 0;
-  linhas.forEach(({ d60a, d60ant, varVal }) => {
+  let totFatEndiv = 0, totD60ComFat = 0, qtdComFat = 0;
+  linhas.forEach(({ d60a, d60ant, varVal, fat, endividamento }) => {
     if (d60a !== null)   totAtual += d60a;
     if (d60ant !== null) totAnt   += d60ant;
     if (varVal !== null) totVar   += varVal;
+    if (fat && d60a !== null) { totFatEndiv += fat; totD60ComFat += d60a; qtdComFat++; }
   });
   const totVarPct = totAnt ? totVar / totAnt * 100 : null;
+  const totEndivPct = totFatEndiv > 0 ? (totD60ComFat / totFatEndiv * 100) : null;
 
   let html = '<div style="border-bottom:3px solid #1E3A8A;padding-bottom:12px;margin-bottom:16px">';
   html += '<div style="font-size:11px;letter-spacing:2px;color:#1E3A8A;font-weight:700">AGROQUIMA · AUDITORIA D60</div>';
@@ -2011,10 +2019,12 @@ function renderRelatorioGeral() {
   html += '<th class="th-sort" data-col="auditor" onclick="ordenarRelatorio(\'auditor\')">Auditor<span class="sort-arrow"></span></th>';
   html += '<th class="th-sort" data-col="anterior" style="text-align:right" onclick="ordenarRelatorio(\'anterior\')">D60 ' + formatarDataCurta(semAnt) + '<span class="sort-arrow"></span></th>';
   html += '<th class="th-sort" data-col="atual" style="text-align:right" onclick="ordenarRelatorio(\'atual\')">D60 ' + formatarDataCurta(semanaAtual) + '<span class="sort-arrow"></span></th>';
+  html += '<th class="th-sort" data-col="faturamento" style="text-align:right" onclick="ordenarRelatorio(\'faturamento\')">Faturamento<span class="sort-arrow"></span></th>';
+  html += '<th class="th-sort" data-col="endividamento" style="text-align:right" onclick="ordenarRelatorio(\'endividamento\')">% Endiv.<span class="sort-arrow"></span></th>';
   html += '<th class="th-sort" data-col="variacao" style="text-align:right" onclick="ordenarRelatorio(\'variacao\')">Variação<span class="sort-arrow"></span></th>';
   html += '</tr></thead><tbody>';
 
-  linhas.forEach(({ b, d60a, d60ant, varVal, varPct }) => {
+  linhas.forEach(({ b, d60a, d60ant, varVal, varPct, fat, endividamento }) => {
     const corVar = varVal === null ? '#374151' : (varVal < 0 ? '#065F46' : (varVal > 0 ? '#991B1B' : '#374151'));
     const varTxt = varVal !== null
       ? (varVal > 0 ? '+' : '') + formatMoeda(varVal) + (varPct !== null ? ' (' + (varPct > 0 ? '+' : '') + varPct.toFixed(1) + '%)' : '')
@@ -2027,6 +2037,8 @@ function renderRelatorioGeral() {
     html += '<td>' + b.auditor + '</td>';
     html += '<td style="text-align:right">' + (d60ant !== null ? formatMoeda(d60ant) : '—') + '</td>';
     html += '<td style="text-align:right;font-weight:700">' + (d60a !== null ? formatMoeda(d60a) : '—') + '</td>';
+    html += '<td style="text-align:right">' + (fat ? formatMoeda(fat) : '—') + '</td>';
+    html += '<td style="text-align:right;font-weight:700">' + (endividamento !== null ? endividamento.toFixed(2) + '%' : '—') + '</td>';
     html += '<td style="text-align:right;color:' + corVar + ';font-weight:700">' + varTxt + '</td>';
     html += '</tr>';
   });
@@ -2038,6 +2050,8 @@ function renderRelatorioGeral() {
   html += '<td colspan="5">TOTAL</td>';
   html += '<td style="text-align:right">' + formatMoeda(totAnt) + '</td>';
   html += '<td style="text-align:right">' + formatMoeda(totAtual) + '</td>';
+  html += '<td style="text-align:right">' + (qtdComFat ? formatMoeda(totFatEndiv) : '—') + '</td>';
+  html += '<td style="text-align:right">' + (totEndivPct !== null ? totEndivPct.toFixed(2) + '%' : '—') + '</td>';
   html += '<td style="text-align:right;color:' + corTotVar + '">' + totVarTxt + '</td>';
   html += '</tr>';
 
@@ -2053,22 +2067,25 @@ function exportarRelatorioXLSX() {
     ['AGROQUIMA — RELATÓRIO GERAL D60'],
     ['D60 Sem. Anterior', semAnt ? formatarData(semAnt) : '—', 'D60 Sem. Atual', semanaAtual ? formatarData(semanaAtual) : '—'],
     [],
-    ['LJ','Filial','Regional','Gerente','Auditor','D60 ' + formatarDataCurta(semAnt),'D60 ' + formatarDataCurta(semanaAtual),'Variação (R$)','Variação (%)'],
+    ['LJ','Filial','Regional','Gerente','Auditor','D60 ' + formatarDataCurta(semAnt),'D60 ' + formatarDataCurta(semanaAtual),'Faturamento','% Endividamento','Variação (R$)','Variação (%)'],
   ];
   let totAnt = 0, totAtual = 0, totVar = 0;
-  linhas.forEach(({ b, d60a, d60ant, varVal, varPct }) => {
+  let totFatEndiv = 0, totD60ComFat = 0;
+  linhas.forEach(({ b, d60a, d60ant, varVal, varPct, fat, endividamento }) => {
     if (d60a !== null)   totAtual += d60a;
     if (d60ant !== null) totAnt   += d60ant;
     if (varVal !== null) totVar   += varVal;
+    if (fat && d60a !== null) { totFatEndiv += fat; totD60ComFat += d60a; }
     aoa.push([
       b.lj, b.loja, b.regional, b.gerente, b.auditor,
-      d60ant, d60a, varVal,
+      d60ant, d60a, fat || '', endividamento !== null ? endividamento.toFixed(2) + '%' : '—', varVal,
       varPct !== null ? varPct.toFixed(2) + '%' : '—',
     ]);
   });
   const totVarPct = totAnt ? (totVar / totAnt * 100).toFixed(2) + '%' : '—';
+  const totEndivPct = totFatEndiv > 0 ? (totD60ComFat / totFatEndiv * 100).toFixed(2) + '%' : '—';
   aoa.push([]);
-  aoa.push(['TOTAL', '', '', '', '', totAnt, totAtual, totVar, totVarPct]);
+  aoa.push(['TOTAL', '', '', '', '', totAnt, totAtual, totFatEndiv || '', totEndivPct, totVar, totVarPct]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Relatório Geral');
   XLSX.writeFile(wb, 'D60_Relatorio_Geral_' + hoje() + '.xlsx');
@@ -3067,6 +3084,13 @@ function renderEvolucao() {
       case 'regional': va = a.base.regional; vb = b.base.regional; break;
       case 'inicio':   va = a.valInicio||0;  vb = b.valInicio||0;  break;
       case 'atual':    va = a.valAtual||0;   vb = b.valAtual||0;   break;
+      case 'faturamento': va = faturamentoPorFilial[a.base.lj] || 0; vb = faturamentoPorFilial[b.base.lj] || 0; break;
+      case 'endividamento': {
+        const fa = faturamentoPorFilial[a.base.lj], fb = faturamentoPorFilial[b.base.lj];
+        va = (fa && a.valAtual !== null) ? a.valAtual / fa : -Infinity;
+        vb = (fb && b.valAtual !== null) ? b.valAtual / fb : -Infinity;
+        break;
+      }
       case 'repr':     va = totalAtualFiltrado > 0 ? (a.valAtual||0)/totalAtualFiltrado : 0;
                        vb = totalAtualFiltrado > 0 ? (b.valAtual||0)/totalAtualFiltrado : 0; break;
       case 'delta':    va = a.delta||0;      vb = b.delta||0;      break;
@@ -3082,7 +3106,7 @@ function renderEvolucao() {
   });
 
   // Atualiza setas
-  ['lj','loja','regional','inicio','atual','repr','delta','deltapct','status'].forEach(c => {
+  ['lj','loja','regional','inicio','atual','faturamento','endividamento','repr','delta','deltapct','status'].forEach(c => {
     const el = document.getElementById('evol-arrow-' + c);
     if (el) el.textContent = evolSortState.col === c ? (evolSortState.dir === 1 ? '▲' : '▼') : '';
   });
@@ -4216,7 +4240,8 @@ function provFecharModal() {
 function _provRenderContexto(filtrados) {
   const el = document.getElementById('prov-contexto');
   if (!el) return;
-  const b = provFiliaisSel.size === 1 ? BASE_REGIONAIS.find(x => provFiliaisSel.has(x.lj)) : null;
+  const ljs = _provEscopoLjs();
+  const b = ljs.length === 1 ? BASE_REGIONAIS.find(x => x.lj === ljs[0]) : null;
   if (!b) { el.style.display = 'none'; return; }
 
   const critico      = filtrados.filter(d => _provFaixa(d.dias).k === '46-59');
@@ -4318,9 +4343,15 @@ function _provRenderTabela(filtrados) {
 // Universo de filiais sob os filtros de filial/auditor/região atualmente marcados
 // (independente de terem ou não título na janela de 0-59 dias) — usado pra somar o
 // D60 atual corretamente como ponto de partida da projeção.
+// Universo de filiais: só as que realmente aparecem na planilha carregada (nunca a
+// empresa inteira), intersectado com os filtros de filial/auditor/região marcados.
+// Crítico: sem isso, o D60 "atual" da projeção acabava somando todas as ~27 filiais
+// mesmo quando a planilha trazia títulos de uma única loja.
 function _provEscopoLjs() {
+  const ljsNaPlanilha = new Set(provVencData.map(d => d.lj));
   return BASE_REGIONAIS.filter(b => {
     if (FILIAIS_SEM_VENDA.has(b.lj)) return false;
+    if (!ljsNaPlanilha.has(b.lj)) return false;
     if (provFiliaisSel.size   && !provFiliaisSel.has(b.lj))      return false;
     if (provAuditoresSel.size && !provAuditoresSel.has(b.auditor)) return false;
     if (provRegioesSel.size   && !provRegioesSel.has(b.regiao))    return false;
@@ -4328,13 +4359,9 @@ function _provEscopoLjs() {
   }).map(b => b.lj);
 }
 
-// Projeção: quanto do D60 atual + o que está nesta janela (0-59 dias) viraria D60
-// em +15/+30/+45/+60 dias, se nada for cobrado. Um título com "dias" vencido hoje
-// completa 60 dias em (60-dias) dias — por isso o corte usa dias >= 60-N.
-function _provRenderProjecao(baseFiltrada) {
-  const el = document.getElementById('prov-projecao');
-  if (!el) return;
-  const d60Atual = _provEscopoLjs().reduce((s,lj) => s + (getD60Atual(lj) || 0), 0);
+// Monta um "degrau" D60 hoje → +15 → +30 → +45 → +60 para um conjunto de títulos
+// (uma filial, ou o total consolidado), a partir de um D60 atual já calculado.
+function _provStaircaseHTML(label, d60Atual, titulosDoEscopo) {
   const pontos = [
     { label: 'D60 hoje', minDias: null },
     { label: '+15 dias', minDias: 45 },
@@ -4342,23 +4369,56 @@ function _provRenderProjecao(baseFiltrada) {
     { label: '+45 dias', minDias: 15 },
     { label: '+60 dias', minDias: 0  },
   ];
-  let html = `
-    <div style="font-size:12px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">📈 Projeção de D60 — se nada for cobrado</div>
-    <div style="font-size:10px;color:var(--texto-mut);margin-bottom:10px">D60 atual + os títulos desta janela (0–59 dias) que completariam 60 dias em cada prazo, somados.</div>
+  let html = `<div style="margin-bottom:12px">
+    <div style="font-size:12px;font-weight:700;color:var(--texto);margin-bottom:6px">${label}</div>
     <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;align-items:stretch">`;
   pontos.forEach((p, i) => {
     const valor = p.minDias === null
       ? d60Atual
-      : d60Atual + baseFiltrada.filter(d => d.dias >= p.minDias).reduce((s,d) => s + (d.valor||0), 0);
+      : d60Atual + titulosDoEscopo.filter(d => d.dias >= p.minDias).reduce((s,d) => s + (d.valor||0), 0);
     const cor = i === 0 ? 'var(--azul-med)' : (i === pontos.length - 1 ? '#DC2626' : '#D97706');
-    html += `<div style="flex:1;min-width:130px;background:var(--bg-card);border-radius:10px;padding:12px 14px;border-top:3px solid ${cor};box-shadow:var(--sombra)">
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--texto-ter);margin-bottom:6px">${p.label}</div>
-      <div style="font-size:15px;font-weight:800;color:${cor}">${formatMoeda(valor)}</div>
-      ${i > 0 ? `<div style="font-size:10px;color:var(--texto-mut);margin-top:3px">+${formatMoeda(valor - d60Atual)} vs hoje</div>` : ''}
+    html += `<div style="flex:1;min-width:120px;background:var(--bg-card);border-radius:10px;padding:10px 12px;border-top:3px solid ${cor};box-shadow:var(--sombra)">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--texto-ter);margin-bottom:4px">${p.label}</div>
+      <div style="font-size:14px;font-weight:800;color:${cor}">${formatMoeda(valor)}</div>
+      ${i > 0 ? `<div style="font-size:9px;color:var(--texto-mut);margin-top:2px">+${formatMoeda(valor - d60Atual)}</div>` : ''}
     </div>`;
-    if (i < pontos.length - 1) html += `<div style="display:flex;align-items:center;color:var(--texto-mut);font-size:15px">→</div>`;
+    if (i < pontos.length - 1) html += `<div style="display:flex;align-items:center;color:var(--texto-mut);font-size:14px">→</div>`;
   });
-  html += `</div>`;
+  html += `</div></div>`;
+  return html;
+}
+
+// Projeção: quanto do D60 atual + o que está nesta janela (0-59 dias) viraria D60
+// em +15/+30/+45/+60 dias, se nada for cobrado. Um título com "dias" vencido hoje
+// completa 60 dias em (60-dias) dias — por isso o corte usa dias >= 60-N.
+// Identifica a(s) filial(is) da planilha carregada: uma única filial mostra um
+// degrau só, mais de uma mostra um degrau por filial + um total consolidado no
+// final — nunca mistura tudo num número só sem dizer de onde ele vem.
+function _provRenderProjecao(baseFiltrada) {
+  const el = document.getElementById('prov-projecao');
+  if (!el) return;
+  const ljs = _provEscopoLjs();
+  if (!ljs.length) { el.innerHTML = ''; return; }
+
+  let html = `
+    <div style="font-size:12px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">📈 Projeção de D60 — se nada for cobrado</div>
+    <div style="font-size:10px;color:var(--texto-mut);margin-bottom:10px">D60 atual de cada filial + os títulos desta janela (0–59 dias) que completariam 60 dias em cada prazo.</div>`;
+
+  if (ljs.length === 1) {
+    const b = BASE_REGIONAIS.find(x => x.lj === ljs[0]);
+    const d60Atual = getD60Atual(ljs[0]) || 0;
+    html += _provStaircaseHTML(b ? b.lj + ' — ' + b.loja : 'LJ' + ljs[0], d60Atual, baseFiltrada.filter(d => d.lj === ljs[0]));
+  } else {
+    ljs.forEach(lj => {
+      const b = BASE_REGIONAIS.find(x => x.lj === lj);
+      const d60Atual = getD60Atual(lj) || 0;
+      html += _provStaircaseHTML(b ? b.lj + ' — ' + b.loja : 'LJ' + lj, d60Atual, baseFiltrada.filter(d => d.lj === lj));
+    });
+    const d60AtualTotal = ljs.reduce((s,lj) => s + (getD60Atual(lj) || 0), 0);
+    html += '<div style="border-top:1px dashed var(--cinza-bd);margin:4px 0 12px"></div>';
+    html += _provStaircaseHTML('🧮 TOTAL CONSOLIDADO (' + ljs.length + ' filiais)', d60AtualTotal, baseFiltrada.filter(d => ljs.includes(d.lj)));
+  }
+
   el.innerHTML = html;
 }
 
