@@ -254,6 +254,31 @@
   #evol-table thead th { cursor:pointer; user-select:none; }
   #evol-table thead th:hover { background:#2563EB88; }
 
+  /* ── EVOLUÇÃO: rankings e pequenos múltiplos (substituem a tabela como visão principal) ── */
+  .evol-bar-list { display:flex; flex-direction:column; gap:4px; }
+  .evol-bar-row { display:grid; grid-template-columns:150px 1fr 110px; align-items:center; gap:10px; min-width:0; }
+  .evol-bar-row .nome { font-size:12px; color:var(--texto-sec); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .evol-bar-row .nome b { color:var(--texto); font-weight:700; }
+  .evol-bar-track { position:relative; height:20px; background:var(--bg-input); border-radius:5px; overflow:hidden; }
+  .evol-bar-fill { position:absolute; inset:0 auto 0 0; border-radius:5px; }
+  .evol-bar-row .val { font-size:11px; text-align:right; color:var(--texto); font-variant-numeric:tabular-nums; }
+  .evol-bar-row:hover .evol-bar-track { outline:1.5px solid var(--azul-med); outline-offset:1px; }
+  .evol-bar-legend { display:flex; flex-wrap:wrap; gap:12px; font-size:11px; color:var(--texto-sec); margin-top:10px; }
+  .evol-bar-legend .item { display:flex; align-items:center; gap:6px; }
+  .evol-bar-legend .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .evol-risk-note { margin-top:10px; font-size:11px; color:#60A5FA; background:rgba(96,165,250,.12); border-radius:8px; padding:8px 12px; }
+  .evol-risk-note:empty { display:none; }
+  .evol-spark-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(165px, 1fr)); gap:8px; }
+  .evol-spark-card { background:var(--bg-input); border:1px solid var(--cinza-bd); border-radius:10px; padding:10px 12px; min-width:0; }
+  .evol-spark-card .top { display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+  .evol-spark-card .nome { font-size:11px; font-weight:700; color:var(--texto); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .evol-spark-card .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .evol-spark-card svg { width:100%; height:32px; display:block; margin-top:4px; }
+  .evol-spark-card .foot { display:flex; justify-content:space-between; align-items:baseline; margin-top:2px; }
+  .evol-spark-card .val { font-size:12px; font-weight:700; color:var(--texto); font-variant-numeric:tabular-nums; }
+  .evol-spark-card .pct { font-size:10px; font-variant-numeric:tabular-nums; }
+  @media (max-width:640px) { .evol-bar-row { grid-template-columns:100px 1fr 80px; } }
+
   .kpi-card { cursor:pointer; transition:box-shadow .15s, transform .1s; }
   .kpi-card:hover { box-shadow:0 0 0 2px #2563EB66; transform:translateY(-1px); }
   #kpi-detalhe-panel {
@@ -904,10 +929,28 @@
           <div id="fat-import-info" style="font-size:11px;color:var(--texto-mut)"></div>
           <button id="fat-btn-limpar" class="btn-limpar" style="width:auto;padding:6px 10px;font-size:12px;display:none" onclick="limparFaturamento()">✕ Limpar</button>
           <div id="fat-kpi-geral" style="margin-left:auto;font-size:12px;color:var(--texto-sec)"></div>
-          <div style="flex-basis:100%;font-size:10px;color:var(--texto-mut)">💡 Dados de faturamento são temporários — não ficam salvos: somem ao recarregar a página. Também dá pra digitar direto na coluna "Faturamento" de cada filial.</div>
+          <div style="flex-basis:100%;font-size:10px;color:var(--texto-mut)">💡 Dados de faturamento são temporários — não ficam salvos: somem ao recarregar a página. Também dá pra digitar direto na coluna "Faturamento" de cada filial, na tabela completa.</div>
         </div>
 
-        <div style="overflow-x:auto">
+        <!-- D60 por filial, maior pro menor -->
+        <div style="font-size:11px;font-weight:700;color:var(--texto-ter);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">D60 por filial — maior para o menor</div>
+        <div class="evol-bar-list" id="evol-risk-list"></div>
+        <div class="evol-bar-legend" id="evol-risk-legend"></div>
+        <div class="evol-risk-note" id="evol-risk-note"></div>
+
+        <!-- % Endividamento por filial -->
+        <div style="font-size:11px;font-weight:700;color:var(--texto-ter);text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px">% Endividamento por filial <span style="font-weight:400;text-transform:none;color:var(--texto-mut)">— D60 atual ÷ faturamento informado</span></div>
+        <div class="evol-bar-list" id="evol-endiv-list"></div>
+        <div id="evol-endiv-empty" style="display:none;font-size:11.5px;color:var(--texto-mut);padding:10px 0">Envie o faturamento por filial acima para ver este ranking.</div>
+
+        <!-- Tendência por filial (pequenos múltiplos) -->
+        <div style="font-size:11px;font-weight:700;color:var(--texto-ter);text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px">Tendência por filial</div>
+        <div class="evol-spark-grid" id="evol-spark-grid"></div>
+
+        <!-- Tabela completa: recolhida, para conferir valores exatos e exportar -->
+        <details style="margin-top:22px;border:1px solid var(--cinza-bd);border-radius:10px;overflow:hidden">
+          <summary style="list-style:none;cursor:pointer;padding:12px 16px;font-size:11.5px;font-weight:700;color:var(--texto-ter);text-transform:uppercase;letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center">Ver tabela completa (dados exatos para exportar/conferir) <span>▸</span></summary>
+        <div style="overflow-x:auto;border-top:1px solid var(--cinza-bd)">
           <table id="evol-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
             <thead>
               <tr style="background:var(--azul);color:var(--branco);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">
@@ -929,6 +972,7 @@
             <tbody id="evol-tbody"></tbody>
           </table>
         </div>
+        </details>
       </div>
 
     </div>
@@ -2921,6 +2965,71 @@ function sparklineSVG(valores, status) {
     '</svg>';
 }
 
+const EVOL_STATUS_COR   = { 'zero-total':'#A78BFA', excel:'#60A5FA', reducao:'#22C55E', estavel:'#EAB308', crescimento:'#EF4444', 'sem-dados':'#9CA3AF' };
+const EVOL_STATUS_LABEL = { 'zero-total':'Nunca registrou', excel:'Hist. mínimo', reducao:'Em redução', estavel:'Estável', crescimento:'Em crescimento', 'sem-dados':'Sem dados' };
+
+// D60 por filial, maior para o menor — substitui a leitura da tabela como visão principal
+function _evolRenderRiskBars(linhas) {
+  const el = document.getElementById('evol-risk-list');
+  if (!el) return;
+  const comVal = linhas.filter(e => e.valAtual !== null).slice().sort((a,b) => b.valAtual - a.valAtual);
+  el.innerHTML = comVal.length ? (() => {
+    const maxVal = comVal[0].valAtual || 1;
+    return comVal.map(e => `
+      <div class="evol-bar-row" title="${e.base.loja} — ${EVOL_STATUS_LABEL[e.status]}">
+        <div class="nome"><b>${e.base.lj}</b> ${e.base.loja}</div>
+        <div class="evol-bar-track"><div class="evol-bar-fill" style="width:${(e.valAtual/maxVal*100).toFixed(1)}%;background:${EVOL_STATUS_COR[e.status]}"></div></div>
+        <div class="val">${formatMoeda(e.valAtual)}</div>
+      </div>`).join('');
+  })() : '<div style="font-size:11.5px;color:var(--texto-mut);padding:8px 0">Sem dados para este filtro.</div>';
+
+  const usados = [...new Set(comVal.map(e => e.status))];
+  document.getElementById('evol-risk-legend').innerHTML = usados.map(s => `
+    <div class="item"><span class="dot" style="background:${EVOL_STATUS_COR[s]}"></span>${EVOL_STATUS_LABEL[s]}</div>`).join('');
+
+  const semMovimento = linhas.filter(e => e.valAtual === null && e.status === 'zero-total');
+  document.getElementById('evol-risk-note').innerHTML = semMovimento.length
+    ? '⭐ <b>' + semMovimento.map(e => e.base.lj + ' ' + e.base.loja).join(', ') + '</b> — nunca registrou título vencido no período: excelência, não falta de dado.'
+    : '';
+}
+
+// % Endividamento por filial — ranking simples (substitui o cruzamento faturamento×D60)
+function _evolRenderEndivBars(linhas) {
+  const el = document.getElementById('evol-endiv-list');
+  const empty = document.getElementById('evol-endiv-empty');
+  if (!el) return;
+  const comFat = linhas
+    .filter(e => faturamentoPorFilial[e.base.lj] && e.valAtual !== null)
+    .map(e => ({ e, pct: e.valAtual / faturamentoPorFilial[e.base.lj] * 100 }))
+    .sort((a,b) => b.pct - a.pct);
+  if (!comFat.length) { el.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
+  if (empty) empty.style.display = 'none';
+  const maxPct = comFat[0].pct || 1;
+  el.innerHTML = comFat.map(({ e, pct }) => `
+    <div class="evol-bar-row" title="${e.base.loja}">
+      <div class="nome"><b>${e.base.lj}</b> ${e.base.loja}</div>
+      <div class="evol-bar-track"><div class="evol-bar-fill" style="width:${(pct/maxPct*100).toFixed(1)}%;background:${EVOL_STATUS_COR[e.status]}"></div></div>
+      <div class="val">${pct.toFixed(2)}%</div>
+    </div>`).join('');
+}
+
+// Tendência por filial — pequenos múltiplos, pra comparar a evolução sem abrir a tabela
+function _evolRenderSparkGrid(linhas) {
+  const el = document.getElementById('evol-spark-grid');
+  if (!el) return;
+  const comVal = linhas.filter(e => e.valAtual !== null).slice().sort((a,b) => b.valAtual - a.valAtual);
+  el.innerHTML = comVal.map(e => {
+    const cor = EVOL_STATUS_COR[e.status];
+    const pctCor = e.deltaPct === null ? 'var(--texto-mut)' : (e.deltaPct > 0.5 ? '#EF4444' : (e.deltaPct < -0.5 ? '#22C55E' : 'var(--texto-mut)'));
+    const pctTxt = e.deltaPct !== null ? (e.deltaPct > 0 ? '+' : '') + e.deltaPct.toFixed(1) + '%' : '—';
+    return `<div class="evol-spark-card" title="${e.base.loja}">
+      <div class="top"><div class="nome">${e.base.lj} · ${e.base.loja}</div><span class="dot" style="background:${cor}"></span></div>
+      ${sparklineSVG(e.valores, e.status)}
+      <div class="foot"><div class="val">${formatMoeda(e.valAtual)}</div><div class="pct" style="color:${pctCor}">${pctTxt}</div></div>
+    </div>`;
+  }).join('');
+}
+
 function evolOrdenar(col) {
   if (evolSortState.col === col) {
     evolSortState.dir = -evolSortState.dir;
@@ -3082,6 +3191,12 @@ function renderEvolucao() {
 
   // Renderiza mapa de concentração (sem filtro de status — mostra universo completo)
   renderMapaConcentracao(evFiltrado, totalAtualFiltrado);
+
+  // Rankings visuais que substituem a tabela como visão principal (tabela continua
+  // disponível, recolhida, pra conferência e export)
+  _evolRenderRiskBars(linhas);
+  _evolRenderEndivBars(linhas);
+  _evolRenderSparkGrid(linhas);
 
   // Ordenação
   const { col, dir } = evolSortState;
