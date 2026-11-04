@@ -189,6 +189,14 @@
   }
   .btn-import-icon:hover { background: rgba(255,255,255,.1); color: var(--branco); opacity: 1; }
   #file-input { display: none; }
+  /* ── DRAG & DROP (global, roteia pra aba ativa) ──────────────────── */
+  #global-dropzone-overlay {
+    display: none; position: fixed; inset: 0; z-index: 9500;
+    background: rgba(37,99,235,.16); border: 3px dashed var(--azul-med);
+    align-items: center; justify-content: center; pointer-events: none;
+  }
+  #global-dropzone-overlay.ativo { display: flex; }
+  .dropzone-msg { background: var(--bg-card); color: var(--accent-text); padding: 18px 30px; border-radius: 12px; font-size: 15px; font-weight: 700; box-shadow: var(--sombra); }
   .import-status { font-size: 11px; color: var(--verde); font-weight: 600; }
   .import-date-info { font-size: 11px; color: #B7C6E0; }
 
@@ -1157,6 +1165,7 @@
 
 <div id="toast"></div>
 <div id="evol-row-tooltip"></div>
+<div id="global-dropzone-overlay"><div class="dropzone-msg">📥 Solte a planilha aqui para importar</div></div>
 
 <!-- MODAL: SEMANA DE REFERÊNCIA DA IMPORTAÇÃO — calendário com atalhos de seta -->
 <div id="semana-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);z-index:10010;align-items:center;justify-content:center">
@@ -5099,6 +5108,50 @@ function excluirSemanaHist(semana) {
     localStorage.setItem('d60-tema', next);
     _aplicarTema(next);
   }
+
+  // ── DRAG & DROP — arrasta o arquivo pra onde quiser na tela; a importação
+  // acontece no input certo pra aba que estiver aberta no momento. Clicar e
+  // escolher o arquivo continua funcionando normalmente, igual antes.
+  function _inputAtivoParaDrop() {
+    const abaAtiva = document.querySelector('.tab-page.active');
+    if (!abaAtiva) return null;
+    if (abaAtiva.id === 'tab-painel')    return document.getElementById('file-input');
+    if (abaAtiva.id === 'tab-evolucao')  return document.getElementById('fat-file-input');
+    if (abaAtiva.id === 'tab-provvenc') {
+      const content = document.getElementById('prov-content');
+      const jaCarregado = content && getComputedStyle(content).display !== 'none';
+      return document.getElementById(jaCarregado ? 'prov-file-input-2' : 'prov-file-input');
+    }
+    return null;
+  }
+
+  (function initDragDrop() {
+    const overlay = document.getElementById('global-dropzone-overlay');
+    if (!overlay) return;
+    let contador = 0;
+    window.addEventListener('dragenter', e => {
+      if (!_inputAtivoParaDrop()) return;
+      e.preventDefault();
+      contador++;
+      overlay.classList.add('ativo');
+    });
+    window.addEventListener('dragover', e => { if (_inputAtivoParaDrop()) e.preventDefault(); });
+    window.addEventListener('dragleave', () => {
+      contador = Math.max(0, contador - 1);
+      if (contador === 0) overlay.classList.remove('ativo');
+    });
+    window.addEventListener('drop', e => {
+      const input = _inputAtivoParaDrop();
+      if (!input) return;
+      e.preventDefault();
+      contador = 0;
+      overlay.classList.remove('ativo');
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      input.files = files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  })();
 
 </script>
 </body>
