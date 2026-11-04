@@ -1117,6 +1117,8 @@
 
           <div id="prov-kpis" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px"></div>
 
+          <div id="prov-projecao" style="margin-bottom:16px"></div>
+
           <div id="prov-table-wrap" style="background:var(--bg-card);border-radius:10px;overflow:hidden;box-shadow:var(--sombra)">
             <div style="overflow-x:auto">
               <table id="prov-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
@@ -4313,6 +4315,53 @@ function _provRenderTabela(filtrados) {
   tbody.innerHTML = html;
 }
 
+// Universo de filiais sob os filtros de filial/auditor/região atualmente marcados
+// (independente de terem ou não título na janela de 0-59 dias) — usado pra somar o
+// D60 atual corretamente como ponto de partida da projeção.
+function _provEscopoLjs() {
+  return BASE_REGIONAIS.filter(b => {
+    if (FILIAIS_SEM_VENDA.has(b.lj)) return false;
+    if (provFiliaisSel.size   && !provFiliaisSel.has(b.lj))      return false;
+    if (provAuditoresSel.size && !provAuditoresSel.has(b.auditor)) return false;
+    if (provRegioesSel.size   && !provRegioesSel.has(b.regiao))    return false;
+    return true;
+  }).map(b => b.lj);
+}
+
+// Projeção: quanto do D60 atual + o que está nesta janela (0-59 dias) viraria D60
+// em +15/+30/+45/+60 dias, se nada for cobrado. Um título com "dias" vencido hoje
+// completa 60 dias em (60-dias) dias — por isso o corte usa dias >= 60-N.
+function _provRenderProjecao(baseFiltrada) {
+  const el = document.getElementById('prov-projecao');
+  if (!el) return;
+  const d60Atual = _provEscopoLjs().reduce((s,lj) => s + (getD60Atual(lj) || 0), 0);
+  const pontos = [
+    { label: 'D60 hoje', minDias: null },
+    { label: '+15 dias', minDias: 45 },
+    { label: '+30 dias', minDias: 30 },
+    { label: '+45 dias', minDias: 15 },
+    { label: '+60 dias', minDias: 0  },
+  ];
+  let html = `
+    <div style="font-size:12px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">📈 Projeção de D60 — se nada for cobrado</div>
+    <div style="font-size:10px;color:var(--texto-mut);margin-bottom:10px">D60 atual + os títulos desta janela (0–59 dias) que completariam 60 dias em cada prazo, somados.</div>
+    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;align-items:stretch">`;
+  pontos.forEach((p, i) => {
+    const valor = p.minDias === null
+      ? d60Atual
+      : d60Atual + baseFiltrada.filter(d => d.dias >= p.minDias).reduce((s,d) => s + (d.valor||0), 0);
+    const cor = i === 0 ? 'var(--azul-med)' : (i === pontos.length - 1 ? '#DC2626' : '#D97706');
+    html += `<div style="flex:1;min-width:130px;background:var(--bg-card);border-radius:10px;padding:12px 14px;border-top:3px solid ${cor};box-shadow:var(--sombra)">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--texto-ter);margin-bottom:6px">${p.label}</div>
+      <div style="font-size:15px;font-weight:800;color:${cor}">${formatMoeda(valor)}</div>
+      ${i > 0 ? `<div style="font-size:10px;color:var(--texto-mut);margin-top:3px">+${formatMoeda(valor - d60Atual)} vs hoje</div>` : ''}
+    </div>`;
+    if (i < pontos.length - 1) html += `<div style="display:flex;align-items:center;color:var(--texto-mut);font-size:15px">→</div>`;
+  });
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
 function renderProxVencimentos() {
   if (!provVencData.length) return;
   const base      = _provFiltrarBase();
@@ -4320,6 +4369,7 @@ function renderProxVencimentos() {
   _provAtualizarBadgeFiltros();
   _provRenderContexto(filtrados);
   _provRenderKpis(base, filtrados);
+  _provRenderProjecao(base);
   _provRenderTabela(filtrados);
 }
 
