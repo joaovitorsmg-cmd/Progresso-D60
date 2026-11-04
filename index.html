@@ -888,6 +888,17 @@
             <button class="btn-slide-export" data-tip="Exportar slide PNG — todas as filiais ou o Regional selecionado" onclick="exportarSlideRegional()" title="Exportar Slide"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M9 10l2 2 4-4"/></svg></button>
           </div>
         </div>
+
+        <!-- Faturamento por filial: análise avulsa, não persiste (some ao recarregar) -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;background:var(--bg-input);border-radius:8px">
+          <button class="btn-limpar" style="width:auto;padding:6px 12px;font-size:12px" onclick="document.getElementById('fat-file-input').click()">📤 Enviar faturamento por filial</button>
+          <input type="file" id="fat-file-input" accept=".xls,.xlsx" style="display:none" onchange="importarFaturamento(this)">
+          <div id="fat-import-info" style="font-size:11px;color:var(--texto-mut)"></div>
+          <button id="fat-btn-limpar" class="btn-limpar" style="width:auto;padding:6px 10px;font-size:12px;display:none" onclick="limparFaturamento()">✕ Limpar</button>
+          <div id="fat-kpi-geral" style="margin-left:auto;font-size:12px;color:var(--texto-sec)"></div>
+          <div style="flex-basis:100%;font-size:10px;color:var(--texto-mut)">💡 Dados de faturamento são temporários — não ficam salvos: somem ao recarregar a página. Também dá pra digitar direto na coluna "Faturamento" de cada filial.</div>
+        </div>
+
         <div style="overflow-x:auto">
           <table id="evol-table" style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
             <thead>
@@ -897,6 +908,8 @@
                 <th style="padding:9px 12px;text-align:left" onclick="evolOrdenar('regional')" title="Ordenar por Regional">Regional <span id="evol-arrow-regional"></span></th>
                 <th style="padding:9px 12px;text-align:right" onclick="evolOrdenar('inicio')" title="Ordenar pelo valor inicial">Jan/2026 <span id="evol-arrow-inicio"></span></th>
                 <th style="padding:9px 12px;text-align:right" onclick="evolOrdenar('atual')" title="Ordenar pelo valor atual">Atual <span id="evol-arrow-atual"></span></th>
+                <th style="padding:9px 12px;text-align:right" title="Digite ou envie a planilha de faturamento — não é salvo">Faturamento</th>
+                <th style="padding:9px 12px;text-align:right" title="D60 Atual ÷ Faturamento informado">% Endiv.</th>
                 <th style="padding:9px 12px;text-align:right;cursor:pointer" onclick="evolOrdenar('repr')" title="% do total D60 atual — representa o peso desta filial no portfólio">Repr. % <span id="evol-arrow-repr"></span></th>
                 <th style="padding:9px 12px;text-align:right" onclick="evolOrdenar('delta')" title="Ordenar por variação R$">Variação R$ <span id="evol-arrow-delta"></span></th>
                 <th style="padding:9px 12px;text-align:right" onclick="evolOrdenar('deltapct')" title="Ordenar por variação %">Var % <span id="evol-arrow-deltapct"></span></th>
@@ -2651,6 +2664,121 @@ function calcEvolucao() {
   });
 }
 
+// ════════════════════════════════════════════════════════════════════
+// FATURAMENTO POR FILIAL (aba Evolução) — análise avulsa, não persiste:
+// digitado ou importado aqui some ao recarregar a página (nada é salvo).
+// ════════════════════════════════════════════════════════════════════
+let faturamentoPorFilial = {}; // {lj: valorRealizado}
+let faturamentoInfo      = null; // {arquivo, qtd, naoIdentificados}
+
+function _normTexto(s) {
+  return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim().toUpperCase();
+}
+
+function _parseValorBR(s) {
+  if (typeof s === 'number') return s;
+  let str = String(s||'').replace(/R\$/gi,'').trim();
+  if (!str) return 0;
+  str = str.replace(/\.(?=\d{3}(\D|$))/g,'').replace(',', '.');
+  const v = parseFloat(str);
+  return isNaN(v) ? 0 : v;
+}
+
+// Relatório de faturamento identifica a filial pela cidade (após "...VENDA"),
+// não pelo nome do gerente (o "responsável" que aparece antes pode divergir do
+// gerente cadastrado em BASE_REGIONAIS — já visto em dados reais). A Matriz é
+// listada como "Goiânia".
+function _filialPorCidade() {
+  const map = {};
+  BASE_REGIONAIS.forEach(b => { map[_normTexto(b.loja)] = b.lj; });
+  map['GOIANIA'] = 1;
+  return map;
+}
+
+function importarFaturamento(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false });
+      if (rows.length < 2) { toast('⚠️ Planilha de faturamento vazia.'); return; }
+
+      const mapaCidade      = _filialPorCidade();
+      const resultado       = {};
+      const naoIdentificados = [];
+      for (let i = 1; i < rows.length; i++) {
+        const bruto = String(rows[i][0] || '').trim();
+        if (!bruto) continue;
+        const idx    = bruto.toUpperCase().lastIndexOf('VENDA');
+        const cidade = idx >= 0 ? bruto.slice(idx + 5) : bruto;
+        const lj     = mapaCidade[_normTexto(cidade)];
+        const valor  = _parseValorBR(rows[i][1]);
+        if (!lj) { naoIdentificados.push(bruto); continue; }
+        resultado[lj] = (resultado[lj] || 0) + valor;
+      }
+
+      if (!Object.keys(resultado).length) {
+        toast('⚠️ Não consegui identificar nenhuma filial nesta planilha.');
+        return;
+      }
+
+      faturamentoPorFilial = resultado;
+      faturamentoInfo = { arquivo: file.name, qtd: Object.keys(resultado).length, naoIdentificados };
+      renderEvolucao();
+      toast('✅ Faturamento carregado: ' + Object.keys(resultado).length + ' filial(is)' +
+        (naoIdentificados.length ? ' — ' + naoIdentificados.length + ' linha(s) não identificada(s)' : ''));
+    } catch(err) {
+      toast('⚠️ Erro ao ler o arquivo: ' + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function limparFaturamento() {
+  faturamentoPorFilial = {};
+  faturamentoInfo = null;
+  renderEvolucao();
+}
+
+function onFaturamentoInput(lj, val) {
+  const v = _parseValorBR(val);
+  if (v > 0) faturamentoPorFilial[lj] = v; else delete faturamentoPorFilial[lj];
+  const atual = getD60Atual(lj);
+  const pctEl = document.getElementById('fat-pct-' + lj);
+  if (pctEl) pctEl.textContent = (v > 0 && atual !== null) ? (atual / v * 100).toFixed(2) + '%' : '—';
+  _renderKpiEndividamentoGeral();
+}
+
+function _renderKpiEndividamentoGeral() {
+  const el = document.getElementById('fat-kpi-geral');
+  if (!el) return;
+  const ljsComFaturamento = Object.keys(faturamentoPorFilial).map(Number).filter(lj => faturamentoPorFilial[lj] > 0);
+  if (!ljsComFaturamento.length) { el.textContent = ''; return; }
+  const totalFat = ljsComFaturamento.reduce((s,lj) => s + faturamentoPorFilial[lj], 0);
+  const totalD60 = ljsComFaturamento.reduce((s,lj) => s + (getD60Atual(lj) || 0), 0);
+  const pct = totalFat > 0 ? (totalD60 / totalFat * 100) : null;
+  el.innerHTML = pct !== null
+    ? '📊 <b>' + ljsComFaturamento.length + '</b> filial(is) com faturamento informado · D60/Faturamento: <b style="color:var(--accent-text)">' + pct.toFixed(2) + '%</b>'
+    : '';
+}
+
+function _atualizarFaturamentoUI() {
+  const info = document.getElementById('fat-import-info');
+  const btn  = document.getElementById('fat-btn-limpar');
+  if (info) {
+    info.textContent = faturamentoInfo
+      ? '✅ ' + faturamentoInfo.arquivo + ' — ' + faturamentoInfo.qtd + ' filial(is)' +
+        (faturamentoInfo.naoIdentificados.length ? ' (' + faturamentoInfo.naoIdentificados.length + ' não identificada(s))' : '')
+      : '';
+  }
+  if (btn) btn.style.display = faturamentoInfo ? 'inline-block' : 'none';
+  _renderKpiEndividamentoGeral();
+}
+
 function sparklineSVG(valores, status) {
   const W = 100, H = 28, pad = 2;
   if (!valores || valores.length < 2) {
@@ -2880,6 +3008,11 @@ function renderEvolucao() {
 
     const ini  = e.valInicio !== null ? formatMoeda(e.valInicio) : '—';
     const atu  = e.valAtual  !== null ? formatMoeda(e.valAtual)  : '—';
+    const fatVal     = faturamentoPorFilial[e.base.lj];
+    const fatInputVal = (fatVal !== undefined && fatVal !== null)
+      ? fatVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : '';
+    const pctEndiv = (fatVal && e.valAtual !== null) ? (e.valAtual / fatVal * 100) : null;
     const dR   = e.delta !== null ? (e.delta > 0 ? '+' : '') + formatMoeda(e.delta) : '—';
     const dP   = e.deltaPct !== null ? (e.deltaPct > 0 ? '+' : '') + e.deltaPct.toFixed(1) + '%' : '—';
     const dCor = e.delta === null ? '#CBD5E1' : e.delta < 0 ? '#22C55E' : e.delta > 0 ? '#EF4444' : '#EAB308';
@@ -2910,6 +3043,8 @@ function renderEvolucao() {
       '<td style="padding:8px 12px;font-size:11px;color:#B7C6E0">' + e.base.regional + '</td>' +
       '<td style="padding:8px 12px;text-align:right;color:#CBD5E1">' + ini + '</td>' +
       '<td style="padding:8px 12px;text-align:right;font-weight:600;color:#CBD5E1">' + atu + '</td>' +
+      '<td style="padding:4px 8px;text-align:right"><input type="text" inputmode="decimal" id="fat-input-' + e.base.lj + '" value="' + fatInputVal + '" placeholder="R$" oninput="onFaturamentoInput(' + e.base.lj + ', this.value)" style="width:110px;text-align:right;padding:4px 6px;border:1px solid var(--cinza-bd);border-radius:5px;background:var(--bg-input);color:var(--texto);font-size:11px"></td>' +
+      '<td style="padding:8px 12px;text-align:right;font-weight:700;color:var(--accent-text)" id="fat-pct-' + e.base.lj + '">' + (pctEndiv !== null ? pctEndiv.toFixed(2) + '%' : '—') + '</td>' +
       '<td style="padding:8px 12px;text-align:right">' + reprCell + '</td>' +
       '<td style="padding:8px 12px;text-align:right;font-weight:700;color:' + dCor + '">' + dR + '</td>' +
       '<td style="padding:8px 12px;text-align:right;font-weight:700;color:' + dCor + '">' + dP + '</td>' +
@@ -2918,6 +3053,7 @@ function renderEvolucao() {
       '<td style="padding:8px 12px;text-align:center"><span class="evol-status-badge ' + statusClass[e.status] + '">' + statusLabel[e.status] + '</span></td>' +
       '</tr>';
   }).join('');
+  _atualizarFaturamentoUI();
 }
 
 function mostrarTooltipLinha(evt, dataStr) {
