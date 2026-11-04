@@ -1556,6 +1556,7 @@ function importarVencidos(input) {
         const vencto = _normDate(r['VENCTO'] || r['Vencto'] || '');
         vencidosData[lj].push({
           representante: (r['REPRESENTANTE: '] || r['REPRESENTANTE:'] || r['REPRESENTANTE'] || '').trim(),
+          codRepresentante: r['CÓDIGO_REPRE'] || r['CODIGO_REPRE'] || '',
           cliente:       (r['CLIENTE'] || '').trim(),
           codCliente:    r['CÓDIGO_CLIENT'] || r['CODIGO_CLIENT'] || r['CÓDIGO_CLIENTE'] || r['CODIGO_CLIENTE'] || '',
           praca:         (r['PRAÇA PAGTO'] || r['PRACA PAGTO'] || '').trim(),
@@ -2148,8 +2149,8 @@ function renderDetalhe(lj) {
       html += '<div class="titulo-item">';
       html += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
       html += '<div style="flex:1">';
-      html += '<div class="titulo-cliente">' + (t.cliente || '—') + '</div>';
-      if (t.representante) html += '<div class="titulo-meta" style="color:#A9BBD9;font-size:10px">Rep: ' + t.representante + '</div>';
+      html += '<div class="titulo-cliente">' + comCodigo(t.codCliente, t.cliente) + '</div>';
+      if (t.representante) html += '<div class="titulo-meta" style="color:#A9BBD9;font-size:10px">Rep: ' + comCodigo(t.codRepresentante, t.representante) + '</div>';
       html += '<div class="titulo-meta">Venc: ' + formatarData(t.vencto) + (t.emissao ? ' · Emis: ' + formatarData(t.emissao) : '') + ' · ' + t.atraso + ' dias · ' + t.sit + '</div>';
       if (t.nf) html += '<div class="titulo-meta">NF: ' + t.nf + (t.lote ? ' · Lote: ' + t.lote : '') + '</div>';
       html += '</div>';
@@ -2206,8 +2207,8 @@ function renderDetalhe(lj) {
     html += '<tr style="background:#E8EFF8"><th style="text-align:left;padding:4px 6px;color:#0A1628">Cliente</th><th style="text-align:left;padding:4px 6px;color:#0A1628">Representante</th><th style="text-align:center;padding:4px 6px;color:#0A1628">Vencimento</th><th style="text-align:center;padding:4px 6px;color:#0A1628">Atraso</th><th style="text-align:right;padding:4px 6px;color:#0A1628">Valor</th></tr>';
     titulosEx.forEach((t,i) => {
       html += '<tr style="border-bottom:1px solid #E5E7EB;background:' + (i%2===0?'#fff':'#F9FAFB') + '">';
-      html += '<td style="padding:4px 6px">' + (t.cliente||'—') + '</td>';
-      html += '<td style="padding:4px 6px;font-size:10px;color:#555">' + (t.representante||'—') + '</td>';
+      html += '<td style="padding:4px 6px">' + comCodigo(t.codCliente, t.cliente) + '</td>';
+      html += '<td style="padding:4px 6px;font-size:10px;color:#555">' + comCodigo(t.codRepresentante, t.representante) + '</td>';
       html += '<td style="padding:4px 6px;text-align:center">' + formatarData(t.vencto) + '</td>';
       html += '<td style="padding:4px 6px;text-align:center">' + t.atraso + 'd</td>';
       html += '<td style="padding:4px 6px;text-align:right;font-weight:700">' + formatMoeda(t.valor) + '</td></tr>';
@@ -2255,7 +2256,7 @@ function exportarXLSX(lj) {
   // Sheet 2: Títulos
   const titulosEx = (vencidosData[lj] || []).slice().sort((a,b) => b.valor - a.valor);
   const titSheet = [['Cliente','Representante','Vencimento','Atraso (dias)','Emissão','NF','Lote','Valor','Situação']];
-  titulosEx.forEach(t => titSheet.push([t.cliente, t.representante, t.vencto, t.atraso, t.emissao, t.nf, t.lote, t.valor, t.sit]));
+  titulosEx.forEach(t => titSheet.push([comCodigo(t.codCliente, t.cliente), comCodigo(t.codRepresentante, t.representante), t.vencto, t.atraso, t.emissao, t.nf, t.lote, t.valor, t.sit]));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(titSheet), 'Títulos');
 
   XLSX.writeFile(wb, 'D60_LJ' + lj + '_' + base.loja.replace(/\s/g,'_') + '.xlsx');
@@ -2534,6 +2535,13 @@ function limparFiltros() {
 function formatMoeda(v) {
   if (v === null || v === undefined || isNaN(v)) return '—';
   return 'R$ ' + parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+// Padrão único de exibição em toda a aplicação: "código - nome" (cliente/representante).
+function comCodigo(codigo, nome) {
+  const n = String(nome ?? '').trim();
+  const c = String(codigo ?? '').trim();
+  if (!n) return '—';
+  return c ? c + ' - ' + n : n;
 }
 function formatarData(s) {
   if (!s) return '—';
@@ -3485,8 +3493,13 @@ function _popularFiltros(items, prefixo) {
 
   // ── Rep: SOMENTE itens do regional+filial selecionados (cascata) ──
   const itemsParaRep = itemsParaFil.filter(i => !curFil || String(i.lj) === curFil);
-  const reps = [...new Set(itemsParaRep.map(i => (i.t.representante||'').trim()).filter(Boolean))].sort();
-  selRep.innerHTML = '<option value="">Todos os Reps.</option>' + reps.map(r => `<option value="${r}">${r}</option>`).join('');
+  const repCodigos = new Map();
+  itemsParaRep.forEach(i => {
+    const nm = (i.t.representante||'').trim();
+    if (nm && !repCodigos.has(nm)) repCodigos.set(nm, i.t.codRepresentante || '');
+  });
+  const reps = [...repCodigos.keys()].sort();
+  selRep.innerHTML = '<option value="">Todos os Reps.</option>' + reps.map(r => `<option value="${r}">${comCodigo(repCodigos.get(r), r)}</option>`).join('');
   selRep.value = prevRep;
   // Se o rep anterior não pertence ao filtro atual, select volta para ""
 
@@ -3574,8 +3587,8 @@ function _renderTabMovimentos(tbodyId, emptyId, theadId, items, sortState, corVa
     const bg    = idx % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-input)';
     const nome  = base ? base.loja : 'LJ'+lj;
     const reg   = base ? base.regional : '—';
-    const rep   = t.representante || '—';
-    const cli   = t.cliente || '—';
+    const rep   = comCodigo(t.codRepresentante, t.representante);
+    const cli   = comCodigo(t.codCliente, t.cliente);
     const titNF = [t.titulo, t.nf].filter(Boolean).join('/') || '—';
     const ven   = t.vencto ? formatarData(t.vencto) : '—';
     html += `<tr style="background:${bg}">
@@ -3657,13 +3670,13 @@ function _exportMovimentosXLS(getFn, periodo, sheetName, filePrefix, titulo) {
     return true;
   });
   const total = filtrados.reduce((s,i) => s+(i.t.valor||0), 0);
-  const header = ['LJ','Filial','Regional','Representante','Cliente','Cód. Cliente','Título','NF','Emissão','Vencimento','Atraso','Valor'];
+  const header = ['LJ','Filial','Regional','Representante','Cliente','Título','NF','Emissão','Vencimento','Atraso','Valor'];
   const rows = filtrados.map(({ lj, base, t }) => [
     lj, base ? base.loja : 'LJ'+lj, base ? base.regional : '',
-    t.representante||'', t.cliente||'', t.codCliente||'',
+    comCodigo(t.codRepresentante, t.representante), comCodigo(t.codCliente, t.cliente),
     t.titulo||'', t.nf||'', t.emissao||'', t.vencto||'', t.atraso||'', t.valor||0,
   ]);
-  rows.push(['','','','','','','','','','TOTAL','', total]);
+  rows.push(new Array(header.length - 2).fill('').concat(['TOTAL', total]));
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([[titulo],[`Período: ${semDe ? formatarData(semDe) : '?'} → ${semAte ? formatarData(semAte) : '?'}`],[],header,...rows]);
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
@@ -3755,6 +3768,7 @@ function importarProxVencimentos(input) {
         dados.push({
           lj, base: BASE_REGIONAIS.find(b => b.lj === lj),
           representante: (r['REPRESENTANTE: '] || r['REPRESENTANTE:'] || r['REPRESENTANTE'] || '').trim(),
+          codRepresentante: r['CÓDIGO_REPRE'] || r['CODIGO_REPRE'] || '',
           cliente:       (r['CLIENTE'] || '').trim(),
           codCliente:    r['CÓDIGO_CLIENT'] || r['CODIGO_CLIENT'] || r['CÓDIGO_CLIENTE'] || r['CODIGO_CLIENTE'] || '',
           titulo:        r['TÍTULO'] || r['TITULO'] || '',
@@ -3935,7 +3949,7 @@ function provMostrarDetalheCliente(idx) {
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px">
       <div>
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--texto-ter)">Detalhe do cliente — por que aparece mais de uma vez</div>
-        <div style="font-size:17px;font-weight:800;color:var(--accent-text)">${row.cliente || '—'}</div>
+        <div style="font-size:17px;font-weight:800;color:var(--accent-text)">${comCodigo(row.codCliente, row.cliente)}</div>
         <div style="font-size:11px;color:var(--texto-mut)">${row.base ? row.base.loja : 'LJ'+row.lj} · ${relacionados.length} título(s) neste levantamento</div>
       </div>
       <button class="btn-limpar" style="width:auto;padding:4px 10px" onclick="provFecharModal()">✕</button>
@@ -4055,8 +4069,8 @@ function _provRenderTabela(filtrados) {
     html += `<tr style="background:${f.corBg}30;border-left:3px solid ${f.cor}">
       <td style="padding:7px 12px;font-weight:700;color:var(--azul)">${d.lj}</td>
       <td style="padding:7px 12px;font-weight:600;color:var(--texto)">${nome}</td>
-      <td style="padding:7px 12px;color:var(--texto-sec)">${d.representante || '—'}</td>
-      <td style="padding:7px 12px;color:var(--texto)">${d.cliente || '—'}${reincid}</td>
+      <td style="padding:7px 12px;color:var(--texto-sec)">${comCodigo(d.codRepresentante, d.representante)}</td>
+      <td style="padding:7px 12px;color:var(--texto)">${comCodigo(d.codCliente, d.cliente)}${reincid}</td>
       <td style="padding:7px 12px;color:var(--texto-ter);font-size:11px">${[d.titulo, d.nf].filter(Boolean).join('/') || '—'}</td>
       <td style="padding:7px 12px;text-align:right;color:var(--texto-sec)">${formatarData(d.vencto)}</td>
       <td style="padding:7px 12px;text-align:right"><span style="display:inline-block;padding:2px 9px;border-radius:20px;background:${f.cor};color:#fff;font-weight:700;font-size:11px">${d.dias}d</span></td>
@@ -4089,7 +4103,7 @@ function exportarProxVencimentosXLS() {
   const header = ['LJ','Filial','Representante','Cliente','Título','NF','Vencimento','Dias Vencido','Faixa','Ocorrências','Valor'];
   const rows = filtrados.map(d => [
     d.lj, d.base ? d.base.loja : 'LJ'+d.lj,
-    d.representante||'', d.cliente||'', d.titulo||'', d.nf||'', d.vencto||'',
+    comCodigo(d.codRepresentante, d.representante), comCodigo(d.codCliente, d.cliente), d.titulo||'', d.nf||'', d.vencto||'',
     d.dias, _provFaixa(d.dias).label, d.ocorrencias||1, d.valor||0,
   ]);
   const total = filtrados.reduce((s,d) => s + (d.valor||0), 0);
